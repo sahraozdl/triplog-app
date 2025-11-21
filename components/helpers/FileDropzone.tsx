@@ -1,0 +1,69 @@
+"use client";
+
+import { useState, DragEvent } from "react";
+import { UploadCloud } from "lucide-react";
+import { cn } from "@/lib/utils";
+// created for ui right now its not functional but will be updated in the future
+export function FileDropzone() {
+  const [fileName, setFileName] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+
+  function handleDrop(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) setFileName(file.name);
+  }
+
+  return (
+    <div className="w-full flex justify-center items-center">
+      <label
+        htmlFor="dropzone-file"
+        className={cn(
+          "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+          "bg-muted/20 hover:bg-muted/30 dark:bg-muted/30 dark:hover:bg-muted/40",
+          "border-muted-foreground/30 dark:border-muted-foreground/20",
+          isDragging && "bg-primary/10 border-primary text-primary"
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+        }}
+        onDrop={handleDrop}
+      >
+        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+          <UploadCloud className="h-10 w-10 text-muted-foreground" />
+
+          <p className="mb-2 text-sm text-muted-foreground">
+            <span className="font-semibold">Click to upload</span> or drag and drop
+          </p>
+
+          <p className="text-xs text-muted-foreground">
+            PNG, JPG, PDF (MAX. 10MB)
+          </p>
+
+          {fileName && (
+            <p className="text-sm font-medium mt-3 text-primary">
+              Selected: {fileName}
+            </p>
+          )}
+        </div>
+
+        <input
+          id="dropzone-file"
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) setFileName(file.name);
+          }}
+        />
+      </label>
+    </div>
+  );
+}
