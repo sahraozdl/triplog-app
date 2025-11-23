@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import "./globals.css";
 import { Manrope } from "next/font/google";
+import { SidebarClientWrapper } from "@/components/layout/SidebarClientWrapper";
 const manrope = Manrope({
   subsets: ["latin"],
   weight: ["200", "300", "400", "500", "600", "700", "800"],
@@ -21,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={manrope.className}>
+        <SidebarClientWrapper>
         <Auth0Provider>
           {children}
         </Auth0Provider>
+        </SidebarClientWrapper>
       </body>
     </html>
   );

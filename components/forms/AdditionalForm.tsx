@@ -5,7 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Label } from "../ui/label";
-import { FileDropzone } from "../helpers/FileDropzone";
+import { FileDropzone } from "../form-elements/FileDropzone";
 
 export default function AdditionalForm() {
   return (

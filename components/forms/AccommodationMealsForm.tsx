@@ -7,7 +7,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { MealSelector } from "../helpers/MealSelector";
+import { MealSelector } from "../form-elements/MealSelector";
 
 export default function AccommodationMealsForm() {
   return (

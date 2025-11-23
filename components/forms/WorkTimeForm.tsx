@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { QuickTags } from "@/components/helpers/QuickTags";
+import { QuickTags } from "@/components/form-elements/QuickTags";
 
 export default function WorkTimeForm() {
   return (
