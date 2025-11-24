@@ -13,10 +13,7 @@ export default async function TripDetailPage({
 }) {
   const { tripId } = params;
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/trips/${tripId}`,
-    { cache: "no-store" }
-  );
+  const response = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
 
   const data = (await response.json()) as { success: boolean; trip: Trip };
   const trip = data.trip;
