@@ -22,7 +22,7 @@ export default function DailyLogPage() {
   const router = useRouter();
   const { tripId } = useParams();
   const user = useUser();
-  const loggedInUserId = user?.userId;
+  const loggedInUserId = user.user?.userId;
 
   const [attendants, setAttendants] = useState<TripAttendant[]>([]);
   const [loadingTrip, setLoadingTrip] = useState(true);

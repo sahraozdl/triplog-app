@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { IUser } from "@/app/types/user";
 
 interface UserContextValue {
@@ -19,17 +19,19 @@ export function UserProvider({
   children,
 }: {
   initialUser: IUser | null;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
+  const [user] = useState<IUser | null>(initialUser);
+  const [isLoading] = useState<boolean>(initialUser ? false : true);
+  const [error] = useState<string | null>(null);
+
   return (
-    <UserContext.Provider
-      value={{ user: initialUser, isLoading: initialUser ? false : true, error: !initialUser ? "User not found" : null }}
-    >
+    <UserContext.Provider value={{ user, isLoading, error }}>
       {children}
     </UserContext.Provider>
   );
 }
 
 export function useUser() {
-  return useContext(UserContext).user;
+  return useContext(UserContext);
 }

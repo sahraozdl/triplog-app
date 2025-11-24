@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const user = useUser();
-  const tripIds = useMemo(() => user?.activeTrips || [], [user]);
+  const tripIds = useMemo(() => user.user?.activeTrips || [], [user]);
   const router = useRouter();
 
   const [trips, setTrips] = useState<TripBasicInfo[]>([]);
