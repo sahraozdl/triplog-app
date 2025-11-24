@@ -8,6 +8,18 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
     const body = await req.json();
+    if (!body.userId) {
+      return NextResponse.json(
+        { error: "UserId is missing in request body" },
+        { status: 400 }
+      );
+    }
+    if (!body.basicInfo) {
+      return NextResponse.json(
+        { error: "BasicInfo is missing in request body" },
+        { status: 400 }
+      );
+    }
 
     const creatorId = body.userId;
     const inviteCode = generateInviteCode();
