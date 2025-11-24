@@ -46,6 +46,7 @@ export default function NewTripPage() {
       <h1 className="text-3xl font-bold mb-6">Create New Trip</h1>
 
       <form className="flex flex-col gap-4" onSubmit={createTrip}>
+        <Input id="createdBy" type="hidden" value={userId} />
         <Label htmlFor="title">Trip Title</Label>
         <Input
           id="title"
