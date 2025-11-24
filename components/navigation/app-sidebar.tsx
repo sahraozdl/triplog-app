@@ -13,6 +13,7 @@ import {
   Send,
   Settings2,
   ListTree,
+  Calendar,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -37,6 +38,11 @@ const data = {
       icon: ListTree,
       isActive: true,
       items: [
+        {
+          title: "Daily Log",
+          url: "/newDailyLog",
+          icon: Calendar,
+        },
         {
           title: "New Trip",
           url: "/newTrip",
