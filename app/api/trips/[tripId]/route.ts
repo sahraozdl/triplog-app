@@ -4,12 +4,14 @@ import Trip from "@/app/models/TripLog";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { tripId: string } }
+  context: { params: { tripId: string } }
 ) {
   try {
     await connectToDB();
 
-    const trip = await Trip.findById(params.tripId).lean();
+    const { tripId } = context.params;
+
+    const trip = await Trip.findById(tripId).lean();
 
     if (!trip) {
       return NextResponse.json(
