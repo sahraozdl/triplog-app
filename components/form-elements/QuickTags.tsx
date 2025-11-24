@@ -9,7 +9,7 @@ interface TagObject {
   label: string;
   category: string;
 }
-// this is an example to show the tags and categories
+//this is an example to show the tags and categories
 //it will be fetched from the database later
 const initialTags: TagObject[] = [
   { label: "team meeting", category: "communication, planning" },
@@ -36,14 +36,17 @@ const initialTags: TagObject[] = [
 
 function getRelatedTags(category: string, allTags: TagObject[]): TagObject[] {
   const categories = category.split(",").map((c) => c.trim());
-
   return allTags.filter((tag) => {
     const tagCats = tag.category.split(",").map((c) => c.trim());
     return tagCats.some((c) => categories.includes(c));
   });
 }
 
-export function QuickTags({ onTagClick }: { onTagClick?: (tag: string) => void }) {
+export function QuickTags({
+  onTagClick,
+}: {
+  onTagClick?: (tag: string) => void;
+}) {
   const [tags, setTags] = useState(initialTags);
   const [expandedTags, setExpandedTags] = useState<TagObject[]>([]);
   const [customTag, setCustomTag] = useState("");
@@ -58,15 +61,14 @@ export function QuickTags({ onTagClick }: { onTagClick?: (tag: string) => void }
   }
 
   function handleTagClick(tag: TagObject) {
-    // Toggle selection
+    const willBeSelected = !selectedTags.includes(tag.label);
+
     toggleSelection(tag.label);
 
-    // Insert into textarea (only when SELECTED)
-    if (!selectedTags.includes(tag.label)) {
+    if (willBeSelected) {
       onTagClick?.(tag.label);
     }
 
-    // Expand related tags
     const related = getRelatedTags(tag.category, tags);
     setExpandedTags((prev) => {
       const newOnes = related.filter(
@@ -81,8 +83,10 @@ export function QuickTags({ onTagClick }: { onTagClick?: (tag: string) => void }
   function addCustomTag() {
     if (!customTag.trim()) return;
 
-    const newTag = { label: customTag, category: "general" };
+    const newTag = { label: customTag.trim(), category: "general" };
+
     setTags((prev) => [...prev, newTag]);
+
     onTagClick?.(newTag.label);
     setCustomTag("");
   }
@@ -96,9 +100,8 @@ export function QuickTags({ onTagClick }: { onTagClick?: (tag: string) => void }
     <div className="mt-4 space-y-3">
       <h3 className="text-sm font-semibold">Quick Tags</h3>
 
-      {/* Base Tags */}
       <div className="flex flex-wrap gap-2">
-        {tags.slice(0, 5).map((tag) => (
+        {tags.slice(0, 8).map((tag) => (
           <Badge
             key={tag.label}
             variant="secondary"
@@ -114,7 +117,6 @@ export function QuickTags({ onTagClick }: { onTagClick?: (tag: string) => void }
         ))}
       </div>
 
-      {/* Expanded Related Tags */}
       {expandedTags.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2 pl-1">
           {expandedTags.map((tag) => (
@@ -133,7 +135,6 @@ export function QuickTags({ onTagClick }: { onTagClick?: (tag: string) => void }
         </div>
       )}
 
-      {/* Add custom tag */}
       <div className="flex gap-2 mt-3">
         <Input
           placeholder="Add custom tag..."

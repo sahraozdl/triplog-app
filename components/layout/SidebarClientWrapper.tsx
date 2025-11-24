@@ -7,7 +7,7 @@ export function SidebarClientWrapper({ children }: { children: React.ReactNode }
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex-1">{children}</main>
+      <main className="w-full">{children}</main>
     </SidebarProvider>
   );
 }

@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
     const log = await DailyLog.create({
       tripId: body.tripId,
       userId: body.userId,
-      createdBy: body.createdBy,
       isGroupSource: body.isGroupSource || false,
       appliedTo: body.appliedTo || [],
 

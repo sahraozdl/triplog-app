@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 
 const DailyLogSchema = new mongoose.Schema({
   tripId: { type: String, required: true },        // Trip document _id
-  userId: { type: String, required: true },        // Auth0 user_id
-  createdBy: { type: String, required: true },     // Auth0 user_id
+  userId: { type: String, required: true },  // Auth0 user_id
   isGroupSource: { type: Boolean, default: false },
 
   appliedTo: [{ type: String }],   // list of userIds this log applies to

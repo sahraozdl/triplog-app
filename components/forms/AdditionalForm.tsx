@@ -5,9 +5,22 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Label } from "../ui/label";
-import { FileDropzone } from "../form-elements/FileDropzone";
+import FileDropzone from "../form-elements/FileDropzone";
+import { AdditionalFields, UploadedFile } from "@/app/types/DailyLog";
 
-export default function AdditionalForm() {
+export default function AdditionalForm({
+  value,
+  onChange,
+}: {
+  value: AdditionalFields;
+  onChange: (data: AdditionalFields) => void;
+}) {
+  const update = (field: Partial<AdditionalFields>) =>
+    onChange({ ...value, ...field });
+
+  const updateUploadedFiles = (files: UploadedFile[]) =>
+    update({ uploadedFiles: files });
+
   return (
     <div className="px-12 py-4 min-w-72">
       <Accordion type="single" collapsible className="w-full">
@@ -22,9 +35,14 @@ export default function AdditionalForm() {
                 id="additional-information"
                 className="w-full h-40 resize-none border border-input-border rounded-md p-2 bg-input-back focus:outline-none focus:ring-0 focus:border-input-border"
                 placeholder="e.g. Additional information"
+                value={value.notes}
+                onChange={(e) => update({ notes: e.target.value })}
               />
             </div>
-            <FileDropzone />
+            <FileDropzone
+              value={value.uploadedFiles}
+              onChange={updateUploadedFiles}
+            />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

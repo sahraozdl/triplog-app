@@ -13,10 +13,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export default function DateAndTimePicker() {
+export default function DateAndTimePicker({ value, onChange }: { value: { date: string, time: string }, onChange: (dateTime: { date: string, time: string }) => void }) {
   const [open, setOpen] = React.useState(false)
-  const [date, setDate] = React.useState<Date | undefined>(undefined)
-
+  const date = value.date ? new Date(value.date) : undefined
+  const update = (field: Partial<{ date: string, time: string }>) =>
+    onChange?.({ ...value, ...field });
   return (
     <div className="w-full flex flex-row justify-between gap-12">
       <div className="flex flex-col w-1/2 gap-1">
@@ -40,7 +41,7 @@ export default function DateAndTimePicker() {
               selected={date}
               captionLayout="dropdown"
               onSelect={(date) => {
-                setDate(date)
+                update({ date: date?.toISOString() || "" })
                 setOpen(false)
               }}
             />
@@ -56,7 +57,8 @@ export default function DateAndTimePicker() {
             type="time"
             id="time-from"
             step="60"
-            defaultValue="00:00"
+            value={value.time}
+            onChange={(e) => update({ time: e.target.value })}
             className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
         </div>
@@ -68,7 +70,8 @@ export default function DateAndTimePicker() {
             type="time"
             id="time-to"
             step="60"
-            defaultValue="00:00"
+            value={value.time}
+            onChange={(e) => update({ time: e.target.value })}
             className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
         </div>

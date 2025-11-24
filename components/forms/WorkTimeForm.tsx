@@ -7,8 +7,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { QuickTags } from "@/components/form-elements/QuickTags";
+import { WorkTimeFields } from "@/app/types/DailyLog";
 
-export default function WorkTimeForm() {
+export default function WorkTimeForm({
+  value,
+  onChange,
+}: {
+  value: WorkTimeFields;
+  onChange: (data: WorkTimeFields) => void;
+}) {
+  const update = (field: Partial<WorkTimeFields>) =>
+    onChange?.({ ...value, ...field });
+
+  function insertTag(tag: string) {
+    update({
+      description: value.description.includes(tag)
+        ? value.description
+        : value.description.trim().length
+        ? `${value.description}, ${tag}`
+        : tag,
+    });
+  }
+
   return (
     <div className="px-12 py-4 min-w-72">
       <Accordion type="single" collapsible className="w-full">
@@ -22,7 +42,8 @@ export default function WorkTimeForm() {
                   type="time"
                   id="time-from"
                   step="60"
-                  defaultValue="00:00"
+                  value={value.startTime}
+                  onChange={(e) => update({ startTime: e.target.value })}
                   className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 />
               </div>
@@ -32,7 +53,8 @@ export default function WorkTimeForm() {
                   type="time"
                   id="time-to"
                   step="60"
-                  defaultValue="00:00"
+                  value={value.endTime}
+                  onChange={(e) => update({ endTime: e.target.value })}
                   className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 />
               </div>
@@ -44,11 +66,12 @@ export default function WorkTimeForm() {
                 placeholder="e.g. Worked on project X, Y, Z"
                 id="work-description"
                 aria-label="Work Description"
+                value={value.description}
+                onChange={(e) => update({ description: e.target.value })}
               ></textarea>
             </div>
             <div className="flex gap-1 w-full justify-end flex-col">
-              <QuickTags
-              />
+              <QuickTags onTagClick={insertTag} />
             </div>
           </AccordionContent>
         </AccordionItem>
