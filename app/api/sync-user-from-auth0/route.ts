@@ -12,16 +12,20 @@ export async function POST(request: NextRequest) {
 
   await connectToDB();
   console.log("🟢 connected to MongoDB");
-  const existingUser = await User.findOne({ auth0Id: body.auth0Id });
+  const existingUser = await User.findOne({ userId: body.userId });
   if (!existingUser) {
     await User.create(
       {
-        auth0Id: body.auth0Id,
+        userId: body.userId,
         email: body.email,
         name: body.name,
         picture: body.picture,
         roles: body.roles,
         createdAt: new Date(),
+        activeTrips: [],
+        pastTrips: [],
+        pendingInvites: [],
+        organizationId: null,
       }
     );
     return NextResponse.json({ message: "User created" }, { status: 200 });

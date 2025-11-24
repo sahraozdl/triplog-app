@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import "./globals.css";
 import { Manrope } from "next/font/google";
 import { SidebarClientWrapper } from "@/components/layout/SidebarClientWrapper";
+import { UserProvider } from "@/components/providers/UserProvider";
+import { getUserDB } from "@/lib/getUserDB";
+
 const manrope = Manrope({
   subsets: ["latin"],
   weight: ["200", "300", "400", "500", "600", "700", "800"],
@@ -14,19 +16,20 @@ export const metadata: Metadata = {
   description: "Next.js app with Auth0 authentication",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getUserDB();
   return (
     <html lang="en" className="dark">
       <body className={manrope.className}>
+        <UserProvider initialUser={user}>
         <SidebarClientWrapper>
-        <Auth0Provider>
           {children}
-        </Auth0Provider>
         </SidebarClientWrapper>
+        </UserProvider>
       </body>
     </html>
   );

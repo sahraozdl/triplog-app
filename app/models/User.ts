@@ -1,12 +1,19 @@
-import mongoose from "mongoose";
+import mongoose, { Model , Schema} from "mongoose";
+import {IUserDocument} from "@/app/types/user";
 
-const UserSchema = new mongoose.Schema({
-  auth0Id: { type: String, required: true, unique: true },
+const UserSchema = new Schema<IUserDocument>({
+  userId: { type: String, required: true, unique: true },
   email: String,
   name: String,
   picture: String,
   roles: [String],
-  createdAt: Date,
+  createdAt: { type: Date, default: Date.now },
+  activeTrips: [String],
+  pastTrips: [String],
+  pendingInvites: [String],
+  organizationId: String,
 });
 
-export default mongoose.models.User || mongoose.model("User", UserSchema);
+const User = (mongoose.models.User as Model<IUserDocument>) || mongoose.model<IUserDocument>("User", UserSchema);
+
+export default User;

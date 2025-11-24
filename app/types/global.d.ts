@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 declare global {
-  var mongooseCache:
+  const mongooseCache:
     | {
         conn: mongoose.Connection | null;
         promise: Promise<typeof mongoose> | null;
