@@ -6,7 +6,9 @@ export default async function TripDetailPage({ params }: { params: { tripId?: st
 
   if (!tripId) return <div className="p-6">Invalid trip ID</div>;
 
-  const response = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+const response = await fetch(`${baseUrl}/api/trips/${tripId}`, { cache: "no-store" });
+
   const data = (await response.json()) as { success: boolean; trip: Trip | null };
   const trip = data.trip ?? null;
 
