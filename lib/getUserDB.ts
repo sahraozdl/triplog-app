@@ -16,7 +16,7 @@ export async function getUserDB(): Promise<IUser | null> {
 
   if (!dbUser) {
     return {
-      userId: auth0User.user_id,
+      userId: auth0User.sub,
       name: auth0User.name || "",
       email: auth0User.email || "",
       picture: auth0User.picture || "",
