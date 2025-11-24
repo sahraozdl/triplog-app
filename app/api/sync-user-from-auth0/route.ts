@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import {connectToDB} from "@/lib/mongodb";
+import { connectToDB } from "@/lib/mongodb";
 import User from "@/app/models/User";
 
 export async function POST(request: NextRequest) {
@@ -20,13 +20,11 @@ export async function POST(request: NextRequest) {
         email: body.email,
         name: body.name,
         picture: body.picture,
-        role: body.role,
+        roles: body.roles,
         createdAt: new Date(),
       }
     );
     return NextResponse.json({ message: "User created" }, { status: 200 });
-    console.log("🟢 user created in MongoDB");
-
   }
   return NextResponse.json({ message: "User already exists" }, { status: 200 });
 }
