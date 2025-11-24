@@ -12,7 +12,7 @@ export async function getUserDB(): Promise<IUser | null> {
   const auth0User = session.user;
 
   await connectToDB();
-  const dbUser = await User.findOne({ userId: auth0User.user_id }).lean();
+  const dbUser = await User.findOne({ userId: auth0User.sub }).lean();
 
   if (!dbUser) {
     return {
