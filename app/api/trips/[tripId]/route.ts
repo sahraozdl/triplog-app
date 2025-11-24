@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/TripLog";
-
 export async function GET(
   req: NextRequest,
-  { params }: { params: { tripId: string } }
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any 
 ) {
   try {
     await connectToDB();
 
-    const { tripId } = params;
+    const { tripId } = context.params as { tripId: string };
+
     const trip = await Trip.findById(tripId).lean();
 
     if (!trip) {
