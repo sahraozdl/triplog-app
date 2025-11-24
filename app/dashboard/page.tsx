@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const user = useUser();
-  const tripIds = useMemo(() => user.user?.activeTrips || [], [user]);
+  const tripIds = useMemo(() => user?.activeTrips || [], [user]);
   const router = useRouter();
 
   const [trips, setTrips] = useState<TripBasicInfo[]>([]);
@@ -39,13 +39,11 @@ export default function Dashboard() {
 
       <div className="flex flex-row gap-4" id="active-trips">
         {trips.length > 0 ? (
-          trips.map((trip) => (
-            <ActiveTripCard key={trip._id} trip={trip} />
-          ))
+          trips.map((trip) => <ActiveTripCard key={trip._id} trip={trip} />)
         ) : (
           <div>No active trips</div>
         )}
-      </div>      
+      </div>
     </div>
   );
 }

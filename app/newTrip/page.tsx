@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 export default function NewTripPage() {
   const router = useRouter();
   const user = useUser();
-  const userId = user.user?.userId;
+  const userId = user?.userId;
 
   const [basicInfo, setBasicInfo] = useState({
     title: "",
