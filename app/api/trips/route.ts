@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       { $push: { activeTrips: trip._id.toString() } }
     );
 
-    return NextResponse.json({ success: true, tripId: trip._id, inviteCode });
+    return NextResponse.json({ success: true, tripId: trip._id.toString(), inviteCode });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed to create trip" }, { status: 500 });
