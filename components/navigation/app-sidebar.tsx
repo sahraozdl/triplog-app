@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   Map,
   PieChart,
+  Plus,
   Send,
   Settings2,
   SquareTerminal,
@@ -32,10 +33,15 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: SquareTerminal,
       isActive: true,
       items: [
+        {
+          title: "New Daily Log",
+          url: "/newDailyLog",
+          icon: Plus,
+        },
         {
           title: "Active Trips",
           url: "#",
