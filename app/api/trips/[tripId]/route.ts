@@ -4,20 +4,24 @@ import Trip from "@/app/models/TripLog";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { tripId: string } }
+  context: { params: { tripId: string } }
 ) {
   try {
     await connectToDB();
 
-    const trip = await Trip.findById(params.tripId).lean();
+    const { tripId } = context.params;
+    const trip = await Trip.findById(tripId).lean();
 
     if (!trip) {
-      return NextResponse.json({ success: false, error: "Trip not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Trip not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, trip });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
