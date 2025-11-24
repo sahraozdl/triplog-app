@@ -7,12 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useEffect } from "react";
 
 export default function NewTripPage() {
   const router = useRouter();
   const user = useUser();
   const userId = user?.userId;
 
+  useEffect(() => {
+      console.log("🔍 user from context:", user);
+      console.log("🔍 userId:", user?.userId);
+   }, [user]);
+   
   const [basicInfo, setBasicInfo] = useState({
     title: "",
     description: "",
