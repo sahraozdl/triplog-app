@@ -7,7 +7,7 @@ export function SidebarClientWrapper({ children }: { children: React.ReactNode }
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="w-full">{children}</main>
+      <main className="w-full bg-background">{children}</main>
     </SidebarProvider>
   );
 }

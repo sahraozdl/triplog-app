@@ -9,16 +9,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const log = await DailyLog.create({
+      date: body.date,
       tripId: body.tripId,
-      userId: body.userId,
+      userId: body.loggedInUserId,
       isGroupSource: body.isGroupSource || false,
       appliedTo: body.appliedTo || [],
-
-      date: body.date,
       sharedFields: body.sharedFields || {},
       personalFields: body.personalFields || {},
       files: body.files || [],
-
       sealed: false,
     });
 

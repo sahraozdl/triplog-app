@@ -3,8 +3,8 @@
 import * as React from "react";
 import {
   BookOpen,
-  Bot,
-  Command,
+  LuggageIcon,
+  Bus,
   Frame,
   LifeBuoy,
   Map,
@@ -12,7 +12,7 @@ import {
   Plus,
   Send,
   Settings2,
-  SquareTerminal,
+  ListTree,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -34,17 +34,17 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: SquareTerminal,
+      icon: ListTree,
       isActive: true,
       items: [
         {
-          title: "New Daily Log",
-          url: "/newDailyLog",
+          title: "New Trip",
+          url: "/newTrip",
           icon: Plus,
         },
         {
           title: "Active Trips",
-          url: "#",
+          url: "/dashboard#active-trips",
         },
         {
           title: "Past Trips",
@@ -53,9 +53,9 @@ const data = {
       ],
     },
     {
-      title: "Reports",
+      title: "Trips",
       url: "#",
-      icon: Bot,
+      icon: LuggageIcon,
       items: [
         {
           title: "Sweden Trip Report",
@@ -148,9 +148,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/dashboard">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                  <Bus className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">TripLog</span>

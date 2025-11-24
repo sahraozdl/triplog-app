@@ -50,8 +50,23 @@ export interface AdditionalFields {
 }
 
 export interface DailyLogFormState {
-  travel: TravelFields;
-  workTime: WorkTimeFields;
-  accommodationMeals: AccommodationMealsFields;
-  additional: AdditionalFields;
+  tripId: string;
+  loggedInUserId: string;
+  appliedTo: string[];
+  isGroupSource: boolean;
+  sharedFields: {
+    travel: TravelFields;
+    workTime: WorkTimeFields;
+    accommodationMeals: AccommodationMealsFields;
+    additional: AdditionalFields;
+  };
+  personalFields?: {
+    personalCost: {
+      breakfast: number;
+      lunch: number;
+      dinner: number;
+    };
+  };
+  files: UploadedFile[];
+  sealed: boolean;
 }

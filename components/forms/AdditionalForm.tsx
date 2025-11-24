@@ -7,6 +7,7 @@ import {
 import { Label } from "../ui/label";
 import FileDropzone from "../form-elements/FileDropzone";
 import { AdditionalFields, UploadedFile } from "@/app/types/DailyLog";
+import { Textarea } from "../ui/textarea";
 
 export default function AdditionalForm({
   value,
@@ -31,7 +32,7 @@ export default function AdditionalForm({
               <Label htmlFor="additional-information">
                 Notes & Attachments
               </Label>
-              <textarea
+              <Textarea
                 id="additional-information"
                 className="w-full h-40 resize-none border border-input-border rounded-md p-2 bg-input-back focus:outline-none focus:ring-0 focus:border-input-border"
                 placeholder="e.g. Additional information"
