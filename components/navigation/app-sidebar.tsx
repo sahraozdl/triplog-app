@@ -39,11 +39,6 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Daily Log",
-          url: "/newDailyLog",
-          icon: Calendar,
-        },
-        {
           title: "New Trip",
           url: "/newTrip",
           icon: Plus,
