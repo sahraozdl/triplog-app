@@ -22,7 +22,7 @@ export default function Dashboard() {
 
     async function loadTrips() {
       if (tripIds.length === 0) {
-        setTrips([]); // boş
+        setTrips([]);
         return;
       }
 
@@ -49,7 +49,7 @@ export default function Dashboard() {
         {tripList.length > 0 ? (
           tripList.map((trip) => <ActiveTripCard key={trip._id} trip={trip} />)
         ) : (
-          <div>No active trips</div>
+          <div>{!initialized ? "loading..." : "No active trips"}</div>
         )}
       </div>
     </div>
