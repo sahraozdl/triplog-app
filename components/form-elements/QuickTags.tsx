@@ -18,7 +18,10 @@ const initialTags: TagObject[] = [
   { label: "technical research", category: "research, analysis" },
   { label: "feature development", category: "coding, development" },
   { label: "bug fixing", category: "debugging, development" },
-  { label: "code refactoring", category: "debugging, optimization, development" },
+  {
+    label: "code refactoring",
+    category: "debugging, optimization, development",
+  },
   { label: "unit testing", category: "testing, development" },
   { label: "integration testing", category: "testing, deployment" },
   { label: "performance optimization", category: "optimization, testing" },
@@ -54,9 +57,7 @@ export function QuickTags({
 
   function toggleSelection(label: string) {
     setSelectedTags((prev) =>
-      prev.includes(label)
-        ? prev.filter((l) => l !== label)
-        : [...prev, label]
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
     );
   }
 
@@ -72,9 +73,7 @@ export function QuickTags({
     const related = getRelatedTags(tag.category, tags);
     setExpandedTags((prev) => {
       const newOnes = related.filter(
-        (r) =>
-          !prev.some((p) => p.label === r.label) &&
-          r.label !== tag.label
+        (r) => !prev.some((p) => p.label === r.label) && r.label !== tag.label,
       );
       return [...prev, ...newOnes];
     });
@@ -91,8 +90,7 @@ export function QuickTags({
     setCustomTag("");
   }
 
-  const selectedStyle =
-    "bg-primary text-primary-foreground border-primary";
+  const selectedStyle = "bg-primary text-primary-foreground border-primary";
   const unselectedStyle =
     "bg-secondary text-secondary-foreground hover:bg-primary/70 hover:text-primary-foreground";
 
@@ -106,9 +104,7 @@ export function QuickTags({
             key={tag.label}
             variant="secondary"
             className={`cursor-pointer transition-all border ${
-              selectedTags.includes(tag.label)
-                ? selectedStyle
-                : unselectedStyle
+              selectedTags.includes(tag.label) ? selectedStyle : unselectedStyle
             }`}
             onClick={() => handleTagClick(tag)}
           >

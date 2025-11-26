@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
 const TripSchema = new mongoose.Schema({
-  creatorId: { type: String, required: true },   // auth0Id of creator
-  
+  creatorId: { type: String, required: true }, // auth0Id of creator
+
   attendants: [
     {
       userId: String,
       joinedAt: String,
       role: { type: String, enum: ["employee", "employer", "moderator"] },
       status: { type: String, enum: ["active", "removed"], default: "active" },
-    }
+    },
   ],
 
   invites: [
@@ -17,7 +17,7 @@ const TripSchema = new mongoose.Schema({
       code: String,
       createdBy: String,
       expiresAt: String,
-    }
+    },
   ],
 
   basicInfo: {

@@ -1,29 +1,33 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ChevronDownIcon } from "lucide-react"
+import * as React from "react";
+import { ChevronDownIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
-export default function DateAndTimePicker({ value, onChange }: { value: { date: string, time: string }, onChange: (dateTime: { date: string, time: string }) => void }) {
-  const [open, setOpen] = React.useState(false)
-  const date = value.date ? new Date(value.date) : undefined
-  const update = (field: Partial<{ date: string, time: string }>) =>
+export default function DateAndTimePicker({
+  value,
+  onChange,
+}: {
+  value: { date: string; time: string };
+  onChange: (dateTime: { date: string; time: string }) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const date = value.date ? new Date(value.date) : undefined;
+  const update = (field: Partial<{ date: string; time: string }>) =>
     onChange?.({ ...value, ...field });
   return (
     <div className="w-full flex flex-row justify-between gap-12">
       <div className="flex flex-col w-1/2 gap-1">
-        <Label htmlFor="date">
-          Date
-        </Label>
+        <Label htmlFor="date">Date</Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -41,8 +45,8 @@ export default function DateAndTimePicker({ value, onChange }: { value: { date: 
               selected={date}
               captionLayout="dropdown"
               onSelect={(date) => {
-                update({ date: date?.toISOString() || "" })
-                setOpen(false)
+                update({ date: date?.toISOString() || "" });
+                setOpen(false);
               }}
             />
           </PopoverContent>
@@ -50,9 +54,7 @@ export default function DateAndTimePicker({ value, onChange }: { value: { date: 
       </div>
       <div className="flex gap-6 w-1/2 justify-end">
         <div className="flex w-1/2 flex-col gap-1">
-          <Label htmlFor="time-from">
-          Departure Time
-          </Label>
+          <Label htmlFor="time-from">Departure Time</Label>
           <Input
             type="time"
             id="time-from"
@@ -63,9 +65,7 @@ export default function DateAndTimePicker({ value, onChange }: { value: { date: 
           />
         </div>
         <div className="flex w-1/2 flex-col gap-1">
-          <Label htmlFor="time-to">
-          Arrival Time
-          </Label>
+          <Label htmlFor="time-to">Arrival Time</Label>
           <Input
             type="time"
             id="time-to"
@@ -77,5 +77,5 @@ export default function DateAndTimePicker({ value, onChange }: { value: { date: 
         </div>
       </div>
     </div>
-  )
+  );
 }

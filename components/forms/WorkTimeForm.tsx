@@ -24,8 +24,8 @@ export default function WorkTimeForm({
       description: value.description.includes(tag)
         ? value.description
         : value.description.trim().length
-        ? `${value.description}, ${tag}`
-        : tag,
+          ? `${value.description}, ${tag}`
+          : tag,
     });
   }
 

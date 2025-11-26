@@ -1,0 +1,28 @@
+# Next.js build
+.next/
+out/
+build/
+dist/
+
+# Node
+node_modules/
+
+# Environment
+.env
+.env.*
+*.pem
+
+# Logs
+*.log
+
+# TypeScript build info
+*.tsbuildinfo
+
+# OS junk
+.DS_Store
+
+# Public assets
+public/
+
+# Ignore prettier ignore itself
+.prettierignore

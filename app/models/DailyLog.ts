@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const DailyLogSchema = new mongoose.Schema({
-  tripId: { type: String, required: true },        // Trip document _id
-  userId: { type: String, required: true },  // Auth0 user_id
+  tripId: { type: String, required: true }, // Trip document _id
+  userId: { type: String, required: true }, // Auth0 user_id
   isGroupSource: { type: Boolean, default: false },
 
-  appliedTo: [{ type: String }],   // list of userIds this log applies to
+  appliedTo: [{ type: String }], // list of userIds this log applies to
 
   date: { type: String, required: true }, // "2025-11-24"
 
@@ -25,11 +25,11 @@ const DailyLogSchema = new mongoose.Schema({
 
   files: [
     {
-      url: String,      // Vercel Blob URL
+      url: String, // Vercel Blob URL
       name: String,
       type: String,
       size: Number,
-    }
+    },
   ],
 
   sealed: { type: Boolean, default: false },
@@ -37,4 +37,5 @@ const DailyLogSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.DailyLog || mongoose.model("DailyLog", DailyLogSchema);
+export default mongoose.models.DailyLog ||
+  mongoose.model("DailyLog", DailyLogSchema);

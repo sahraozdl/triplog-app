@@ -14,17 +14,17 @@ export interface TripInvite {
 
 export interface TripBasicInfo {
   _id: string;
-  title: string;               // e.g. “Ski Resort Assignment”
+  title: string; // e.g. “Ski Resort Assignment”
   description: string;
 
-  startDate: string;           // YYYY-MM-DD
-  endDate?: string;            // Filled when trip ends
+  startDate: string; // YYYY-MM-DD
+  endDate?: string; // Filled when trip ends
 
-  country: string;             // Sweden, Norway, etc.
-  resort?: string;             // Optional
+  country: string; // Sweden, Norway, etc.
+  resort?: string; // Optional
 
-  origin: string;              // "Stockholm HQ"
-  primaryDestination: string;  // "Ski Resort"
+  origin: string; // "Stockholm HQ"
+  primaryDestination: string; // "Ski Resort"
 }
 
 export interface Trip {

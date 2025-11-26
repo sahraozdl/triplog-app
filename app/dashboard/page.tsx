@@ -2,45 +2,54 @@
 
 import { useUser } from "@/components/providers/UserProvider";
 import ActiveTripCard from "@/components/trip/ActiveTripCard";
-import { useEffect, useMemo, useState } from "react";
-import { Trip } from "@/app/types/Trip";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useTripStore } from "@/lib/store/useTripStore";
 
 export default function Dashboard() {
   const user = useUser();
-  console.log(user);
-  const tripIds = useMemo(() => user?.activeTrips || [], [user]);
-  console.log(tripIds);
   const router = useRouter();
 
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { trips, initialized, setTrips } = useTripStore((state) => ({
+    trips: state.trips,
+    initialized: state.initialized,
+    setTrips: state.setTrips,
+  }));
+
+  const tripIds = useMemo(() => user?.activeTrips || [], [user]);
 
   useEffect(() => {
+    if (initialized) return;
+
     async function loadTrips() {
       if (tripIds.length === 0) {
-        setLoading(false);
+        setTrips([]);
         return;
       }
+
       const res = await fetch(`/api/trips?ids=${tripIds.join(",")}`);
       const data = await res.json();
-      setTrips(data.trips);
-      setLoading(false);
+
+      if (data.success && data.trips) {
+        setTrips(data.trips);
+      }
     }
 
     loadTrips();
-  }, [tripIds]);
+  }, [initialized, tripIds, setTrips]);
+
+  const tripList = Object.values(trips);
 
   return (
     <div>
       <h1>Dashboard</h1>
-      <Button onClick={() => router.push("/newTrip")}>Start a new trip</Button>
-      {loading && <div>Loading trips...</div>}
 
-      <div className="flex flex-row gap-4" id="active-trips">
-        {trips.length > 0 ? (
-          trips.map((trip) => <ActiveTripCard key={trip._id} trip={trip} />)
+      <Button onClick={() => router.push("/newTrip")}>Start a new trip</Button>
+
+      <div className="flex flex-row gap-4 mt-4" id="active-trips">
+        {tripList.length > 0 ? (
+          tripList.map((trip) => <ActiveTripCard key={trip._id} trip={trip} />)
         ) : (
           <div>No active trips</div>
         )}

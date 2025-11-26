@@ -17,6 +17,7 @@ import {
   WorkTimeFields,
 } from "@/app/types/DailyLog";
 import { Trip, TripAttendant } from "@/app/types/Trip";
+import { useTripStore } from "@/lib/store/useTripStore";
 
 export default function DailyLogPage() {
   const router = useRouter();
@@ -24,27 +25,39 @@ export default function DailyLogPage() {
   const user = useUser();
   const loggedInUserId = user?.userId;
 
-  const [attendants, setAttendants] = useState<TripAttendant[]>([]);
+  const { getTrip, updateTrip, invalidate } = useTripStore();
+
+  const trip = getTrip(tripId as string);
+
+  const attendants: TripAttendant[] = trip?.attendants ?? [];
+
   const [loadingTrip, setLoadingTrip] = useState(true);
 
   useEffect(() => {
+    if (trip) {
+      setLoadingTrip(false);
+      return;
+    }
+    setLoadingTrip(true);
     async function loadTrip() {
       try {
         const res = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
         const data = (await res.json()) as { success: boolean; trip: Trip };
 
         if (data.success) {
-          setAttendants(data.trip.attendants);
+          updateTrip(data.trip);
         }
       } catch (err) {
+        setLoadingTrip(false);
         console.error("Failed to load trip", err);
       } finally {
+        console.log("Loading trip completed");
         setLoadingTrip(false);
       }
     }
 
     loadTrip();
-  }, [tripId]);
+  }, [tripId, trip, updateTrip]);
 
   const [travel, setTravel] = useState<TravelFields>({
     travelReason: "",
@@ -106,7 +119,10 @@ export default function DailyLogPage() {
     });
 
     const data = await response.json();
-    if (data.success) router.push(`/daily-logs/${data.log._id}`);
+    if (data.success) {
+      invalidate();
+      router.push(`/tripDetail/${tripId}`);
+    }
   }
 
   if (loadingTrip) return <div className="p-6">Loading trip data...</div>;

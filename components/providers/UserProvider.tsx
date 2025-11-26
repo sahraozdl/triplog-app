@@ -13,11 +13,7 @@ export function UserProvider({
 }) {
   const [user] = useState<IUser | null>(initialUser);
 
-  return (
-    <UserContext.Provider value={user}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {

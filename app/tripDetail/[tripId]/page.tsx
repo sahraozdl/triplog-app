@@ -1,32 +1,70 @@
-import { Trip } from "@/app/types/Trip";
+"use client";
 
-export default async function TripDetailPage({ params }: { params: { tripId: string } }) {
-  const { tripId } = params;
-  console.log(tripId);
-  console.log(params);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
-  const res = await fetch(`${baseUrl}/api/trips/${tripId}`, { cache: "no-store" });
-  const data = await res.json();
+import { useTripStore } from "@/lib/store/useTripStore";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { DailyLogFormState } from "@/app/types/DailyLog";
+import DailyLogsList from "@/components/trip/DailyLogsList";
 
-  if (!data.success || !data.trip) {
-    return <div className="p-6 text-red-500">Trip not found.</div>;
+export default function TripDetailPage({
+  params,
+}: {
+  params: { tripId: string };
+}) {
+  const router = useRouter();
+
+  const { updateTrip } = useTripStore();
+  const [loading, setLoading] = useState(false);
+
+  const trip = useTripStore((state) => state.getTrip(params.tripId));
+  const [logs, setLogs] = useState<DailyLogFormState[]>([]);
+
+  useEffect(() => {
+    async function fetchLogs() {
+      const res = await fetch(`/api/daily-logs?tripId=${params.tripId}`);
+      const data = await res.json();
+      setLogs(data.logs as DailyLogFormState[]);
+    }
+    fetchLogs();
+  }, [params.tripId]);
+
+  async function handleEndTrip() {
+    await fetch(`/api/trips/${params.tripId}/end`, {
+      method: "POST",
+    });
+    useTripStore.getState().removeTrip(params.tripId);
+    router.push("/dashboard");
   }
 
-  const trip = data.trip as Trip;
+  useEffect(() => {
+    if (trip) return;
+
+    async function fetchTrip() {
+      setLoading(true);
+      const res = await fetch(`/api/trips/${params.tripId}`);
+      const data = await res.json();
+
+      if (data.success) {
+        updateTrip(data.trip);
+      }
+      setLoading(false);
+    }
+
+    fetchTrip();
+  }, [params.tripId, trip, updateTrip]);
+
+  if (!trip || loading) return <div>Loading…</div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-4xl font-bold">{trip.basicInfo.title}</h1>
-      <p className="text-gray-600">{trip.basicInfo.description}</p>
-
-      <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-        <p><strong>Start:</strong> {trip.basicInfo.startDate}</p>
-        <p><strong>End:</strong> {trip.basicInfo.endDate || "Ongoing"}</p>
-        <p><strong>Country:</strong> {trip.basicInfo.country || "-"}</p>
-        <p><strong>Resort:</strong> {trip.basicInfo.resort || "-"}</p>
-        <p><strong>Origin:</strong> {trip.basicInfo.origin}</p>
-        <p><strong>Destination:</strong> {trip.basicInfo.primaryDestination}</p>
-      </div>
+    <div>
+      <h1>{trip.basicInfo.title}</h1>
+      <p>{trip.basicInfo.description}</p>
+      <Button onClick={handleEndTrip}>End Trip</Button>
+      <Button onClick={() => router.push(`/newDailyLog/${params.tripId}`)}>
+        New Daily Log
+      </Button>
+      <DailyLogsList logs={logs} />
     </div>
   );
 }

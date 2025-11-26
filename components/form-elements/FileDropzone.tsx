@@ -75,7 +75,7 @@ export default function FileDropzone({
           "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
           "bg-muted/20 hover:bg-muted/30 dark:bg-muted/30 dark:hover:bg-muted/40",
           "border-muted-foreground/30 dark:border-muted-foreground/20",
-          isDragging && "bg-primary/10 border-primary text-primary"
+          isDragging && "bg-primary/10 border-primary text-primary",
         )}
         onDragOver={(e) => {
           e.preventDefault();

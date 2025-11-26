@@ -50,6 +50,7 @@ export interface AdditionalFields {
 }
 
 export interface DailyLogFormState {
+  _id: string;
   tripId: string;
   loggedInUserId: string;
   appliedTo: string[];

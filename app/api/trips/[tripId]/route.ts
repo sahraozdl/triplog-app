@@ -3,9 +3,9 @@ import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/TripLog";
 export async function GET(
   req: NextRequest,
-  
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any 
+  context: any,
 ) {
   try {
     await connectToDB();
@@ -17,7 +17,7 @@ export async function GET(
     if (!trip) {
       return NextResponse.json(
         { success: false, error: "Trip not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function GET(
     console.error(error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

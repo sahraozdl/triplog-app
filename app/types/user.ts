@@ -1,6 +1,6 @@
 import { Document, Types } from "mongoose";
 export interface IUser {
-  userId: string;              // Auth0 ID
+  userId: string; // Auth0 ID
   email?: string;
   name?: string;
   picture?: string;

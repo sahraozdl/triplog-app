@@ -14,20 +14,18 @@ export async function POST(request: NextRequest) {
   console.log("🟢 connected to MongoDB");
   const existingUser = await User.findOne({ userId: body.userId });
   if (!existingUser) {
-    await User.create(
-      {
-        userId: body.userId,
-        email: body.email,
-        name: body.name,
-        picture: body.picture,
-        roles: body.roles,
-        createdAt: new Date(),
-        activeTrips: [],
-        pastTrips: [],
-        pendingInvites: [],
-        organizationId: null,
-      }
-    );
+    await User.create({
+      userId: body.userId,
+      email: body.email,
+      name: body.name,
+      picture: body.picture,
+      roles: body.roles,
+      createdAt: new Date(),
+      activeTrips: [],
+      pastTrips: [],
+      pendingInvites: [],
+      organizationId: null,
+    });
     return NextResponse.json({ message: "User created" }, { status: 200 });
   }
   return NextResponse.json({ message: "User already exists" }, { status: 200 });

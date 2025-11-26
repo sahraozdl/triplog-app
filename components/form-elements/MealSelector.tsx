@@ -26,7 +26,7 @@ export function MealSelector({
 }) {
   const updateMeal = (
     mealKey: string,
-    updates: Partial<{ eaten: boolean; coveredBy: string }>
+    updates: Partial<{ eaten: boolean; coveredBy: string }>,
   ) => {
     onChange({
       ...meals,
