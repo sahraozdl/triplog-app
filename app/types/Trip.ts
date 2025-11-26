@@ -28,6 +28,7 @@ export interface TripBasicInfo {
 }
 
 export interface Trip {
+  _id: string;
   creatorId: string;
   attendants: TripAttendant[];
   invites: TripInvite[];
