@@ -79,7 +79,8 @@ export function QuickTags({
     });
   }
 
-  function addCustomTag() {
+  function addCustomTag(e: React.FormEvent<HTMLButtonElement>) {
+    e.preventDefault();
     if (!customTag.trim()) return;
 
     const newTag = { label: customTag.trim(), category: "general" };
@@ -138,7 +139,7 @@ export function QuickTags({
           onChange={(e) => setCustomTag(e.target.value)}
           className="w-full"
         />
-        <Button variant="secondary" onClick={addCustomTag}>
+        <Button variant="secondary" type="button" onClick={addCustomTag}>
           Add
         </Button>
       </div>
