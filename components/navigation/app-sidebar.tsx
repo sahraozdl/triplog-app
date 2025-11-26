@@ -54,58 +54,58 @@ const data = {
       ],
     },
     {
-      title: "Trips",
+      title: "Trips (Coming Soon)",
       url: "#",
       icon: LuggageIcon,
       items: [
         {
-          title: "Sweden Trip Report",
+          title: "example",
           url: "#",
         },
         {
-          title: "Norway Trip Report",
+          title: "example",
           url: "#",
         },
         {
-          title: "Finland Trip Report",
+          title: "example",
           url: "#",
         },
       ],
     },
     {
-      title: "Documentation",
+      title: "Documentation (Coming Soon)",
       url: "#",
       icon: BookOpen,
       items: [
         {
-          title: "Introduction",
+          title: "Introduction (Coming Soon)",
           url: "#",
         },
         {
-          title: "Get Started",
+          title: "Get Started (Coming Soon)",
           url: "#",
         },
       ],
     },
     {
-      title: "Settings",
+      title: "Settings (Coming Soon)",
       url: "#",
       icon: Settings2,
       items: [
         {
-          title: "General",
+          title: "General (Coming Soon)",
           url: "#",
         },
         {
-          title: "Team",
+          title: "Team (Coming Soon)",
           url: "#",
         },
         {
-          title: "Billing",
+          title: "Billing (Coming Soon)",
           url: "#",
         },
         {
-          title: "Limits",
+          title: "Limits (Coming Soon)",
           url: "#",
         },
       ],
@@ -113,29 +113,29 @@ const data = {
   ],
   navSecondary: [
     {
-      title: "Support",
+      title: "Support (Coming Soon)",
       url: "#",
       icon: LifeBuoy,
     },
     {
-      title: "Feedback",
+      title: "Feedback (Coming Soon)",
       url: "#",
       icon: Send,
     },
   ],
   projects: [
     {
-      name: "Design Engineering",
+      name: "example (Coming Soon)",
       url: "#",
       icon: Frame,
     },
     {
-      name: "Sales & Marketing",
+      name: "example (Coming Soon)",
       url: "#",
       icon: PieChart,
     },
     {
-      name: "Travel",
+      name: "example (Coming Soon)",
       url: "#",
       icon: Map,
     },
