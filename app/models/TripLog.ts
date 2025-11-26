@@ -8,7 +8,7 @@ const TripSchema = new mongoose.Schema({
       userId: String,
       joinedAt: String,
       role: { type: String, enum: ["employee", "employer", "moderator"] },
-      status: { type: String, enum: ["active", "removed"], default: "active" },
+      status: { type: String, enum: ["active", "ended"], default: "active" },
     },
   ],
 
