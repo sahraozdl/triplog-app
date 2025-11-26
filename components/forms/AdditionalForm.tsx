@@ -23,27 +23,34 @@ export default function AdditionalForm({
     update({ uploadedFiles: files });
 
   return (
-    <div className="px-12 py-4 min-w-72">
+    <div className="px-4 md:px-12 py-4 w-full">
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1">
+        <AccordionItem value="additional-info">
           <AccordionTrigger>Additional Information</AccordionTrigger>
-          <AccordionContent className="flex flex-col gap-12">
-            <div className="flex flex-col gap-1">
+
+          <AccordionContent className="flex flex-col gap-8 w-full">
+            {/* NOTES */}
+            <div className="flex flex-col gap-2 w-full">
               <Label htmlFor="additional-information">
                 Notes & Attachments
               </Label>
+
               <Textarea
                 id="additional-information"
-                className="w-full h-40 resize-none border border-input-border rounded-md p-2 bg-input-back focus:outline-none focus:ring-0 focus:border-input-border"
-                placeholder="e.g. Additional information"
+                className="w-full h-40 resize-none border border-input-border rounded-md p-3 bg-input-back focus:outline-none"
+                placeholder="e.g. Additional information or context"
                 value={value.notes}
                 onChange={(e) => update({ notes: e.target.value })}
               />
             </div>
-            <FileDropzone
-              value={value.uploadedFiles}
-              onChange={updateUploadedFiles}
-            />
+
+            {/* FILE UPLOAD */}
+            <div className="w-full">
+              <FileDropzone
+                value={value.uploadedFiles}
+                onChange={updateUploadedFiles}
+              />
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

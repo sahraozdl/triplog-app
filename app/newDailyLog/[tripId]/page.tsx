@@ -24,12 +24,10 @@ export default function DailyLogPage() {
   const { tripId } = useParams();
   const user = useUser();
   const loggedInUserId = user?.userId;
-  console.log("loggedInUserId", loggedInUserId);
 
   const { getTrip, updateTrip, invalidate } = useTripStore();
 
   const trip = getTrip(tripId as string);
-
   const attendants: TripAttendant[] = trip?.attendants ?? [];
 
   const [loadingTrip, setLoadingTrip] = useState(true);
@@ -39,7 +37,7 @@ export default function DailyLogPage() {
       setLoadingTrip(false);
       return;
     }
-    setLoadingTrip(true);
+
     async function loadTrip() {
       try {
         const res = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
@@ -49,10 +47,8 @@ export default function DailyLogPage() {
           updateTrip(data.trip);
         }
       } catch (err) {
-        setLoadingTrip(false);
         console.error("Failed to load trip", err);
       } finally {
-        console.log("Loading trip completed");
         setLoadingTrip(false);
       }
     }
@@ -129,52 +125,68 @@ export default function DailyLogPage() {
   if (loadingTrip) return <div className="p-6">Loading trip data...</div>;
 
   return (
-    <div className="flex flex-col justify-between items-center px-12 py-4 w-full">
-      <div className="flex flex-row justify-between items-center gap-4 py-6 w-3/4">
-        <h1 className="text-4xl font-black">Daily Log Entry</h1>
+    <div className="w-full flex justify-center px-4 py-4">
+      <div className="w-full max-w-3xl">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 py-4">
+          <h1 className="text-3xl md:text-4xl font-black">Daily Log Entry</h1>
 
-        <div className="flex flex-row gap-4">
-          {attendants.length > 1 && (
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => setInviteOpen(true)}
-            >
-              Invite Colleagues
-            </Button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {attendants.length > 1 && (
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setInviteOpen(true)}
+              >
+                Invite Colleagues
+              </Button>
+            )}
+            <div className="flex flex-row sm:items-center gap-3 w-full sm:w-auto sm:justify-end px-2">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={cancel}
+                className="w-1/2 sm:w-auto"
+              >
+                Cancel
+              </Button>
 
-          <Button variant="outline" type="button" onClick={cancel}>
-            Cancel
-          </Button>
-          <Button variant="outline" type="submit" form="dailyLogForm">
-            Save
-          </Button>
+              <Button
+                variant="outline"
+                type="submit"
+                form="dailyLogForm"
+                className="w-1/2 sm:w-auto"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <form
-        id="dailyLogForm"
-        className="flex flex-col gap-4 w-full"
-        onSubmit={saveDailyLog}
-      >
-        <TravelForm value={travel} onChange={setTravel} />
-        <WorkTimeForm value={workTime} onChange={setWorkTime} />
-        <AccommodationMealsForm
-          value={accommodationMeals}
-          onChange={setAccommodationMeals}
+        {/* Form */}
+        <form
+          id="dailyLogForm"
+          className="flex flex-col gap-6"
+          onSubmit={saveDailyLog}
+        >
+          <TravelForm value={travel} onChange={setTravel} />
+          <WorkTimeForm value={workTime} onChange={setWorkTime} />
+          <AccommodationMealsForm
+            value={accommodationMeals}
+            onChange={setAccommodationMeals}
+          />
+          <AdditionalForm value={additional} onChange={setAdditional} />
+        </form>
+
+        <InviteColleaguesDialog
+          mode="select"
+          attendants={attendants.map((a) => a.userId)}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          selected={appliedTo}
+          onSelect={setAppliedTo}
         />
-        <AdditionalForm value={additional} onChange={setAdditional} />
-      </form>
-
-      <InviteColleaguesDialog
-        mode="select"
-        attendants={attendants.map((a) => a.userId)}
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
-        selected={appliedTo}
-        onSelect={setAppliedTo}
-      />
+      </div>
     </div>
   );
 }

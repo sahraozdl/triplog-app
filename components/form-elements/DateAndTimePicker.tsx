@@ -26,13 +26,17 @@ export default function DateAndTimePicker({
 }) {
   const [open, setOpen] = React.useState(false);
   const date = value.date ? new Date(value.date) : undefined;
+
   const update = (
     field: Partial<{ date: string; startTime: string; endTime: string }>,
-  ) => onChange?.({ ...value, ...field });
+  ) => onChange({ ...value, ...field });
+
   return (
-    <div className="w-full flex flex-row justify-between gap-12">
-      <div className="flex flex-col w-1/2 gap-1">
+    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* DATE PICKER */}
+      <div className="flex flex-col gap-1 w-full">
         <Label htmlFor="date">Date</Label>
+
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -44,40 +48,47 @@ export default function DateAndTimePicker({
               <ChevronDownIcon />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full overflow-hidden p-0" align="start">
+
+          <PopoverContent
+            align="start"
+            className="p-0 w-auto max-w-[95vw] md:max-w-sm"
+          >
             <Calendar
               mode="single"
               selected={date}
               captionLayout="dropdown"
-              onSelect={(date) => {
-                update({ date: date?.toISOString() || "" });
+              onSelect={(selectedDate) => {
+                update({ date: selectedDate?.toISOString() || "" });
                 setOpen(false);
               }}
             />
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex gap-6 w-1/2 justify-end">
-        <div className="flex w-1/2 flex-col gap-1">
-          <Label htmlFor="time-from">Departure Time</Label>
+
+      {/* TIME INPUTS */}
+      <div className="grid grid-cols-2 gap-4 w-full">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="time-from">Departure</Label>
           <Input
             type="time"
             id="time-from"
             step="60"
             value={value.startTime}
             onChange={(e) => update({ startTime: e.target.value })}
-            className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
           />
         </div>
-        <div className="flex w-1/2 flex-col gap-1">
-          <Label htmlFor="time-to">Arrival Time</Label>
+
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="time-to">Arrival</Label>
           <Input
             type="time"
             id="time-to"
             step="60"
             value={value.endTime}
             onChange={(e) => update({ endTime: e.target.value })}
-            className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
           />
         </div>
       </div>

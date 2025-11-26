@@ -9,8 +9,7 @@ interface TagObject {
   label: string;
   category: string;
 }
-//this is an example to show the tags and categories
-//it will be fetched from the database later
+
 const initialTags: TagObject[] = [
   { label: "team meeting", category: "communication, planning" },
   { label: "client call", category: "communication, support" },
@@ -86,25 +85,24 @@ export function QuickTags({
     const newTag = { label: customTag.trim(), category: "general" };
 
     setTags((prev) => [...prev, newTag]);
-
     onTagClick?.(newTag.label);
     setCustomTag("");
   }
 
   const selectedStyle = "bg-primary text-primary-foreground border-primary";
   const unselectedStyle =
-    "bg-secondary text-secondary-foreground hover:bg-primary/70 hover:text-primary-foreground";
+    "bg-secondary text-secondary-foreground hover:bg-primary/60 hover:text-primary-foreground";
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 space-y-3 w-full">
       <h3 className="text-sm font-semibold">Quick Tags</h3>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {tags.slice(0, 8).map((tag) => (
           <Badge
             key={tag.label}
             variant="secondary"
-            className={`cursor-pointer transition-all border ${
+            className={`cursor-pointer transition-all border wrap-break-word text-center py-1 ${
               selectedTags.includes(tag.label) ? selectedStyle : unselectedStyle
             }`}
             onClick={() => handleTagClick(tag)}
@@ -115,11 +113,11 @@ export function QuickTags({
       </div>
 
       {expandedTags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2 pl-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
           {expandedTags.map((tag) => (
             <Badge
               key={tag.label}
-              className={`cursor-pointer border transition-all ${
+              className={`cursor-pointer border text-center wrap-break-word py-1 ${
                 selectedTags.includes(tag.label)
                   ? selectedStyle
                   : unselectedStyle
@@ -132,14 +130,19 @@ export function QuickTags({
         </div>
       )}
 
-      <div className="flex gap-2 mt-3">
+      <div className="flex flex-col sm:flex-row gap-2 mt-3">
         <Input
           placeholder="Add custom tag..."
           value={customTag}
           onChange={(e) => setCustomTag(e.target.value)}
           className="w-full"
         />
-        <Button variant="secondary" type="button" onClick={addCustomTag}>
+        <Button
+          variant="secondary"
+          type="button"
+          onClick={addCustomTag}
+          className="w-full sm:w-auto"
+        >
           Add
         </Button>
       </div>

@@ -8,26 +8,31 @@ export default async function Home() {
   const user = session?.user;
 
   return (
-    <div className="app-container">
-      <div className="main-card-wrapper">
-        <h1 className="main-title">Next.js + Auth0</h1>
+    <div className="w-full min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-lg bg-card border border-border rounded-xl shadow-md p-8 flex flex-col items-center text-center gap-6">
+        {/* Title */}
+        <h1 className="text-3xl font-bold">Next.js + Auth0</h1>
 
-        <div className="action-card">
-          {user ? (
-            <div className="logged-in-section">
-              <p className="logged-in-message">✅ Successfully logged in!</p>
-              <Profile />
-              <LogoutButton />
-            </div>
-          ) : (
-            <>
-              <p className="action-text">
-                Welcome! Please log in to access your protected content.
-              </p>
-              <LoginButton />
-            </>
-          )}
-        </div>
+        {/* Content */}
+        {user ? (
+          <div className="flex flex-col items-center gap-4 w-full">
+            <p className="text-green-500 font-medium">
+              ✅ Successfully logged in!
+            </p>
+
+            <Profile />
+
+            <LogoutButton />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4 w-full">
+            <p className="text-muted-foreground text-sm">
+              Welcome! Please log in to access your account.
+            </p>
+
+            <LoginButton />
+          </div>
+        )}
       </div>
     </div>
   );

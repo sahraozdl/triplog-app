@@ -19,17 +19,21 @@ export default function AccommodationMealsForm({
 }) {
   const update = (field: Partial<AccommodationMealsFields>) =>
     onChange?.({ ...value, ...field });
+
   const updateMeals = (field: Partial<AccommodationMealsFields["meals"]>) =>
     update({ meals: { ...value.meals, ...field } });
+
   return (
-    <div className="px-12 py-4 min-w-72">
+    <div className="px-4 md:px-12 py-4 w-full">
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="accommodation-meals">
           <AccordionTrigger>Accommodation & Meals</AccordionTrigger>
+
           <AccordionContent>
-            <div className="w-full flex flex-col justify-between gap-12">
-              <div className="w-full flex flex-row justify-between gap-12">
-                <div className="w-1/2">
+            <div className="flex flex-col w-full gap-8">
+              {/* ---------- TOP TWO INPUTS ---------- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="accommodation-type">Accommodation Type</Label>
                   <Input
                     type="text"
@@ -41,7 +45,8 @@ export default function AccommodationMealsForm({
                     }
                   />
                 </div>
-                <div className="w-1/2">
+
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="accommodationCoveredBy">Fee Covered By</Label>
                   <Input
                     type="text"
@@ -54,29 +59,33 @@ export default function AccommodationMealsForm({
                   />
                 </div>
               </div>
-              <div className="w-full flex flex-col justify-between gap-1">
+
+              {/* ---------- RADIO GROUP ---------- */}
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="overnightStay">Overnight Stay</Label>
 
                 <RadioGroup
                   id="overnightStay"
-                  className="flex flex-row mt-2 w-full gap-12"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full"
                   value={value.overnightStay}
                   onValueChange={(v) =>
                     update({ overnightStay: v as "yes" | "no" })
                   }
                 >
-                  <div className="flex flex-row border border-input-border rounded-md px-2 h-12 space-x-2 w-1/2 bg-input-back justify-start gap-3 align-middle items-center">
+                  <div className="flex flex-row border border-input-border rounded-md px-3 h-12 gap-3 items-center bg-input-back">
                     <RadioGroupItem id="overnightYes" value="yes" />
                     <Label htmlFor="overnightYes">Yes</Label>
                   </div>
 
-                  <div className="flex flex-row border border-input-border rounded-md px-2 h-12 space-x-2 w-1/2 bg-input-back justify-start gap-3 align-middle items-center">
+                  <div className="flex flex-row border border-input-border rounded-md px-3 h-12 gap-3 items-center bg-input-back">
                     <RadioGroupItem id="overnightNo" value="no" />
                     <Label htmlFor="overnightNo">No</Label>
                   </div>
                 </RadioGroup>
               </div>
-              <div className="w-full flex flex-col justify-between gap-1">
+
+              {/* ---------- MEALS SELECTOR ---------- */}
+              <div className="flex flex-col">
                 <MealSelector
                   meals={value.meals}
                   onChange={(updatedMeals) => updateMeals(updatedMeals)}

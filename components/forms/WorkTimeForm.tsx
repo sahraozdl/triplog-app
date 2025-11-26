@@ -17,7 +17,7 @@ export default function WorkTimeForm({
   onChange: (data: WorkTimeFields) => void;
 }) {
   const update = (field: Partial<WorkTimeFields>) =>
-    onChange?.({ ...value, ...field });
+    onChange({ ...value, ...field });
 
   function insertTag(tag: string) {
     update({
@@ -30,48 +30,57 @@ export default function WorkTimeForm({
   }
 
   return (
-    <div className="px-12 py-4 min-w-72">
+    <div className="px-4 md:px-12 py-4 w-full">
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1">
+        <AccordionItem value="work-time">
           <AccordionTrigger>Work Time</AccordionTrigger>
+
           <AccordionContent>
-            <div className="flex gap-6 justify-between pb-10">
-              <div className="flex w-1/2 flex-col gap-1">
-                <Label htmlFor="time-from">Work Start Time</Label>
-                <Input
-                  type="time"
-                  id="time-from"
-                  step="60"
-                  value={value.startTime}
-                  onChange={(e) => update({ startTime: e.target.value })}
-                  className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                />
+            <div className="flex flex-col gap-10 w-full">
+              {/* START + END TIME (responsive grid) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 w-full">
+                <div className="flex flex-col gap-1 w-full">
+                  <Label htmlFor="time-from">Work Start Time</Label>
+                  <Input
+                    type="time"
+                    id="time-from"
+                    step="60"
+                    value={value.startTime}
+                    onChange={(e) => update({ startTime: e.target.value })}
+                    className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 w-full">
+                  <Label htmlFor="time-to">Work End Time</Label>
+                  <Input
+                    type="time"
+                    id="time-to"
+                    step="60"
+                    value={value.endTime}
+                    onChange={(e) => update({ endTime: e.target.value })}
+                    className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                  />
+                </div>
               </div>
-              <div className="flex w-1/2 flex-col gap-1">
-                <Label htmlFor="time-to">Work End Time</Label>
-                <Input
-                  type="time"
-                  id="time-to"
-                  step="60"
-                  value={value.endTime}
-                  onChange={(e) => update({ endTime: e.target.value })}
-                  className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                />
+
+              {/* DESCRIPTION */}
+              <div className="flex flex-col gap-1 w-full">
+                <Label htmlFor="work-description">Work Description</Label>
+                <textarea
+                  id="work-description"
+                  aria-label="Work Description"
+                  placeholder="e.g. Worked on project X, Y, Z"
+                  className="h-40 w-full resize-none border border-input-border rounded-md p-2 bg-input-back focus:outline-none"
+                  value={value.description}
+                  onChange={(e) => update({ description: e.target.value })}
+                ></textarea>
               </div>
-            </div>
-            <div className="flex gap-1 w-full justify-end flex-col">
-              <Label htmlFor="work-description">Work Description</Label>
-              <textarea
-                className="h-40 w-full resize-none border border-input-border rounded-md p-2 bg-input-back focus:outline-none focus:ring-0 focus:border-input-border"
-                placeholder="e.g. Worked on project X, Y, Z"
-                id="work-description"
-                aria-label="Work Description"
-                value={value.description}
-                onChange={(e) => update({ description: e.target.value })}
-              ></textarea>
-            </div>
-            <div className="flex gap-1 w-full justify-end flex-col">
-              <QuickTags onTagClick={insertTag} />
+
+              {/* QUICK TAGS */}
+              <div className="flex flex-col gap-1 w-full">
+                <QuickTags onTagClick={insertTag} />
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>

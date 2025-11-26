@@ -5,16 +5,15 @@ import { Label } from "@/components/ui/label";
 import { CroissantIcon, HamburgerIcon, PizzaIcon } from "lucide-react";
 import { MealsFields } from "@/app/types/DailyLog";
 import { Switch } from "../ui/switch";
-//radio group items are not aligned properly
-//radio selector wont reset with a second click after selection
+
 const mealItems = [
   {
     key: "breakfast",
     label: "Breakfast",
-    icon: <CroissantIcon className="h-8 w-8" />,
+    icon: <CroissantIcon className="h-7 w-7" />,
   },
-  { key: "lunch", label: "Lunch", icon: <HamburgerIcon className="h-8 w-8" /> },
-  { key: "dinner", label: "Dinner", icon: <PizzaIcon className="h-8 w-8" /> },
+  { key: "lunch", label: "Lunch", icon: <HamburgerIcon className="h-7 w-7" /> },
+  { key: "dinner", label: "Dinner", icon: <PizzaIcon className="h-7 w-7" /> },
 ];
 
 export function MealSelector({
@@ -36,6 +35,19 @@ export function MealSelector({
       },
     });
   };
+  // not sure if this is needed but i'll leave it here for now
+  const handleRadioToggle = (
+    mealKey: string,
+    currentValue: string,
+    newValue: string,
+  ) => {
+    if (currentValue === newValue) {
+      updateMeal(mealKey, { coveredBy: "" });
+    } else {
+      updateMeal(mealKey, { coveredBy: newValue });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-8 w-full">
       {mealItems.map((meal) => {
@@ -44,9 +56,8 @@ export function MealSelector({
         return (
           <div
             key={meal.key}
-            className="flex flex-col gap-3 border rounded-lg p-4 bg-input-back/40"
+            className="flex flex-col gap-4 border rounded-lg p-4 bg-input-back/40"
           >
-            {/* Meal row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {meal.icon}
@@ -70,21 +81,24 @@ export function MealSelector({
               </div>
             </div>
 
-            {/* Covered By — only if eaten */}
             {current.eaten && (
               <RadioGroup
                 value={current.coveredBy}
                 onValueChange={(value) =>
-                  updateMeal(meal.key, { coveredBy: value })
+                  handleRadioToggle(meal.key, current.coveredBy, value)
                 }
-                className="flex gap-6 mt-3"
+                className="
+                  grid grid-cols-1 
+                  sm:grid-cols-2 
+                  gap-3 mt-2
+                "
               >
-                <div className="flex items-center gap-2 w-1/2 bg-input-back p-2 rounded-md border border-input-border">
+                <div className="flex items-center gap-2 p-3 rounded-md border bg-input-back">
                   <RadioGroupItem id={`${meal.key}-company`} value="company" />
                   <Label htmlFor={`${meal.key}-company`}>Company</Label>
                 </div>
 
-                <div className="flex items-center gap-2 w-1/2 bg-input-back p-2 rounded-md border border-input-border">
+                <div className="flex items-center gap-2 p-3 rounded-md border bg-input-back">
                   <RadioGroupItem
                     id={`${meal.key}-employee`}
                     value="employee"

@@ -4,12 +4,14 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-function Accordion({
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Root>) {
+// ROOT
+function Accordion(
+  props: React.ComponentProps<typeof AccordionPrimitive.Root>,
+) {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
+// ITEM
 function AccordionItem({
   className,
   ...props
@@ -23,28 +25,50 @@ function AccordionItem({
   );
 }
 
+// TRIGGER — RESPONSIVE
 function AccordionTrigger({
   className,
   children,
   ...props
 }: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="flex w-full">
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "mx-auto max-w-3/4 bg-sidebar focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-center justify-between gap-4 rounded-md p-4 text-left text-2xl font-bold transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180 border border-gray-300 dark:border-gray-800 flex-row data-[state=open]:rounded-b-none",
+          `
+          flex w-full items-center justify-between gap-3 
+          rounded-md border border-gray-300 dark:border-gray-800 
+          bg-sidebar p-4
+          text-left font-bold outline-none transition-all
+          
+          focus-visible:ring-[3px] focus-visible:ring-ring/50
+
+          text-xl md:text-2xl
+          max-w-full md:max-w-3/4 mx-auto
+
+          data-[state=open]:rounded-b-none
+          [&[data-state=open]>svg]:rotate-180
+        `,
           className,
         )}
         {...props}
       >
         {children}
-        <ChevronDownIcon className="text-muted-foreground pointer-events-none size-12 shrink-0 translate-y-0.5 transition-transform duration-200" />
+
+        <ChevronDownIcon
+          className="
+            text-muted-foreground pointer-events-none
+            size-6 md:size-10
+            shrink-0 transition-transform duration-200
+          "
+        />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );
 }
 
+// CONTENT — RESPONSIVE
 function AccordionContent({
   className,
   children,
@@ -53,10 +77,23 @@ function AccordionContent({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="mx-auto max-w-3/4 bg-sidebar data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden border rounded-b-md border-gray-300 dark:border-gray-800 px-8 py-4 flex flex-row items-center justify-between"
       {...props}
+      className={cn(
+        `
+        overflow-hidden
+        data-[state=open]:animate-accordion-down
+        data-[state=closed]:animate-accordion-up
+        
+        border border-gray-300 dark:border-gray-800 
+        rounded-b-md bg-sidebar
+        
+        max-w-full md:max-w-3/4 mx-auto
+        px-4 md:px-8 py-4
+      `,
+        className,
+      )}
     >
-      <div className={cn("pt-0 pb-4 w-full", className)}>{children}</div>
+      <div className="w-full">{children}</div>
     </AccordionPrimitive.Content>
   );
 }

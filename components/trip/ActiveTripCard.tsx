@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -11,24 +13,38 @@ import { Trip } from "@/app/types/Trip";
 
 export default function ActiveTripCard({ trip }: { trip: Trip }) {
   const router = useRouter();
-  console.log(trip);
 
   const handleViewTrip = () => {
     router.push(`/tripDetail/${trip._id}`);
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-full sm:max-w-sm md:max-w-md flex flex-col">
       <CardHeader>
-        <CardTitle>{trip.basicInfo.title}</CardTitle>
+        <CardTitle className="text-lg sm:text-xl font-semibold">
+          {trip.basicInfo.title}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <p>{trip.basicInfo.startDate || "Start Date"}</p>
-        <p>{trip.basicInfo.endDate || "End Date"}</p>
-        <p>{trip.basicInfo.country}</p>
+
+      <CardContent className="space-y-1 text-sm sm:text-base">
+        <p>
+          <span className="font-medium">Start:</span>{" "}
+          {trip.basicInfo.startDate || "—"}
+        </p>
+        <p>
+          <span className="font-medium">End:</span>{" "}
+          {trip.basicInfo.endDate || "—"}
+        </p>
+        <p>
+          <span className="font-medium">Country:</span>{" "}
+          {trip.basicInfo.country || "—"}
+        </p>
       </CardContent>
+
       <CardFooter>
-        <Button onClick={handleViewTrip}>View Trip</Button>
+        <Button className="w-full sm:w-auto" onClick={handleViewTrip}>
+          View Trip
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface InvitePropsBase {
   attendants: string[];
@@ -16,13 +16,11 @@ interface InvitePropsBase {
   onOpenChange?: (v: boolean) => void;
 }
 
-/* MODE A: Create + share invite code */
 interface InviteModeProps extends InvitePropsBase {
   mode: "invite";
   tripId: string;
 }
 
-/* MODE B: Select colleagues for daily log */
 interface SelectModeProps extends InvitePropsBase {
   mode: "select";
   selected: string[];
@@ -33,7 +31,14 @@ type InviteColleaguesProps = InviteModeProps | SelectModeProps;
 
 export default function InviteColleaguesDialog(props: InviteColleaguesProps) {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [clientOrigin, setClientOrigin] = useState<string>("");
   const isInviteMode = props.mode === "invite";
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setClientOrigin(window.location.origin);
+    }
+  }, []);
 
   async function generateInviteCode() {
     if (!isInviteMode) return;
@@ -65,33 +70,36 @@ export default function InviteColleaguesDialog(props: InviteColleaguesProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="w-full md:w-auto">
           {isInviteMode ? "Invite Colleagues" : "Select Colleagues"}
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="max-w-md w-[90%] p-6">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-lg font-bold">
             {isInviteMode ? "Generate Invite Code" : "Select Colleagues"}
           </DialogTitle>
         </DialogHeader>
 
         {isInviteMode && (
-          <div className="space-y-4">
+          <div className="space-y-4 mt-4">
             {!inviteCode ? (
-              <Button onClick={generateInviteCode}>Generate Code</Button>
+              <Button className="w-full" onClick={generateInviteCode}>
+                Generate Code
+              </Button>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm">Share this code:</p>
 
-                <div className="p-4 bg-muted border rounded">
-                  <p className="font-mono text-lg">{inviteCode}</p>
+                <div className="p-3 bg-muted border rounded-lg">
+                  <p className="font-mono text-lg text-center">{inviteCode}</p>
                 </div>
 
                 <p className="text-sm">Or send invite link:</p>
-                <div className="p-4 bg-muted border rounded break-all">
-                  {`${window.location.origin}/join/${inviteCode}`}
+
+                <div className="p-3 bg-muted border rounded-lg break-all text-xs">
+                  {clientOrigin && `${clientOrigin}/join/${inviteCode}`}
                 </div>
               </div>
             )}
@@ -99,15 +107,19 @@ export default function InviteColleaguesDialog(props: InviteColleaguesProps) {
         )}
 
         {!isInviteMode && (
-          <div className="space-y-3">
+          <div className="space-y-3 mt-4 max-h-[50vh] overflow-y-auto pr-2">
             {props.attendants.map((id) => (
-              <label key={id} className="flex items-center gap-2">
+              <label
+                key={id}
+                className="flex items-center gap-3 p-2 border rounded-lg hover:bg-accent/10 transition"
+              >
                 <input
                   type="checkbox"
                   checked={props.selected.includes(id)}
                   onChange={() => toggleUserSelection(id)}
+                  className="h-4 w-4"
                 />
-                <span className="text-sm">{id}</span>
+                <span className="text-sm break-all">{id}</span>
               </label>
             ))}
           </div>

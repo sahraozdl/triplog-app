@@ -40,17 +40,34 @@ export default function Dashboard() {
   const tripList = Object.values(trips);
 
   return (
-    <div>
-      <h1>Dashboard</h1>
+    <div className="w-full max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8">
+      {/* Header + Button Row */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
 
-      <Button onClick={() => router.push("/newTrip")}>Start a new trip</Button>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => router.push("/newTrip")}
+        >
+          Start New Trip
+        </Button>
+      </div>
 
-      <div className="flex flex-row gap-4 mt-4" id="active-trips">
-        {tripList.length > 0 ? (
-          tripList.map((trip) => <ActiveTripCard key={trip._id} trip={trip} />)
-        ) : (
-          <div>{!initialized ? "loading..." : "No active trips"}</div>
-        )}
+      {/* Active Trips */}
+      <div className="flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Active Trips</h2>
+
+        <div id="active-trips" className="flex flex-wrap gap-4">
+          {tripList.length > 0 ? (
+            tripList.map((trip) => (
+              <ActiveTripCard key={trip._id} trip={trip} />
+            ))
+          ) : (
+            <div className="text-muted-foreground">
+              {!initialized ? "Loading..." : "No active trips"}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -13,7 +13,6 @@ import {
   Send,
   Settings2,
   ListTree,
-  Calendar,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -29,6 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const data = {
   navMain: [
@@ -48,7 +48,7 @@ const data = {
           url: "/dashboard#active-trips",
         },
         {
-          title: "Past Trips",
+          title: "Past Trips (Coming Soon)",
           url: "#",
         },
       ],
@@ -59,15 +59,15 @@ const data = {
       icon: LuggageIcon,
       items: [
         {
-          title: "example",
+          title: "example1",
           url: "#",
         },
         {
-          title: "example",
+          title: "example2",
           url: "#",
         },
         {
-          title: "example",
+          title: "example3",
           url: "#",
         },
       ],
@@ -125,31 +125,37 @@ const data = {
   ],
   projects: [
     {
-      name: "example (Coming Soon)",
+      name: "example4  (Coming Soon)",
       url: "#",
       icon: Frame,
     },
     {
-      name: "example (Coming Soon)",
+      name: "example5 (Coming Soon)",
       url: "#",
       icon: PieChart,
     },
     {
-      name: "example (Coming Soon)",
+      name: "example6 (Coming Soon)",
       url: "#",
       icon: Map,
     },
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const isMobile = useIsMobile();
+
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar
+      collapsible={isMobile ? "icon" : "offcanvas"}
+      variant="inset"
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
+              <a href="/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Bus className="size-4" />
                 </div>
@@ -161,11 +167,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser />
       </SidebarFooter>

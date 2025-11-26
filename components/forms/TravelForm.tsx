@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Accordion,
   AccordionContent,
@@ -26,34 +27,38 @@ export default function TravelForm({
   onChange: (travel: TravelFields) => void;
 }) {
   const update = (field: Partial<TravelFields>) =>
-    onChange?.({ ...value, ...field });
+    onChange({ ...value, ...field });
+
   return (
-    <div className="px-12 py-4 min-w-72">
+    <div className="px-4 md:px-12 py-4 w-full">
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="travel">
           <AccordionTrigger>Travel Information</AccordionTrigger>
+
           <AccordionContent>
-            <div className="w-full flex flex-col justify-between gap-12">
-              <div className="w-full flex flex-row justify-between gap-12">
-                <div className="flex flex-col w-1/2 gap-1">
+            <div className="flex flex-col gap-10 w-full">
+              {/* FIRST ROW — Reason + Vehicle */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="flex flex-col gap-1 w-full">
                   <Label htmlFor="travel-reason">Travel Reason</Label>
                   <Input
-                    type="text"
                     id="travel-reason"
                     placeholder="e.g. Business"
                     value={value.travelReason}
                     onChange={(e) => update({ travelReason: e.target.value })}
                   />
                 </div>
-                <div className="flex flex-col w-1/2 gap-1 ">
+
+                <div className="flex flex-col gap-1 w-full">
                   <Label htmlFor="vehicle-type">Vehicle Type</Label>
                   <Select
                     value={value.vehicleType}
-                    onValueChange={(value) => update({ vehicleType: value })}
+                    onValueChange={(v) => update({ vehicleType: v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="e.g. Personal Car" />
                     </SelectTrigger>
+
                     <SelectContent>
                       <SelectItem value="personal-car">Personal Car</SelectItem>
                       <SelectItem value="company-car-electric_gas">
@@ -69,27 +74,30 @@ export default function TravelForm({
                   </Select>
                 </div>
               </div>
+
+              {/* DATE + TIME PICKER */}
               <DateAndTimePicker
                 value={{
                   date: value.dateTime.date,
                   startTime: value.dateTime.startTime,
                   endTime: value.dateTime.endTime,
                 }}
-                onChange={(dateTime) =>
+                onChange={(dt) =>
                   update({
                     dateTime: {
-                      date: dateTime.date,
-                      startTime: dateTime.startTime,
-                      endTime: dateTime.endTime,
+                      date: dt.date,
+                      startTime: dt.startTime,
+                      endTime: dt.endTime,
                     },
                   })
                 }
               />
-              <div className="w-full flex flex-row justify-between gap-12">
-                <div className="flex flex-col w-1/2 gap-1">
+
+              {/* LOCATIONS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="flex flex-col gap-1 w-full">
                   <Label htmlFor="location">Departure Location</Label>
                   <Input
-                    type="text"
                     id="location"
                     placeholder="e.g. Stockholm Office"
                     value={value.departureLocation}
@@ -98,10 +106,10 @@ export default function TravelForm({
                     }
                   />
                 </div>
-                <div className="flex flex-col w-1/2 gap-1">
+
+                <div className="flex flex-col gap-1 w-full">
                   <Label htmlFor="destination">Destination</Label>
                   <Input
-                    type="text"
                     id="destination"
                     placeholder="e.g. Oslo Client Site"
                     value={value.destination}
@@ -109,23 +117,26 @@ export default function TravelForm({
                   />
                 </div>
               </div>
-              <div className="flex flex-row gap-12">
-                <div className="flex flex-col w-1/2 gap-1">
+
+              {/* DISTANCE + ROUND TRIP */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="flex flex-col gap-1 w-full">
                   <Label htmlFor="distance">Travel Distance (km)</Label>
                   <Input
-                    type="number"
                     id="distance"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 100"
                     value={value.distance ?? ""}
                     onChange={(e) =>
                       update({ distance: Number(e.target.value) })
                     }
-                    placeholder="e.g. 100"
-                    min={0}
                   />
                 </div>
-                <div className="flex flex-col w-1/2 gap-1">
+
+                <div className="flex flex-col gap-1 w-full">
                   <Label htmlFor="isRoundTrip">Round Trip</Label>
-                  <div className="flex flex-row bg-input-back justify-start px-4 gap-4 items-center h-12 border border-input-border rounded-md ">
+                  <div className="flex items-center h-12 px-4 bg-input-back border border-input-border rounded-md">
                     <Switch
                       id="isRoundTrip"
                       checked={value.isRoundTrip}
