@@ -4,12 +4,12 @@ import Trip from "@/app/models/TripLog";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
   try {
     await connectToDB();
 
-    const { tripId } = params;
+    const { tripId } = await params;
 
     const trip = await Trip.findById(tripId);
     if (!trip) {
