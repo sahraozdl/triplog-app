@@ -57,3 +57,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create trip" }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectToDB();
+
+    const ids = req.nextUrl.searchParams.get("ids");
+    if (!ids) {
+      return NextResponse.json({ success: true, trips: [] });
+    }
+
+    const idArray = ids.split(",");
+
+    const trips = await Trip.find({
+      _id: { $in: idArray }
+    }).lean();
+
+    return NextResponse.json({ success: true, trips });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
