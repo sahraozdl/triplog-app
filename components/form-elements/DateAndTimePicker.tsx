@@ -17,13 +17,18 @@ export default function DateAndTimePicker({
   value,
   onChange,
 }: {
-  value: { date: string; time: string };
-  onChange: (dateTime: { date: string; time: string }) => void;
+  value: { date: string; startTime: string; endTime: string };
+  onChange: (dateTime: {
+    date: string;
+    startTime: string;
+    endTime: string;
+  }) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const date = value.date ? new Date(value.date) : undefined;
-  const update = (field: Partial<{ date: string; time: string }>) =>
-    onChange?.({ ...value, ...field });
+  const update = (
+    field: Partial<{ date: string; startTime: string; endTime: string }>,
+  ) => onChange?.({ ...value, ...field });
   return (
     <div className="w-full flex flex-row justify-between gap-12">
       <div className="flex flex-col w-1/2 gap-1">
@@ -59,8 +64,8 @@ export default function DateAndTimePicker({
             type="time"
             id="time-from"
             step="60"
-            value={value.time}
-            onChange={(e) => update({ time: e.target.value })}
+            value={value.startTime}
+            onChange={(e) => update({ startTime: e.target.value })}
             className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
         </div>
@@ -70,8 +75,8 @@ export default function DateAndTimePicker({
             type="time"
             id="time-to"
             step="60"
-            value={value.time}
-            onChange={(e) => update({ time: e.target.value })}
+            value={value.endTime}
+            onChange={(e) => update({ endTime: e.target.value })}
             className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
         </div>

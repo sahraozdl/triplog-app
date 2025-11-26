@@ -70,8 +70,20 @@ export default function TravelForm({
                 </div>
               </div>
               <DateAndTimePicker
-                value={{ date: value.dateTime.date, time: value.dateTime.time }}
-                onChange={(dateTime) => update({ dateTime })}
+                value={{
+                  date: value.dateTime.date,
+                  startTime: value.dateTime.startTime,
+                  endTime: value.dateTime.endTime,
+                }}
+                onChange={(dateTime) =>
+                  update({
+                    dateTime: {
+                      date: dateTime.date,
+                      startTime: dateTime.startTime,
+                      endTime: dateTime.endTime,
+                    },
+                  })
+                }
               />
               <div className="w-full flex flex-row justify-between gap-12">
                 <div className="flex flex-col w-1/2 gap-1">

@@ -66,7 +66,7 @@ export default function DailyLogPage() {
     destination: "",
     distance: null,
     isRoundTrip: false,
-    dateTime: { date: "", time: "" },
+    dateTime: { date: "", startTime: "", endTime: "" },
   });
 
   const [workTime, setWorkTime] = useState<WorkTimeFields>({

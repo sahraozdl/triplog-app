@@ -7,7 +7,8 @@ export interface TravelFields {
   isRoundTrip: boolean;
   dateTime: {
     date: string;
-    time: string;
+    startTime: string;
+    endTime: string;
   };
 }
 
