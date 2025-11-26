@@ -3,7 +3,7 @@
 import { useUser } from "@/components/providers/UserProvider";
 import ActiveTripCard from "@/components/trip/ActiveTripCard";
 import { useEffect, useMemo, useState } from "react";
-import { TripBasicInfo } from "@/app/types/Trip";
+import { Trip } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -14,7 +14,7 @@ export default function Dashboard() {
   console.log(tripIds);
   const router = useRouter();
 
-  const [trips, setTrips] = useState<TripBasicInfo[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
