@@ -15,7 +15,6 @@ export default function TripDetailPage() {
 
   const trip = useTripStore((state) => state.getTrip(tripId as string));
   const [logs, setLogs] = useState<DailyLogFormState[]>([]);
-
   useEffect(() => {
     async function fetchLogs() {
       const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
@@ -53,14 +52,23 @@ export default function TripDetailPage() {
   if (!trip || loading) return <div>Loading…</div>;
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <h1>{trip.basicInfo.title}</h1>
       <p>{trip.basicInfo.description}</p>
-      <Button onClick={handleEndTrip}>End Trip</Button>
-      <Button onClick={() => router.push(`/newDailyLog/${tripId}`)}>
-        New Daily Log
-      </Button>
-      <DailyLogsList logs={logs} />
+      <div className="flex flex-row gap-4">
+        <Button className="border-4 border-input" onClick={handleEndTrip}>
+          End Trip
+        </Button>
+        <Button
+          className="border-4 border-input"
+          onClick={() => router.push(`/newDailyLog/${tripId}`)}
+        >
+          New Daily Log
+        </Button>
+      </div>
+      <div>
+        <DailyLogsList logs={logs} />
+      </div>
     </div>
   );
 }

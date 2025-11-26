@@ -10,16 +10,15 @@ const DailyLogSchema = new mongoose.Schema({
   date: { type: String, required: true }, // "2025-11-24"
 
   sharedFields: {
-    travel: Object,
-    meals: Object,
-    workTime: Object,
-    accommodation: Object,
-    additional: Object,
+    travel: { type: Object, default: {} },
+    workTime: { type: Object, default: {} },
+    accommodationMeals: { type: Object, default: {} },
+    additional: { type: Object, default: {} },
   },
 
   personalFields: {
     // things that each applied user will have separately
-    personalCost: Object,
+    personalCost: { type: Object, default: {} },
     notes: String,
   },
 

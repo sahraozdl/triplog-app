@@ -24,6 +24,7 @@ export default function DailyLogPage() {
   const { tripId } = useParams();
   const user = useUser();
   const loggedInUserId = user?.userId;
+  console.log("loggedInUserId", loggedInUserId);
 
   const { getTrip, updateTrip, invalidate } = useTripStore();
 

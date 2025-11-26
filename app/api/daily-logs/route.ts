@@ -14,15 +14,24 @@ export async function POST(req: NextRequest) {
       _id: new mongoose.Types.ObjectId(),
       date: body.date,
       tripId: body.tripId,
-      userId: body.loggedInUserId,
+      userId: body.userId,
+
       isGroupSource: body.isGroupSource || false,
       appliedTo: body.appliedTo || [],
-      sharedFields: body.sharedFields || {},
+
+      sharedFields: {
+        travel: body.sharedFields.travel,
+        workTime: body.sharedFields.workTime,
+        accommodationMeals: body.sharedFields.accommodationMeals,
+        additional: body.sharedFields.additional,
+      },
       personalFields: body.personalFields || {},
       files: body.files || [],
       sealed: false,
     });
-
+    console.log("log", log);
+    console.log("BODY RECEIVED >>>", JSON.stringify(body, null, 2));
+    console.log("SHARED FIELDS >>>", body.sharedFields);
     return NextResponse.json({ success: true, log });
   } catch (e) {
     console.error(e);

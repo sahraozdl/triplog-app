@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 export interface TravelFields {
   travelReason: string;
   vehicleType: string;
@@ -51,9 +52,9 @@ export interface AdditionalFields {
 }
 
 export interface DailyLogFormState {
-  _id: string;
+  _id: string | mongoose.Types.ObjectId;
   tripId: string;
-  loggedInUserId: string;
+  userId: string;
   appliedTo: string[];
   isGroupSource: boolean;
   sharedFields: {
@@ -71,4 +72,5 @@ export interface DailyLogFormState {
   };
   files: UploadedFile[];
   sealed: boolean;
+  createdAt: Date;
 }
