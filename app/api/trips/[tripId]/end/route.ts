@@ -4,26 +4,24 @@ import Trip from "@/app/models/TripLog";
 
 export async function POST(
   req: NextRequest,
-  context: { params: { tripId: string } },
+  { params }: { params: { tripId: string } }
 ) {
   try {
     await connectToDB();
 
-    const { tripId } = context.params;
+    const { tripId } = params;
 
     const trip = await Trip.findById(tripId);
-
     if (!trip) {
       return NextResponse.json(
         { success: false, error: "Trip not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     const now = new Date().toISOString();
 
     trip.status = "ended";
-
     trip.basicInfo.endDate = now;
 
     trip.updatedAt = new Date();
@@ -39,7 +37,7 @@ export async function POST(
     console.error("Failed to end trip:", err);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
