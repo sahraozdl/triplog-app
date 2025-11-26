@@ -3,6 +3,7 @@ import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/TripLog";
 import User from "@/app/models/User";
 import { generateInviteCode } from "@/lib/codeGenerator";
+import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,19 +64,19 @@ export async function GET(req: NextRequest) {
     await connectToDB();
 
     const ids = req.nextUrl.searchParams.get("ids");
+
     if (!ids) {
       return NextResponse.json({ success: true, trips: [] });
     }
 
-    const idArray = ids.split(",");
+    // convert string IDs → ObjectId[]
+    const idArray = ids.split(",").map((id) => new mongoose.Types.ObjectId(id));
 
-    const trips = await Trip.find({
-      _id: { $in: idArray }
-    }).lean();
+    const trips = await Trip.find({ _id: { $in: idArray } }).lean();
 
     return NextResponse.json({ success: true, trips });
   } catch (error) {
-    console.error(error);
+    console.error("ERROR /api/trips GET:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

@@ -5,6 +5,7 @@ import { TripBasicInfo } from "@/app/types/Trip";
 
 export default function ActiveTripCard({ trip }: { trip: TripBasicInfo }) {
   const router = useRouter();
+  console.log(trip);
 
   const handleViewTrip = () => {
     router.push(`/tripDetail/${trip._id}`);
