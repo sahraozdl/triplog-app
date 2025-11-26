@@ -2,7 +2,8 @@ import { Trip } from "@/app/types/Trip";
 
 export default async function TripDetailPage({ params }: { params: { tripId: string } }) {
   const { tripId } = params;
-
+  console.log(tripId);
+  console.log(params);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
   const res = await fetch(`${baseUrl}/api/trips/${tripId}`, { cache: "no-store" });
   const data = await res.json();

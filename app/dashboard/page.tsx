@@ -23,7 +23,6 @@ export default function Dashboard() {
         setLoading(false);
         return;
       }
-
       const res = await fetch(`/api/trips?ids=${tripIds.join(",")}`);
       const data = await res.json();
       setTrips(data.trips);
