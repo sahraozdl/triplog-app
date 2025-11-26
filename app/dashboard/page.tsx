@@ -11,11 +11,9 @@ export default function Dashboard() {
   const user = useUser();
   const router = useRouter();
 
-  const { trips, initialized, setTrips } = useTripStore((state) => ({
-    trips: state.trips,
-    initialized: state.initialized,
-    setTrips: state.setTrips,
-  }));
+  const trips = useTripStore((s) => s.trips);
+  const initialized = useTripStore((s) => s.initialized);
+  const setTrips = useTripStore((s) => s.setTrips);
 
   const tripIds = useMemo(() => user?.activeTrips || [], [user]);
 
@@ -24,7 +22,7 @@ export default function Dashboard() {
 
     async function loadTrips() {
       if (tripIds.length === 0) {
-        setTrips([]);
+        setTrips([]); // boş
         return;
       }
 

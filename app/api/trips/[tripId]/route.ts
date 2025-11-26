@@ -3,14 +3,12 @@ import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/TripLog";
 export async function GET(
   req: NextRequest,
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any,
+  { params }: { params: Promise<{ tripId: string }> },
 ) {
   try {
     await connectToDB();
 
-    const { tripId } = context.params as { tripId: string };
+    const { tripId } = await params;
 
     const trip = await Trip.findById(tripId).lean();
 

@@ -2,38 +2,34 @@
 
 import { useTripStore } from "@/lib/store/useTripStore";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DailyLogFormState } from "@/app/types/DailyLog";
 import DailyLogsList from "@/components/trip/DailyLogsList";
 
-export default function TripDetailPage({
-  params,
-}: {
-  params: { tripId: string };
-}) {
+export default function TripDetailPage() {
   const router = useRouter();
-
+  const { tripId } = useParams();
   const { updateTrip } = useTripStore();
   const [loading, setLoading] = useState(false);
 
-  const trip = useTripStore((state) => state.getTrip(params.tripId));
+  const trip = useTripStore((state) => state.getTrip(tripId as string));
   const [logs, setLogs] = useState<DailyLogFormState[]>([]);
 
   useEffect(() => {
     async function fetchLogs() {
-      const res = await fetch(`/api/daily-logs?tripId=${params.tripId}`);
+      const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
       const data = await res.json();
       setLogs(data.logs as DailyLogFormState[]);
     }
     fetchLogs();
-  }, [params.tripId]);
+  }, [tripId]);
 
   async function handleEndTrip() {
-    await fetch(`/api/trips/${params.tripId}/end`, {
+    await fetch(`/api/trips/${tripId}/end`, {
       method: "POST",
     });
-    useTripStore.getState().removeTrip(params.tripId);
+    useTripStore.getState().removeTrip(tripId as string);
     router.push("/dashboard");
   }
 
@@ -42,7 +38,7 @@ export default function TripDetailPage({
 
     async function fetchTrip() {
       setLoading(true);
-      const res = await fetch(`/api/trips/${params.tripId}`);
+      const res = await fetch(`/api/trips/${tripId}`);
       const data = await res.json();
 
       if (data.success) {
@@ -52,7 +48,7 @@ export default function TripDetailPage({
     }
 
     fetchTrip();
-  }, [params.tripId, trip, updateTrip]);
+  }, [tripId, trip, updateTrip]);
 
   if (!trip || loading) return <div>Loading…</div>;
 
@@ -61,7 +57,7 @@ export default function TripDetailPage({
       <h1>{trip.basicInfo.title}</h1>
       <p>{trip.basicInfo.description}</p>
       <Button onClick={handleEndTrip}>End Trip</Button>
-      <Button onClick={() => router.push(`/newDailyLog/${params.tripId}`)}>
+      <Button onClick={() => router.push(`/newDailyLog/${tripId}`)}>
         New Daily Log
       </Button>
       <DailyLogsList logs={logs} />

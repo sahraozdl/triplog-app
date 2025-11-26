@@ -4,7 +4,7 @@ import Trip from "@/app/models/TripLog";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ tripId: string }> }
+  { params }: { params: Promise<{ tripId: string }> },
 ) {
   try {
     await connectToDB();
@@ -15,7 +15,7 @@ export async function POST(
     if (!trip) {
       return NextResponse.json(
         { success: false, error: "Trip not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(
     console.error("Failed to end trip:", err);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
