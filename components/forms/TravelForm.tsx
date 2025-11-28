@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -9,6 +10,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,8 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Map, Loader2 } from "lucide-react";
 
-import { TravelLog } from "@/app/types/DailyLog";
+import LocationInput from "@/components/form-elements/LocationInput";
+import { TravelLog, UploadedFile } from "@/app/types/DailyLog";
 
 type TravelFormState = Omit<
   TravelLog,
@@ -37,11 +41,78 @@ type TravelFormState = Omit<
 interface Props {
   value: TravelFormState;
   onChange: (val: TravelFormState) => void;
+  onAddFile?: (file: UploadedFile) => void;
 }
 
-export default function TravelForm({ value, onChange }: Props) {
+export default function TravelForm({ value, onChange, onAddFile }: Props) {
+  const [calculating, setCalculating] = useState(false);
+  const [mapUrl, setMapUrl] = useState<string>("");
+
   const update = (field: Partial<TravelFormState>) =>
     onChange({ ...value, ...field });
+
+  const handleAutoCalculate = async () => {
+    if (!value.departureLocation || !value.destination) {
+      alert("Please enter the departure and destination points first.");
+      return;
+    }
+
+    setCalculating(true);
+    try {
+      const res = await fetch(
+        `/api/maps/distance?origin=${encodeURIComponent(
+          value.departureLocation,
+        )}&destination=${encodeURIComponent(value.destination)}`,
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+
+        if (data.distance) {
+          const finalDistance = value.isRoundTrip
+            ? data.distance * 2
+            : data.distance;
+          update({ distance: finalDistance });
+        }
+
+        if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && data.polyline) {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+          const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&maptype=roadmap&markers=color:red|label:A|${encodeURIComponent(value.departureLocation)}&markers=color:green|label:B|${encodeURIComponent(value.destination)}&path=weight:5|color:0x0000ff|enc:${data.polyline}&key=${apiKey}`;
+
+          setMapUrl(staticMapUrl);
+
+          if (onAddFile) {
+            const mapFile: UploadedFile = {
+              name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
+              type: "image/png",
+              size: 0,
+              url: staticMapUrl,
+            };
+            onAddFile(mapFile);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Auto calculation failed", error);
+      alert("Calculation failed.");
+    } finally {
+      setCalculating(false);
+    }
+  };
+
+  const handleRoundTripChange = (checked: boolean) => {
+    let newDistance = value.distance;
+
+    if (value.distance && value.distance > 0) {
+      if (checked) {
+        newDistance = value.distance * 2;
+      } else {
+        newDistance = value.distance / 2;
+      }
+    }
+    update({ isRoundTrip: checked, distance: newDistance });
+  };
 
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -53,7 +124,9 @@ export default function TravelForm({ value, onChange }: Props) {
       >
         <AccordionItem value="travel">
           <AccordionTrigger className="hover:no-underline py-4">
-            <span className="text-lg font-semibold">Travel Information</span>
+            <span className="text-lg font-semibold flex items-center gap-2">
+              Travel Information
+            </span>
           </AccordionTrigger>
 
           <AccordionContent className="pt-4 pb-6">
@@ -93,7 +166,7 @@ export default function TravelForm({ value, onChange }: Props) {
                 </div>
               </div>
 
-              {/* Row 2: Time (Start - End) */}
+              {/* Row 2: Time */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="startTime">Start Time</Label>
@@ -117,37 +190,55 @@ export default function TravelForm({ value, onChange }: Props) {
                 </div>
               </div>
 
-              {/* Row 3: Locations */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-2 w-full">
-                  <Label htmlFor="location">Departure Location</Label>
-                  <Input
-                    type="text"
+              {/* Row 3: Locations (GOOGLE LOCATION INPUT) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full relative">
+                <div className="flex flex-col gap-2 w-full z-10">
+                  <Label htmlFor="location">Departure</Label>
+                  <LocationInput
                     id="location"
-                    placeholder="e.g. Office"
+                    placeholder="Search departure..."
                     value={value.departureLocation}
-                    onChange={(e) =>
-                      update({ departureLocation: e.target.value })
-                    }
+                    onChange={(val) => update({ departureLocation: val })}
                   />
                 </div>
 
-                <div className="flex flex-col gap-2 w-full">
+                <div className="flex flex-col gap-2 w-full z-10">
                   <Label htmlFor="destination">Destination</Label>
-                  <Input
-                    type="text"
+                  <LocationInput
                     id="destination"
-                    placeholder="e.g. Client Site"
+                    placeholder="Search destination..."
                     value={value.destination}
-                    onChange={(e) => update({ destination: e.target.value })}
+                    onChange={(val) => update({ destination: val })}
                   />
                 </div>
               </div>
 
-              {/* Row 4: Distance & Round Trip */}
+              {/* Row 4: Distance & Auto Calc */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-end">
                 <div className="flex flex-col gap-2 w-full">
-                  <Label htmlFor="distance">Distance (km)</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="distance">Distance (km)</Label>
+
+                    {/* OTOMATİK HESAPLAMA BUTONU */}
+                    {value.departureLocation && value.destination && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={handleAutoCalculate}
+                        disabled={calculating}
+                        className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                      >
+                        {calculating ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Map className="h-3 w-3 mr-1" />
+                        )}
+                        Auto Calculate & Map
+                      </Button>
+                    )}
+                  </div>
+
                   <Input
                     id="distance"
                     type="number"
@@ -161,7 +252,7 @@ export default function TravelForm({ value, onChange }: Props) {
                 </div>
 
                 <div className="flex flex-col gap-2 w-full">
-                  <div className="flex items-center justify-between border border-input-border p-2 rounded-md bg-input-back">
+                  <div className="flex items-center justify-between border border-input p-2 rounded-md bg-input-back">
                     <Label
                       htmlFor="isRoundTrip"
                       className="cursor-pointer py-1 px-2"
@@ -171,13 +262,25 @@ export default function TravelForm({ value, onChange }: Props) {
                     <Switch
                       id="isRoundTrip"
                       checked={value.isRoundTrip}
-                      onCheckedChange={(checked) =>
-                        update({ isRoundTrip: checked })
-                      }
+                      onCheckedChange={handleRoundTripChange}
                     />
                   </div>
                 </div>
               </div>
+
+              {mapUrl && (
+                <div className="w-full rounded-lg overflow-hidden border border-slate-200 mt-2 relative group animate-in fade-in zoom-in-95 duration-500">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={mapUrl}
+                    alt="Route Preview"
+                    className="w-full h-48 object-cover opacity-95 group-hover:opacity-100 transition-opacity"
+                  />
+                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] text-white font-medium shadow-sm">
+                    Rota Önizlemesi
+                  </div>
+                </div>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>

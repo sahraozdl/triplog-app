@@ -14,32 +14,39 @@ export async function GET(req: Request) {
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
+  }
+
   try {
-    // Google Distance Matrix API Çağrısı
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&key=${apiKey}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
-    if (data.status !== "OK" || data.rows[0].elements[0].status !== "OK") {
+    if (data.status !== "OK" || !data.routes || data.routes.length === 0) {
+      console.error("Google API Error:", data.status);
       return NextResponse.json(
-        { error: "Could not calculate distance" },
+        { error: `Route not found: ${data.status}` },
         { status: 400 },
       );
     }
 
-    // Gelen veri: { distance: { text: "150 km", value: 150000 }, duration: ... }
-    const element = data.rows[0].elements[0];
+    const route = data.routes[0];
+    const leg = route.legs[0];
 
-    // Mesafeyi km cinsinden number olarak döndür (value metre cinsindendir)
-    const distanceInKm = (element.distance.value / 1000).toFixed(1);
+    const distanceInKm = (leg.distance.value / 1000).toFixed(1);
 
     return NextResponse.json({
       distance: parseFloat(distanceInKm),
-      duration: element.duration.text,
+      duration: leg.duration.text,
+      polyline: route.overview_polyline.points,
     });
   } catch (error) {
-    console.error("Distance API Error:", error);
+    console.error("Directions API Error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

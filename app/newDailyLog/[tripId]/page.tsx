@@ -17,6 +17,7 @@ import {
   AccommodationLog,
   AdditionalLog,
   WorkTimeLog,
+  UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
@@ -177,13 +178,20 @@ export default function DailyLogPage() {
       body: JSON.stringify(body),
     });
   };
-  //same thing is inside newTrip page, but we need it here too for the input make it global function
+  // same thing is inside newTrip page, but we need it here too for the input make it global function
   const toLocalDatetime = (isoString: string) => {
     if (!isoString) return "";
     const date = new Date(isoString);
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
       .toISOString()
       .slice(0, 16);
+  };
+
+  const handleAddFile = (file: UploadedFile) => {
+    setAdditional((prev) => ({
+      ...prev,
+      uploadedFiles: [...prev.uploadedFiles, file],
+    }));
   };
 
   async function saveDailyLog(e: React.FormEvent) {
@@ -348,7 +356,11 @@ export default function DailyLogPage() {
             />
           </div>
 
-          <TravelForm value={travel} onChange={setTravel} />
+          <TravelForm
+            value={travel}
+            onChange={setTravel}
+            onAddFile={handleAddFile}
+          />
           <WorkTimeForm value={workTime} onChange={setWorkTime} />
           <AccommodationMealsForm
             value={accommodationMeals}

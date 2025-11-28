@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MealSelector } from "@/components/form-elements/MealSelector";
+import LocationInput from "@/components/form-elements/LocationInput";
 import { AccommodationLog } from "@/app/types/DailyLog";
 
 type AccommodationFormState = Omit<
@@ -54,18 +55,17 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
 
           <AccordionContent className="pt-4 pb-6">
             <div className="flex flex-col w-full gap-8">
-              {/*  TOP TWO INPUTS  */}
+              {/* TOP TWO INPUTS  */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="accommodation-type">Accommodation Type</Label>
-                  <Input
-                    type="text"
+                  <Label htmlFor="accommodation-type">
+                    Accommodation / Hotel Name
+                  </Label>
+                  <LocationInput
                     id="accommodation-type"
-                    placeholder="e.g. Hotel, Airbnb"
+                    placeholder="Search hotel name or address..."
                     value={value.accommodationType}
-                    onChange={(e) =>
-                      update({ accommodationType: e.target.value })
-                    }
+                    onChange={(val) => update({ accommodationType: val })}
                   />
                 </div>
 
@@ -83,7 +83,6 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
                 </div>
               </div>
 
-              {/*  OVERNIGHT STAY RADIO  */}
               <div className="flex flex-col gap-3">
                 <Label className="text-base font-medium">Overnight Stay?</Label>
 
@@ -94,7 +93,7 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
                     update({ overnightStay: v as "yes" | "no" | "" })
                   }
                 >
-                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors">
+                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors cursor-pointer">
                     <RadioGroupItem value="yes" id="overnight-yes" />
                     <Label
                       htmlFor="overnight-yes"
@@ -104,7 +103,7 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors">
+                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors cursor-pointer">
                     <RadioGroupItem value="no" id="overnight-no" />
                     <Label
                       htmlFor="overnight-no"
@@ -118,7 +117,6 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
 
               <div className="border-t my-2"></div>
 
-              {/*  MEALS SELECTOR  */}
               <div className="flex flex-col gap-4">
                 <h3 className="font-medium text-lg">Meals</h3>
                 <MealSelector
