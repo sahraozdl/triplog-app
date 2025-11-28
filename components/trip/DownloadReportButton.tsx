@@ -11,19 +11,47 @@ import {
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
+  UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip } from "@/app/types/Trip";
 import { IEmployeeDetail } from "@/app/types/user";
+import { robotoBase64 } from "@/lib/fonts";
 
 interface Props {
   trip: Trip;
   logs: DailyLogFormState[];
 }
 
+async function fetchImage(
+  url: string,
+): Promise<{ base64: string; width: number; height: number } | null> {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.src = reader.result as string;
+        img.onload = () => {
+          resolve({
+            base64: reader.result as string,
+            width: img.width,
+            height: img.height,
+          });
+        };
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error("Image fetch error:", e);
+    return null;
+  }
+}
+
 export default function DownloadReportButton({ trip, logs }: Props) {
   const [generating, setGenerating] = useState(false);
 
-  // --- MOCK DATA GENERATOR ---
   const getMockEmployeeDetail = (
     userId: string,
     index: number,
@@ -49,18 +77,25 @@ export default function DownloadReportButton({ trip, logs }: Props) {
     };
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     setGenerating(true);
     const doc = new jsPDF();
 
-    // 1. Determine the attendants
+    if (robotoBase64) {
+      doc.addFileToVFS("MyCustomFont.ttf", robotoBase64);
+      doc.addFont("MyCustomFont.ttf", "MyCustomFont", "normal");
+      doc.setFont("MyCustomFont");
+    } else {
+      console.warn("Custom font not loaded. Some characters may be broken.");
+    }
+
     const attendants = trip.attendants || [];
     const users = attendants.map((a, index) => ({
       id: a.userId,
       ...getMockEmployeeDetail(a.userId, index),
     }));
 
-    // --- REPORT HEADER ---
+    // --- HEADER ---
     doc.setFontSize(18);
     doc.text(`Trip Report: ${trip.basicInfo.title}`, 14, 20);
 
@@ -68,30 +103,27 @@ export default function DownloadReportButton({ trip, logs }: Props) {
     doc.setTextColor(80);
 
     let headerY = 28;
-    const lineHeight = 5;
+    const lineHeight = 6;
 
-    // Date Range
     const dateRange = `${new Date(trip.basicInfo.startDate).toLocaleDateString()} - ${trip.basicInfo.endDate ? new Date(trip.basicInfo.endDate).toLocaleDateString() : "Ongoing"}`;
     doc.text(`Date Range: ${dateRange}`, 14, headerY);
     headerY += lineHeight;
 
-    // Route / Location
     if (trip.basicInfo.departureLocation || trip.basicInfo.arrivalLocation) {
-      const route = `${trip.basicInfo.departureLocation || "Origin"} -> ${trip.basicInfo.arrivalLocation || "Destination"}`;
-      doc.text(`Route: ${route}`, 14, headerY);
-      headerY += lineHeight;
+      const routeText = `Route: ${trip.basicInfo.departureLocation || "Departure Location"} - ${trip.basicInfo.arrivalLocation || "Arrival Location"}`;
+      const splitRoute = doc.splitTextToSize(routeText, 180);
+      doc.text(splitRoute, 14, headerY);
+      headerY += splitRoute.length * lineHeight;
     }
 
-    // Country & Resort
     const locationDetails = [trip.basicInfo.country, trip.basicInfo.resort]
       .filter(Boolean)
       .join(" / ");
     if (locationDetails) {
-      doc.text(`Destination: ${locationDetails}`, 14, headerY);
+      doc.text(`Location/Resort: ${locationDetails}`, 14, headerY);
       headerY += lineHeight;
     }
 
-    // Description
     if (trip.basicInfo.description) {
       const descLines = doc.splitTextToSize(
         `Description: ${trip.basicInfo.description}`,
@@ -103,7 +135,6 @@ export default function DownloadReportButton({ trip, logs }: Props) {
 
     headerY += 5;
 
-    // --- TABLE 1: EMPLOYEE (Info) ---
     const infoHeaders = ["Detail", ...users.map((u) => u.name)];
     const infoRows = [
       ["Position", ...users.map((u) => u.jobTitle || "-")],
@@ -111,11 +142,21 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       ["ID Number", ...users.map((u) => u.identityNumber || "-")],
       [
         "Home Address",
-        ...users.map((u) => `${u.homeAddress?.city}, ${u.homeAddress?.street}`),
+        ...users.map(
+          (u) =>
+            [u.homeAddress?.street, u.homeAddress?.city]
+              .filter(Boolean)
+              .join(", ") || "-",
+        ),
       ],
       [
         "Work Address",
-        ...users.map((u) => `${u.workAddress?.city}, ${u.workAddress?.street}`),
+        ...users.map(
+          (u) =>
+            [u.workAddress?.street, u.workAddress?.city]
+              .filter(Boolean)
+              .join(", ") || "-",
+        ),
       ],
     ];
 
@@ -124,15 +165,19 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       head: [infoHeaders],
       body: infoRows,
       theme: "grid",
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        font: robotoBase64 ? "MyCustomFont" : "helvetica",
+      },
       headStyles: { fillColor: [50, 50, 50], fontSize: 9 },
-      styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 25 } },
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 30 } },
     });
 
     // @ts-ignore
     let currentY = doc.lastAutoTable.finalY + 15;
 
-    const drawModuleTable = (
+    const drawModuleTable = async (
       typeFilter: string,
       tableTitle: string,
       formatCell: (log: DailyLogFormState) => string,
@@ -158,9 +203,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         const rawDate = log.dateTime || new Date().toISOString();
         const dateKey = rawDate.split("T")[0];
         dates.add(dateKey);
-
         if (!logsByDateUser[dateKey]) logsByDateUser[dateKey] = {};
-
         const involvedUsers = new Set([log.userId, ...(log.appliedTo || [])]);
         involvedUsers.forEach((uid) => {
           if (!logsByDateUser[dateKey][uid]) logsByDateUser[dateKey][uid] = [];
@@ -168,24 +211,25 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         });
       });
 
-      const rows: any[] = [];
       const sortedDates = Array.from(dates).sort();
+      const bodyRows: any[] = [];
+      const cellImagesMap: Record<
+        string,
+        { base64: string; w: number; h: number }[]
+      > = {};
 
-      sortedDates.forEach((date) => {
+      for (let rIndex = 0; rIndex < sortedDates.length; rIndex++) {
+        const date = sortedDates[rIndex];
         const dateStr = new Date(date).toLocaleDateString();
-
         const rowData: any[] = [
           {
             content: dateStr,
-            styles: {
-              fillColor: [240, 240, 240],
-              fontStyle: "bold",
-              textColor: 50,
-            },
+            styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
           },
         ];
 
-        users.forEach((user) => {
+        for (let uIndex = 0; uIndex < users.length; uIndex++) {
+          const user = users[uIndex];
           const userLogs = logsByDateUser[date]?.[user.id];
 
           if (!userLogs || userLogs.length === 0) {
@@ -193,53 +237,97 @@ export default function DownloadReportButton({ trip, logs }: Props) {
               content: "-",
               styles: { halign: "center", textColor: 150 },
             });
-            return;
+            continue;
           }
 
-          const hasSharedLog = userLogs.some(
-            (l) => l.isGroupSource || (l.appliedTo && l.appliedTo.length > 0),
-          );
+          let cellContent = "";
+          const cellKey = `${rIndex}-${uIndex + 1}`;
+          cellImagesMap[cellKey] = [];
 
-          const cellText = userLogs
-            .map((log) => {
-              let content = formatCell(log);
+          for (let i = 0; i < userLogs.length; i++) {
+            const log = userLogs[i];
+            if (i > 0) cellContent += "\n\n-----------------\n\n";
+            cellContent += formatCell(log);
 
-              // List Files (Clickable Link Format Text)
-              if (log.files && log.files.length > 0) {
-                content += "\n\n--- Attachments ---";
-                log.files.forEach((f) => {
-                  // if it doesn't fit, we can simply say "Link" or the file name.
-                  // PDF clickable link is needed, but it's difficult in autotable.
-                  // The best way is to write the URL explicitly.
-                  content += `\n📄 ${f.name} (${f.url})`;
-                });
+            const allFiles: UploadedFile[] = [
+              ...(log.files || []),
+              ...((log as AdditionalLog).uploadedFiles || []),
+            ];
+
+            if (allFiles.length > 0) {
+              cellContent += "\n\n--- Attachments ---\n";
+
+              for (const f of allFiles) {
+                const isImage =
+                  f.type.startsWith("image/") ||
+                  f.url.match(/\.(jpeg|jpg|gif|png)$/) != null;
+
+                if (isImage) {
+                  const imgData = await fetchImage(f.url);
+                  if (imgData) {
+                    const targetWidth = 50;
+                    const targetHeight =
+                      (imgData.height / imgData.width) * targetWidth;
+                    cellImagesMap[cellKey].push({
+                      base64: imgData.base64,
+                      w: targetWidth,
+                      h: targetHeight,
+                    });
+                    const linesNeeded = Math.ceil((targetHeight + 5) / 3.5);
+                    cellContent += "\n".repeat(linesNeeded);
+                  } else {
+                    cellContent += `\n[Image Failed: ${f.name}]`;
+                  }
+                } else {
+                  cellContent += `\n📄 ${f.name}`;
+                }
               }
-              return content;
-            })
-            .join("\n\n-----------------\n\n");
-
-          // If there is shared data, make the background slightly blue
-          const cellStyles = hasSharedLog ? { fillColor: [240, 248, 255] } : {};
-
-          rowData.push({
-            content: cellText,
-            styles: cellStyles,
-          });
-        });
-        rows.push(rowData);
-      });
+            }
+          }
+          rowData.push({ content: cellContent });
+        }
+        bodyRows.push(rowData);
+      }
 
       autoTable(doc, {
         startY: currentY,
         head: [["Date", ...users.map((u) => u.name)]],
-        body: rows,
+        body: bodyRows,
         theme: "grid",
-        headStyles: { fillColor: [41, 128, 185], fontSize: 9 },
-        styles: { fontSize: 8, cellPadding: 3, valign: "top" },
+        pageBreak: "auto",
+        rowPageBreak: "avoid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+          valign: "top",
+          overflow: "linebreak",
+          font: robotoBase64 ? "MyCustomFont" : "helvetica",
+        },
         columnStyles: { 0: { cellWidth: 25 } },
-        didDrawPage: (data) => {
-          // @ts-ignore
-          currentY = data.cursor.y;
+
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.column.index > 0) {
+            const cellKey = `${data.row.index}-${data.column.index}`;
+            const images = cellImagesMap[cellKey];
+
+            if (images && images.length > 0) {
+              const cellX = data.cell.x + 4;
+
+              let currentImgY = data.cell.y + data.cell.height - 4;
+              [...images].reverse().forEach((img) => {
+                currentImgY -= img.h;
+                doc.addImage(
+                  img.base64,
+                  "JPEG",
+                  cellX,
+                  currentImgY,
+                  img.w,
+                  img.h,
+                );
+                currentImgY -= 2;
+              });
+            }
+          }
         },
       });
 
@@ -247,58 +335,35 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       currentY = doc.lastAutoTable.finalY + 15;
     };
 
-    // --- MODULE 1: TRAVEL RECORDS ---
-    drawModuleTable("travel", "1. Travel Records", (log) => {
+    // --- MODULES ---
+    await drawModuleTable("travel", "1. Travel Records", (log) => {
       const t = log as TravelLog;
-
-      // Açık ve net etiketler
-      let text = "";
-      text += `Travel Reason: ${t.travelReason || "N/A"}\n`;
-      text += `Vehicle Type: ${t.vehicleType || "N/A"}\n`;
-      text += `Route: ${t.departureLocation || "?"} > ${t.destination || "?"}\n`;
-      text += `Distance: ${t.distance ? t.distance + " km" : "N/A"}\n`;
-      text += `Start Time: ${t.startTime || "?"} - End Time: ${t.endTime || "?"}\n`;
-      text += `Round Trip: ${t.isRoundTrip ? "Yes" : "No"}`;
-
-      return text;
+      return `Reason: ${t.travelReason || "-"}\nRoute: ${t.departureLocation || "?"} -> ${t.destination || "?"}\nDistance: ${t.distance} km`;
     });
 
-    // --- MODULE 2: WORK TIME RECORDS ---
-    drawModuleTable("worktime", "2. Work Time Records", (log) => {
+    await drawModuleTable("worktime", "2. Work Time Records", (log) => {
       const w = log as WorkTimeLog;
-      return (
-        `Work Start Time: ${w.startTime}\n` +
-        `Work End Time: ${w.endTime}\n` +
-        `Description: ${w.description}`
-      );
+      return `Time: ${w.startTime} - ${w.endTime}\nDescription:\n${w.description}`;
     });
 
-    // --- MODULE 3: ACCOMMODATION RECORDS ---
-    drawModuleTable("accommodation", "3. Accommodation & Meals", (log) => {
-      const a = log as AccommodationLog;
-      let text = `Accommodation Type: ${a.accommodationType}\n`;
-      text += `Covered By: ${a.accommodationCoveredBy || "-"}\n`;
-      text += `Overnight Stay: ${a.overnightStay === "yes" ? "Yes" : "No"}\n`;
+    await drawModuleTable(
+      "accommodation",
+      "3. Accommodation & Meals",
+      (log) => {
+        const a = log as AccommodationLog;
+        return `Hotel: ${a.accommodationType || "-"}\nPaid By: ${a.accommodationCoveredBy}\nOvernight: ${a.overnightStay}`;
+      },
+    );
 
-      const meals = [];
-      if (a.meals.breakfast.eaten)
-        meals.push(`Breakfast (covered by: ${a.meals.breakfast.coveredBy})`);
-      if (a.meals.lunch.eaten)
-        meals.push(`Lunch (covered by: ${a.meals.lunch.coveredBy})`);
-      if (a.meals.dinner.eaten)
-        meals.push(`Dinner (covered by: ${a.meals.dinner.coveredBy})`);
+    await drawModuleTable(
+      "additional",
+      "4. Additional Notes & Files",
+      (log) => {
+        const ad = log as AdditionalLog;
+        return `Notes: ${ad.notes || "-"}`;
+      },
+    );
 
-      if (meals.length > 0) text += `\nMeals:\n ${meals.join(", ")}`;
-      return text;
-    });
-
-    // --- MODULE 4: ADDITIONAL RECORDS ---
-    drawModuleTable("additional", "4. Additional Notes & Files", (log) => {
-      const ad = log as AdditionalLog;
-      return `Notes: ${ad.notes}`;
-    });
-
-    // --- SAVE PDF ---
     const safeTitle = trip.basicInfo.title
       .replace(/[^a-z0-9]/gi, "_")
       .toLowerCase();
@@ -318,7 +383,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       ) : (
         <Download className="h-4 w-4" />
       )}
-      {generating ? "Generating..." : "Download Report (PDF)"}
+      {generating ? "Generating..." : "Download Report"}
     </Button>
   );
 }
