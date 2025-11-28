@@ -45,10 +45,8 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    // Hata tipini kontrol et ve güvenli mesajı al
     const errorMessage = isError(error) ? error.message : "Unknown error";
     console.error("Error in /api/sync-user-from-auth0:", error);
-    // Hata durumunda bile Action'ın JSON ayrıştırması yapabilmesi için JSON döndürmeye devam et
     return NextResponse.json(
       {
         message: "Internal server error during sync",

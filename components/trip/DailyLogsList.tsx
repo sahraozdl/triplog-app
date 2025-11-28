@@ -1,192 +1,148 @@
 "use client";
 
-import { DailyLogFormState } from "@/app/types/DailyLog";
+import { useMemo, useState, useEffect } from "react";
+import {
+  DailyLogFormState,
+  TravelLog,
+  WorkTimeLog,
+  AccommodationLog,
+  AdditionalLog,
+} from "@/app/types/DailyLog";
+import { FileText } from "lucide-react";
+import DailyLogCard from "./DailyLogCard";
+
+interface GroupedLog {
+  id: string;
+  date: string;
+  userId: string;
+  isGroup: boolean;
+  appliedTo: string[];
+  travels: TravelLog[];
+  works: WorkTimeLog[];
+  accommodations: AccommodationLog[];
+  additionals: AdditionalLog[];
+}
+
+function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
+  const groups: Record<string, GroupedLog> = {};
+
+  logs.forEach((log, index) => {
+    if (!log.itemType) {
+      console.warn(`Log #${index} skipped: itemType is missing.`, log);
+      return;
+    }
+
+    if (!log.dateTime) {
+      console.warn(`Log #${index} skipped: dateTime is missing.`, log);
+      return;
+    }
+
+    let dateKey = "unknown-date";
+    try {
+      dateKey = log.dateTime.split("T")[0];
+    } catch (e) {
+      console.error(`Error in date format for log #${index}:`, log.dateTime);
+      return;
+    }
+
+    const groupKey = `${dateKey}_${log.userId}`;
+
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        id: groupKey,
+        date: log.dateTime,
+        userId: log.userId,
+        isGroup: log.isGroupSource,
+        appliedTo: log.appliedTo || [],
+        travels: [],
+        works: [],
+        accommodations: [],
+        additionals: [],
+      };
+    }
+
+    const group = groups[groupKey];
+
+    const type = log.itemType.toLowerCase();
+
+    if (type === "travel") group.travels.push(log as TravelLog);
+    else if (type === "worktime") group.works.push(log as WorkTimeLog);
+    else if (type === "accommodation")
+      group.accommodations.push(log as AccommodationLog);
+    else if (type === "additional")
+      group.additionals.push(log as AdditionalLog);
+    else console.warn(`Unknown itemType: ${type}`, log);
+  });
+
+  return Object.values(groups).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+}
 
 export default function DailyLogsList({ logs }: { logs: DailyLogFormState[] }) {
+  const groupedLogs = useMemo(() => groupLogs(logs), [logs]);
+
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [loadingNames, setLoadingNames] = useState(true);
+
+  useEffect(() => {
+    if (!logs || logs.length === 0) {
+      setLoadingNames(false);
+      return;
+    }
+
+    const fetchUserNames = async () => {
+      const allIds = new Set<string>();
+      logs.forEach((log) => {
+        if (log.userId) allIds.add(log.userId);
+        if (log.appliedTo) log.appliedTo.forEach((id) => allIds.add(id));
+      });
+
+      if (allIds.size === 0) {
+        setLoadingNames(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/users/lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: Array.from(allIds) }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUserNames(data.users);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user names", error);
+      } finally {
+        setLoadingNames(false);
+      }
+    };
+
+    fetchUserNames();
+  }, [logs]);
+
   if (!logs || logs.length === 0) {
-    return <div className="mt-6 text-gray-500 text-sm">No logs yet.</div>;
+    return (
+      <div className="mt-12 text-center flex flex-col items-center text-muted-foreground opacity-60">
+        <FileText className="h-12 w-12 mb-2" />
+        <p>No daily logs recorded yet.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="mt-8 space-y-6">
-      {logs.map((log) => (
-        <div
-          key={log._id.toString()}
-          className="border rounded-lg p-5 shadow-sm bg-white dark:bg-neutral-900 space-y-4"
-        >
-          {/* HEADER */}
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-lg">Daily Log</h3>
-            <span className="text-xs text-gray-500">
-              {new Date(log.createdAt).toLocaleString()}
-            </span>
-          </div>
-
-          {/* BASIC INFO */}
-          <div className="text-sm space-y-0.5">
-            <p>
-              <span className="font-medium">User:</span> {log.userId}
-            </p>
-            <p>
-              <span className="font-medium">Applies To:</span>{" "}
-              {log.appliedTo?.length
-                ? log.appliedTo.join(", ")
-                : "Just the creator"}
-            </p>
-            <p className="text-gray-600">
-              <span className="font-medium">Type:</span>{" "}
-              {log.isGroupSource ? "Group Log" : "Individual Log"}
-            </p>
-          </div>
-
-          <Section title="Travel">
-            <Field
-              label="Reason"
-              value={log.sharedFields?.travel?.travelReason}
-            />
-            <Field
-              label="Vehicle"
-              value={log.sharedFields?.travel?.vehicleType}
-            />
-            <Field
-              label="Date"
-              value={
-                log.sharedFields?.travel?.dateTime?.date
-                  ? new Date(
-                      log.sharedFields.travel.dateTime.date,
-                    ).toLocaleDateString()
-                  : "-"
-              }
-            />
-            <Field
-              label="Time"
-              value={`${log.sharedFields?.travel?.dateTime?.startTime || "-"} → ${
-                log.sharedFields?.travel?.dateTime?.endTime || "-"
-              }`}
-            />
-            <Field
-              label="Route"
-              value={`${log.sharedFields?.travel?.departureLocation || "-"} → ${
-                log.sharedFields?.travel?.destination || "-"
-              }`}
-            />
-            <Field
-              label="Distance"
-              value={
-                log.sharedFields?.travel?.distance
-                  ? `${log.sharedFields.travel.distance} km`
-                  : "-"
-              }
-            />
-            <Field
-              label="Round Trip"
-              value={log.sharedFields?.travel?.isRoundTrip ? "Yes" : "No"}
-            />
-          </Section>
-
-          <Section title="Work Time">
-            <Field
-              label="Start"
-              value={log.sharedFields?.workTime?.startTime}
-            />
-            <Field label="End" value={log.sharedFields?.workTime?.endTime} />
-            <Field
-              label="Description"
-              value={log.sharedFields?.workTime?.description || "No details"}
-            />
-          </Section>
-
-          <Section title="Accommodation & Meals">
-            <Field
-              label="Accommodation Type"
-              value={log.sharedFields?.accommodationMeals?.accommodationType}
-            />
-            <Field
-              label="Covered By"
-              value={
-                log.sharedFields?.accommodationMeals?.accommodationCoveredBy
-              }
-            />
-            <Field
-              label="Overnight Stay"
-              value={log.sharedFields?.accommodationMeals?.overnightStay}
-            />
-
-            {/* Meals */}
-            <div className="mt-2 space-y-0.5">
-              <p className="font-medium text-sm">Meals</p>
-              {renderMeal(
-                "Breakfast",
-                log.sharedFields?.accommodationMeals?.meals?.breakfast,
-              )}
-              {renderMeal(
-                "Lunch",
-                log.sharedFields?.accommodationMeals?.meals?.lunch,
-              )}
-              {renderMeal(
-                "Dinner",
-                log.sharedFields?.accommodationMeals?.meals?.dinner,
-              )}
-            </div>
-          </Section>
-
-          <Section title="Additional Notes">
-            <p className="text-sm">
-              {log.sharedFields?.additional?.notes || "No additional notes"}
-            </p>
-          </Section>
-
-          {log.files?.length > 0 && (
-            <Section title="Files">
-              <ul className="text-sm list-inside space-y-1">
-                {log.files.map((f, i) => (
-                  <li key={i}>
-                    <a
-                      href={f.url}
-                      target="_blank"
-                      className="text-blue-600 underline"
-                    >
-                      {f.name}
-                    </a>{" "}
-                    ({Math.round((f.size || 0) / 1024)} KB)
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-        </div>
+    <div className="space-y-6 mt-4">
+      {groupedLogs.map((group) => (
+        <DailyLogCard
+          key={group.id}
+          group={group}
+          userNames={userNames}
+          loadingNames={loadingNames}
+        />
       ))}
     </div>
-  );
-}
-
-/* SMALL HELPER COMPONENTS */
-
-function Section({ title, children }: any) {
-  return (
-    <div className="space-y-1">
-      <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-1">
-        {title}
-      </h4>
-      <div className="pl-1 space-y-0.5">{children}</div>
-      <hr className="my-2 opacity-40" />
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: any }) {
-  return (
-    <p className="text-sm">
-      <span className="font-medium">{label}:</span> {value || "-"}
-    </p>
-  );
-}
-
-function renderMeal(label: string, meal: any) {
-  if (!meal) return null;
-  return (
-    <p className="text-sm">
-      {label}: {meal.eaten ? `Yes (${meal.coveredBy || "-"})` : "No"}
-    </p>
   );
 }

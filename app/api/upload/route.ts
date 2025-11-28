@@ -1,13 +1,12 @@
 import { put } from "@vercel/blob";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
-  const { filename, contentType } = await request.json();
-
-  const blob = await put(filename, request.body!, {
+export async function POST(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const filename = searchParams.get("filename") || "file";
+  const blob = await put(filename, request.body as ReadableStream, {
     access: "public",
-    contentType,
   });
 
-  return NextResponse.json({ url: blob.url });
+  return NextResponse.json(blob);
 }

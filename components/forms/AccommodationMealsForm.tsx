@@ -1,44 +1,67 @@
+"use client";
+
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { MealSelector } from "../form-elements/MealSelector";
-import { AccommodationMealsFields } from "@/app/types/DailyLog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { MealSelector } from "@/components/form-elements/MealSelector";
+import { AccommodationLog } from "@/app/types/DailyLog";
 
-export default function AccommodationMealsForm({
-  value,
-  onChange,
-}: {
-  value: AccommodationMealsFields;
-  onChange: (updated: AccommodationMealsFields) => void;
-}) {
-  const update = (field: Partial<AccommodationMealsFields>) =>
-    onChange?.({ ...value, ...field });
+type AccommodationFormState = Omit<
+  AccommodationLog,
+  | "_id"
+  | "userId"
+  | "tripId"
+  | "createdAt"
+  | "updatedAt"
+  | "files"
+  | "sealed"
+  | "isGroupSource"
+  | "appliedTo"
+  | "dateTime"
+  | "itemType"
+>;
 
-  const updateMeals = (field: Partial<AccommodationMealsFields["meals"]>) =>
-    update({ meals: { ...value.meals, ...field } });
+interface Props {
+  value: AccommodationFormState;
+  onChange: (updated: AccommodationFormState) => void;
+}
+
+export default function AccommodationMealsForm({ value, onChange }: Props) {
+  const update = (field: Partial<AccommodationFormState>) =>
+    onChange({ ...value, ...field });
+
+  const updateMeals = (mealsUpdate: Partial<AccommodationFormState["meals"]>) =>
+    update({ meals: { ...value.meals, ...mealsUpdate } });
 
   return (
-    <div className="px-4 md:px-12 py-4 w-full">
-      <Accordion type="single" collapsible className="w-full">
+    <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue="accommodation-meals"
+        className="w-full"
+      >
         <AccordionItem value="accommodation-meals">
-          <AccordionTrigger>Accommodation & Meals</AccordionTrigger>
+          <AccordionTrigger className="hover:no-underline py-4">
+            <span className="text-lg font-semibold">Accommodation & Meals</span>
+          </AccordionTrigger>
 
-          <AccordionContent>
+          <AccordionContent className="pt-4 pb-6">
             <div className="flex flex-col w-full gap-8">
-              {/* ---------- TOP TWO INPUTS ---------- */}
+              {/*  TOP TWO INPUTS  */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="accommodation-type">Accommodation Type</Label>
                   <Input
                     type="text"
                     id="accommodation-type"
-                    placeholder="e.g. Hotel"
+                    placeholder="e.g. Hotel, Airbnb"
                     value={value.accommodationType}
                     onChange={(e) =>
                       update({ accommodationType: e.target.value })
@@ -46,7 +69,7 @@ export default function AccommodationMealsForm({
                   />
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="accommodationCoveredBy">Fee Covered By</Label>
                   <Input
                     type="text"
@@ -60,32 +83,44 @@ export default function AccommodationMealsForm({
                 </div>
               </div>
 
-              {/* ---------- RADIO GROUP ---------- */}
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="overnightStay">Overnight Stay</Label>
+              {/*  OVERNIGHT STAY RADIO  */}
+              <div className="flex flex-col gap-3">
+                <Label className="text-base font-medium">Overnight Stay?</Label>
 
                 <RadioGroup
-                  id="overnightStay"
                   className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full"
                   value={value.overnightStay}
                   onValueChange={(v) =>
-                    update({ overnightStay: v as "yes" | "no" })
+                    update({ overnightStay: v as "yes" | "no" | "" })
                   }
                 >
-                  <div className="flex flex-row border border-input-border rounded-md px-3 h-12 gap-3 items-center bg-input-back">
-                    <RadioGroupItem id="overnightYes" value="yes" />
-                    <Label htmlFor="overnightYes">Yes</Label>
+                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors">
+                    <RadioGroupItem value="yes" id="overnight-yes" />
+                    <Label
+                      htmlFor="overnight-yes"
+                      className="flex-1 cursor-pointer"
+                    >
+                      Yes
+                    </Label>
                   </div>
 
-                  <div className="flex flex-row border border-input-border rounded-md px-3 h-12 gap-3 items-center bg-input-back">
-                    <RadioGroupItem id="overnightNo" value="no" />
-                    <Label htmlFor="overnightNo">No</Label>
+                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors">
+                    <RadioGroupItem value="no" id="overnight-no" />
+                    <Label
+                      htmlFor="overnight-no"
+                      className="flex-1 cursor-pointer"
+                    >
+                      No
+                    </Label>
                   </div>
                 </RadioGroup>
               </div>
 
-              {/* ---------- MEALS SELECTOR ---------- */}
-              <div className="flex flex-col">
+              <div className="border-t my-2"></div>
+
+              {/*  MEALS SELECTOR  */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-medium text-lg">Meals</h3>
                 <MealSelector
                   meals={value.meals}
                   onChange={(updatedMeals) => updateMeals(updatedMeals)}

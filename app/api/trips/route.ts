@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
       basicInfo: body.basicInfo,
     });
 
-    // Add trip to creator's activeTrips
     await User.updateOne(
       { userId: creatorId },
       { $push: { activeTrips: trip._id.toString() } },
@@ -66,7 +65,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, trips: [] });
     }
 
-    // convert string IDs → ObjectId[]
     const idArray: mongoose.Types.ObjectId[] = [];
     ids.split(",").forEach((id) => {
       if (mongoose.Types.ObjectId.isValid(id)) {

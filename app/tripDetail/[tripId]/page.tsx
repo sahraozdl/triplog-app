@@ -21,19 +21,36 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     async function fetchLogs() {
-      const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
-      const data = await res.json();
-      setLogs(data.logs as DailyLogFormState[]);
+      try {
+        const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
+
+        if (!res.ok) {
+          console.error("Logs could not be fetched, Status:", res.status);
+          setLogs([]);
+          return;
+        }
+
+        const data = await res.json();
+        setLogs((data.logs || []) as DailyLogFormState[]);
+      } catch (error) {
+        console.error("Failed to fetch logs:", error);
+        setLogs([]);
+      }
     }
-    fetchLogs();
+
+    if (tripId) {
+      fetchLogs();
+    }
   }, [tripId]);
 
   async function handleEndTrip() {
-    await fetch(`/api/trips/${tripId}/end`, {
-      method: "POST",
-    });
-    useTripStore.getState().removeTrip(tripId as string);
-    router.push("/dashboard");
+    try {
+      await fetch(`/api/trips/${tripId}/end`, { method: "POST" });
+      useTripStore.getState().removeTrip(tripId as string);
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Failed to end trip", error);
+    }
   }
 
   useEffect(() => {
@@ -41,25 +58,34 @@ export default function TripDetailPage() {
 
     async function fetchTrip() {
       setLoading(true);
-      const res = await fetch(`/api/trips/${tripId}`);
-      const data = await res.json();
-
-      if (data.success) updateTrip(data.trip);
-
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/trips/${tripId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) updateTrip(data.trip);
+        }
+      } catch (e) {
+        console.error("Trip load failed", e);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchTrip();
   }, [tripId, trip, updateTrip]);
 
   if (!trip || loading)
-    return <div className="p-6 text-center text-lg">Loading…</div>;
+    return (
+      <div className="p-6 text-center text-lg text-muted-foreground">
+        Loading trip details...
+      </div>
+    );
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl sm:text-4xl font-bold">
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
           {trip.basicInfo.title}
         </h1>
         <p className="text-muted-foreground text-sm sm:text-base">
@@ -67,8 +93,23 @@ export default function TripDetailPage() {
         </p>
       </div>
 
+      <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+        <p>
+          <span className="font-medium text-foreground">Start Date:</span>{" "}
+          {trip.basicInfo.startDate
+            ? new Date(trip.basicInfo.startDate).toLocaleDateString()
+            : "-"}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">End Date:</span>{" "}
+          {trip.basicInfo.endDate
+            ? new Date(trip.basicInfo.endDate).toLocaleDateString()
+            : "Ongoing"}
+        </p>
+      </div>
+
       {/* Action Buttons */}
-      <div className="flex flex-row justify-between  gap-4 ">
+      <div className="flex flex-row justify-between gap-4">
         <Button
           variant="destructive"
           className="w-1/2 sm:w-auto"
@@ -88,12 +129,15 @@ export default function TripDetailPage() {
 
       <UserFilter attendants={trip.attendants as TripAttendant[]} />
 
-      {/* Logs Section */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Daily Logs</h2>
+        <h2 className="text-xl font-semibold text-foreground">Daily Logs</h2>
 
         {logs.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No logs yet.</p>
+          <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
+            <p className="text-muted-foreground text-sm">
+              No logs recorded yet.
+            </p>
+          </div>
         ) : (
           <DailyLogsList logs={logs} />
         )}

@@ -6,7 +6,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import DateAndTimePicker from "@/components/form-elements/DateAndTimePicker";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -17,89 +16,111 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TravelFields } from "@/app/types/DailyLog";
 
-export default function TravelForm({
-  value,
-  onChange,
-}: {
-  value: TravelFields;
-  onChange: (travel: TravelFields) => void;
-}) {
-  const update = (field: Partial<TravelFields>) =>
+import { TravelLog } from "@/app/types/DailyLog";
+
+type TravelFormState = Omit<
+  TravelLog,
+  | "_id"
+  | "userId"
+  | "tripId"
+  | "createdAt"
+  | "updatedAt"
+  | "files"
+  | "sealed"
+  | "isGroupSource"
+  | "appliedTo"
+  | "dateTime"
+  | "itemType"
+>;
+
+interface Props {
+  value: TravelFormState;
+  onChange: (val: TravelFormState) => void;
+}
+
+export default function TravelForm({ value, onChange }: Props) {
+  const update = (field: Partial<TravelFormState>) =>
     onChange({ ...value, ...field });
 
   return (
-    <div className="px-4 md:px-12 py-4 w-full">
-      <Accordion type="single" collapsible className="w-full">
+    <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue="travel"
+        className="w-full"
+      >
         <AccordionItem value="travel">
-          <AccordionTrigger>Travel Information</AccordionTrigger>
+          <AccordionTrigger className="hover:no-underline py-4">
+            <span className="text-lg font-semibold">Travel Information</span>
+          </AccordionTrigger>
 
-          <AccordionContent>
-            <div className="flex flex-col gap-10 w-full">
-              {/* FIRST ROW — Reason + Vehicle */}
+          <AccordionContent className="pt-4 pb-6">
+            <div className="flex flex-col gap-6 w-full">
+              {/* Row 1: Reason & Vehicle */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-1 w-full">
+                <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="travel-reason">Travel Reason</Label>
                   <Input
                     id="travel-reason"
-                    placeholder="e.g. Business"
+                    placeholder="e.g. Client Meeting"
                     value={value.travelReason}
                     onChange={(e) => update({ travelReason: e.target.value })}
                   />
                 </div>
 
-                <div className="flex flex-col gap-1 w-full">
+                <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="vehicle-type">Vehicle Type</Label>
                   <Select
                     value={value.vehicleType}
                     onValueChange={(v) => update({ vehicleType: v })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="e.g. Personal Car" />
+                      <SelectValue placeholder="Select vehicle" />
                     </SelectTrigger>
-
                     <SelectContent>
                       <SelectItem value="personal-car">Personal Car</SelectItem>
-                      <SelectItem value="company-car-electric_gas">
-                        Company Car (Electric/Gas)
-                      </SelectItem>
-                      <SelectItem value="company-car-petrol_diesel">
-                        Company Car (Petrol/Diesel)
-                      </SelectItem>
-                      <SelectItem value="service-car">Service Car</SelectItem>
+                      <SelectItem value="company-car">Company Car</SelectItem>
                       <SelectItem value="rental-car">Rental Car</SelectItem>
+                      <SelectItem value="plane">Plane</SelectItem>
+                      <SelectItem value="train">Train</SelectItem>
+                      <SelectItem value="taxi">Taxi</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* DATE + TIME PICKER */}
-              <DateAndTimePicker
-                value={{
-                  date: value.dateTime.date,
-                  startTime: value.dateTime.startTime,
-                  endTime: value.dateTime.endTime,
-                }}
-                onChange={(dt) =>
-                  update({
-                    dateTime: {
-                      date: dt.date,
-                      startTime: dt.startTime,
-                      endTime: dt.endTime,
-                    },
-                  })
-                }
-              />
-
-              {/* LOCATIONS */}
+              {/* Row 2: Time (Start - End) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-1 w-full">
+                <div className="flex flex-col gap-2 w-full">
+                  <Label htmlFor="startTime">Start Time</Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={value.startTime}
+                    onChange={(e) => update({ startTime: e.target.value })}
+                  />
+                </div>
+                <div className="flex flex-col gap-2 w-full">
+                  <Label htmlFor="endTime">End Time</Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={value.endTime}
+                    onChange={(e) => update({ endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Locations */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="location">Departure Location</Label>
                   <Input
                     id="location"
-                    placeholder="e.g. Stockholm Office"
+                    placeholder="e.g. Office"
                     value={value.departureLocation}
                     onChange={(e) =>
                       update({ departureLocation: e.target.value })
@@ -107,36 +128,38 @@ export default function TravelForm({
                   />
                 </div>
 
-                <div className="flex flex-col gap-1 w-full">
+                <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="destination">Destination</Label>
                   <Input
                     id="destination"
-                    placeholder="e.g. Oslo Client Site"
+                    placeholder="e.g. Client Site"
                     value={value.destination}
                     onChange={(e) => update({ destination: e.target.value })}
                   />
                 </div>
               </div>
 
-              {/* DISTANCE + ROUND TRIP */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-1 w-full">
-                  <Label htmlFor="distance">Travel Distance (km)</Label>
+              {/* Row 4: Distance & Round Trip */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-end">
+                <div className="flex flex-col gap-2 w-full">
+                  <Label htmlFor="distance">Distance (km)</Label>
                   <Input
                     id="distance"
                     type="number"
                     min={0}
-                    placeholder="e.g. 100"
-                    value={value.distance ?? ""}
+                    placeholder="0"
+                    value={value.distance === null ? "" : value.distance}
                     onChange={(e) =>
-                      update({ distance: Number(e.target.value) })
+                      update({ distance: parseFloat(e.target.value) || 0 })
                     }
                   />
                 </div>
 
-                <div className="flex flex-col gap-1 w-full">
-                  <Label htmlFor="isRoundTrip">Round Trip</Label>
-                  <div className="flex items-center h-12 px-4 bg-input-back border border-input-border rounded-md">
+                <div className="flex flex-col gap-2 w-full pb-2">
+                  <div className="flex items-center justify-between border p-3 rounded-md">
+                    <Label htmlFor="isRoundTrip" className="cursor-pointer">
+                      Round Trip?
+                    </Label>
                     <Switch
                       id="isRoundTrip"
                       checked={value.isRoundTrip}

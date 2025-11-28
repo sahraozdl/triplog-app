@@ -1,6 +1,6 @@
 export interface TripAttendant {
   userId: string;
-  joinedAt: string; // ISO datetime
+  joinedAt: string;
   role: "employee" | "employer" | "moderator";
   status: "active" | "ended";
 }
@@ -8,15 +8,15 @@ export interface TripAttendant {
 export interface TripInvite {
   code: string;
   createdBy: string;
-  expiresAt: string; // ISO datetime
+  expiresAt: string;
 }
 
 export interface TripBasicInfo {
   title: string;
   description: string;
 
-  startDate: string; // ISO datetime
-  endDate?: string; // ISO datetime
+  startDate: string;
+  endDate?: string;
 
   country: string;
   resort?: string;
@@ -36,6 +36,6 @@ export interface Trip {
 
   status: "active" | "ended";
 
-  createdAt: string; // ISO datetime
-  updatedAt: string; // ISO datetime
+  createdAt: string;
+  updatedAt: string;
 }

@@ -14,8 +14,8 @@ export default function NewTripPage() {
   const userId = user?.userId;
 
   useEffect(() => {
-    console.log("🔍 user from context:", user, user?.userId);
-    console.log("🔍 userId:", userId);
+    console.log("user from context:", user, user?.userId);
+    console.log("userId:", userId);
   }, [user, userId]);
 
   const [basicInfo, setBasicInfo] = useState({

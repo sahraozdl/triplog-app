@@ -1,40 +1,98 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Model } from "mongoose";
 
-const DailyLogSchema = new mongoose.Schema({
-  tripId: { type: String, required: true }, // Trip document _id
-  userId: { type: String, required: true }, // Auth0 user_id
-  isGroupSource: { type: Boolean, default: false },
+const dailyLogBaseSchema = new Schema(
+  {
+    tripId: { type: String, required: true },
+    userId: { type: String, required: true },
+    dateTime: { type: String, required: true },
 
-  appliedTo: [{ type: String }], // list of userIds this log applies to
+    appliedTo: { type: [String], default: [] },
+    isGroupSource: { type: Boolean, default: false },
 
-  date: { type: String, required: true }, // "2025-11-24"
-
-  sharedFields: {
-    travel: { type: Object, default: {} },
-    workTime: { type: Object, default: {} },
-    accommodationMeals: { type: Object, default: {} },
-    additional: { type: Object, default: {} },
-  },
-
-  personalFields: {
-    // things that each applied user will have separately
-    personalCost: { type: Object, default: {} },
-    notes: String,
-  },
-
-  files: [
-    {
-      url: String, // Vercel Blob URL
-      name: String,
-      type: String,
-      size: Number,
+    personalFields: {
+      personalCost: { type: Object, default: {} },
+      notes: String,
     },
-  ],
 
-  sealed: { type: Boolean, default: false },
+    files: [
+      {
+        url: String,
+        name: String,
+        type: String,
+        size: Number,
+      },
+    ],
 
-  createdAt: { type: Date, default: Date.now },
+    sealed: { type: Boolean, default: false },
+    createdAt: { type: String, default: () => new Date().toISOString() },
+    updatedAt: { type: String, default: () => new Date().toISOString() },
+  },
+  {
+    discriminatorKey: "itemType",
+    collection: "dailylogs",
+    timestamps: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
+
+dailyLogBaseSchema.pre("save", function (next) {
+  this.updatedAt = new Date().toISOString();
+  next();
 });
 
-export default mongoose.models.DailyLog ||
-  mongoose.model("DailyLog", DailyLogSchema);
+const travelSchema = new Schema({
+  travelReason: String,
+  vehicleType: String,
+  departureLocation: String,
+  destination: String,
+  distance: Number,
+  isRoundTrip: Boolean,
+  startTime: String,
+  endTime: String,
+});
+
+const workTimeSchema = new Schema({
+  startTime: String,
+  endTime: String,
+  description: String,
+});
+
+const accommodationSchema = new Schema({
+  accommodationType: String,
+  accommodationCoveredBy: String,
+  overnightStay: String,
+  meals: {
+    breakfast: { eaten: Boolean, coveredBy: String },
+    lunch: { eaten: Boolean, coveredBy: String },
+    dinner: { eaten: Boolean, coveredBy: String },
+  },
+});
+
+const additionalSchema = new Schema({
+  notes: String,
+  uploadedFiles: Array,
+});
+
+let DailyLog: Model<any>;
+
+if (mongoose.models.DailyLog) {
+  DailyLog = mongoose.models.DailyLog;
+} else {
+  DailyLog = mongoose.model("DailyLog", dailyLogBaseSchema);
+
+  DailyLog.discriminator("travel", travelSchema);
+  DailyLog.discriminator("worktime", workTimeSchema);
+  DailyLog.discriminator("accommodation", accommodationSchema);
+  DailyLog.discriminator("additional", additionalSchema);
+}
+
+export { DailyLog };
+export const TravelLog =
+  mongoose.models.Travel || DailyLog.discriminators?.travel;
+export const WorkTimeLog =
+  mongoose.models.WorkTime || DailyLog.discriminators?.worktime;
+export const AccommodationLog =
+  mongoose.models.Accommodation || DailyLog.discriminators?.accommodation;
+export const AdditionalLog =
+  mongoose.models.Additional || DailyLog.discriminators?.additional;

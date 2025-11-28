@@ -31,7 +31,7 @@ const TripSchema = new mongoose.Schema(
 
       startDate: {
         type: String,
-        default: () => new Date().toISOString() as string,
+        default: () => new Date().toISOString(),
       },
       endDate: { type: String },
 
@@ -50,11 +50,11 @@ const TripSchema = new mongoose.Schema(
 
     createdAt: {
       type: String,
-      default: () => new Date().toISOString() as string,
+      default: () => new Date().toISOString(),
     },
     updatedAt: {
       type: String,
-      default: () => new Date().toISOString() as string,
+      default: () => new Date().toISOString(),
     },
   },
   { timestamps: false },

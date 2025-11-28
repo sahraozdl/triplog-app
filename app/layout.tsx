@@ -24,7 +24,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="dark">
-      <body className={manrope.className}>
+      <body>
         <AppUserProvider initialUser={user}>
           <SidebarWrapper>{children}</SidebarWrapper>
         </AppUserProvider>

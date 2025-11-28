@@ -8,10 +8,8 @@ const options: MongoClientOptions = {
 };
 const client = new MongoClient(process.env.MONGODB_URI!, options);
 
-// Attach the client to ensure proper cleanup on function suspension
 attachDatabasePool(client);
 
-// Export a module-scoped MongoClient to ensure the client can be shared across functions.
 export default client;
 
 const MONGODB_URI = process.env.MONGODB_URI as string;

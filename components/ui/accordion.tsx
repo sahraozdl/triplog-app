@@ -4,14 +4,12 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-// ROOT
 function Accordion(
   props: React.ComponentProps<typeof AccordionPrimitive.Root>,
 ) {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
-// ITEM
 function AccordionItem({
   className,
   ...props
@@ -25,7 +23,6 @@ function AccordionItem({
   );
 }
 
-// TRIGGER — RESPONSIVE
 function AccordionTrigger({
   className,
   children,
@@ -68,7 +65,6 @@ function AccordionTrigger({
   );
 }
 
-// CONTENT — RESPONSIVE
 function AccordionContent({
   className,
   children,
