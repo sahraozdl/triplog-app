@@ -1,10 +1,12 @@
-import { User, Users } from "lucide-react";
+import { User, Users, Edit } from "lucide-react";
 import {
   TravelSection,
   WorkSection,
   AccommodationSection,
   AdditionalSection,
 } from "./LogSections";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   TravelLog,
   WorkTimeLog,
@@ -33,13 +35,41 @@ export default function DailyLogCard({
   userNames: Record<string, string>;
   loadingNames: boolean;
 }) {
+  const router = useRouter();
   const dateObj = new Date(group.date);
 
   const getName = (id: string) =>
     loadingNames ? "..." : userNames[id] || "Unknown";
 
+  const firstLogId =
+    group.travels[0]?._id ||
+    group.works[0]?._id ||
+    group.accommodations[0]?._id ||
+    group.additionals[0]?._id;
+
+  const handleEdit = () => {
+    if (firstLogId) {
+      router.push(`/editDailyLog/${firstLogId}`);
+    } else {
+      console.error("No log ID found to edit this group.");
+    }
+  };
+
   return (
-    <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row transition-all hover:shadow-md">
+    <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row transition-all hover:shadow-md relative">
+      {/* EDIT BUTTON */}
+      {firstLogId && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-2 right-2 z-10 p-2 h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
+          onClick={handleEdit}
+          title="Edit Log Group"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+      )}
+
       {/* LEFT: DATE & USER INFO */}
       <div className="bg-muted/30 p-5 md:w-64 flex flex-col md:border-r border-b md:border-b-0 gap-4 shrink-0">
         {/* Date */}
