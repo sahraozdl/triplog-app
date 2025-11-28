@@ -8,7 +8,6 @@ import { DailyLogFormState } from "@/app/types/DailyLog";
 import DailyLogsList from "@/components/trip/DailyLogsList";
 import AttendantsList from "@/components/trip/AttendantsList";
 import { TripAttendant } from "@/app/types/Trip";
-import UserFilter from "@/components/trip/UserFilter";
 import DownloadReportButton from "@/components/trip/DownloadReportButton";
 
 export default function TripDetailPage() {
@@ -131,8 +130,6 @@ export default function TripDetailPage() {
 
       <AttendantsList attendants={trip.attendants as TripAttendant[]} />
 
-      <UserFilter attendants={trip.attendants as TripAttendant[]} />
-
       <div className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold text-foreground">Daily Logs</h2>
 
@@ -143,7 +140,10 @@ export default function TripDetailPage() {
             </p>
           </div>
         ) : (
-          <DailyLogsList logs={logs} />
+          <DailyLogsList
+            logs={logs}
+            attendants={trip.attendants as TripAttendant[]}
+          />
         )}
       </div>
     </div>

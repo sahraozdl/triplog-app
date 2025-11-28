@@ -63,6 +63,7 @@ export default function TravelForm({ value, onChange }: Props) {
                 <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="travel-reason">Travel Reason</Label>
                   <Input
+                    type="text"
                     id="travel-reason"
                     placeholder="e.g. Client Meeting"
                     value={value.travelReason}
@@ -121,6 +122,7 @@ export default function TravelForm({ value, onChange }: Props) {
                 <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="location">Departure Location</Label>
                   <Input
+                    type="text"
                     id="location"
                     placeholder="e.g. Office"
                     value={value.departureLocation}
@@ -133,6 +135,7 @@ export default function TravelForm({ value, onChange }: Props) {
                 <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="destination">Destination</Label>
                   <Input
+                    type="text"
                     id="destination"
                     placeholder="e.g. Client Site"
                     value={value.destination}
@@ -157,9 +160,12 @@ export default function TravelForm({ value, onChange }: Props) {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2 w-full pb-2">
-                  <div className="flex items-center justify-between border p-3 rounded-md">
-                    <Label htmlFor="isRoundTrip" className="cursor-pointer">
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex items-center justify-between border border-input-border p-2 rounded-md bg-input-back">
+                    <Label
+                      htmlFor="isRoundTrip"
+                      className="cursor-pointer py-1 px-2"
+                    >
                       Round Trip?
                     </Label>
                     <Switch

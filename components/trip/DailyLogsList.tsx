@@ -8,10 +8,13 @@ import {
   AccommodationLog,
   AdditionalLog,
 } from "@/app/types/DailyLog";
-import { FileText } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import DailyLogCard from "./DailyLogCard";
+import LogFilters, { FilterState } from "./LogFilters";
+import { TripAttendant } from "@/app/types/Trip";
+import { Button } from "@/components/ui/button";
 
-interface GroupedLog {
+export interface GroupedLog {
   id: string;
   date: string;
   userId: string;
@@ -26,33 +29,24 @@ interface GroupedLog {
 function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
   const groups: Record<string, GroupedLog> = {};
 
-  logs.forEach((log, index) => {
-    if (!log.itemType) {
-      console.warn(`Log #${index} skipped: itemType is missing.`, log);
-      return;
-    }
-
-    if (!log.dateTime) {
-      console.warn(`Log #${index} skipped: dateTime is missing.`, log);
-      return;
-    }
-
-    let dateKey = "unknown-date";
+  logs.forEach((log) => {
+    const validDate = log.dateTime || log.createdAt || new Date().toISOString();
+    let dateKey = "";
     try {
-      dateKey = log.dateTime.split("T")[0];
-    } catch (e) {
-      console.error(`Error in date format for log #${index}:`, log.dateTime);
-      return;
+      dateKey = validDate.split("T")[0];
+    } catch {
+      dateKey = "unknown";
     }
 
-    const groupKey = `${dateKey}_${log.userId}`;
+    const userId = log.userId || "unknown";
+    const groupKey = `${dateKey}_${userId}`;
 
     if (!groups[groupKey]) {
       groups[groupKey] = {
         id: groupKey,
-        date: log.dateTime,
-        userId: log.userId,
-        isGroup: log.isGroupSource,
+        date: validDate,
+        userId: userId,
+        isGroup: log.isGroupSource || false,
         appliedTo: log.appliedTo || [],
         travels: [],
         works: [],
@@ -62,16 +56,13 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
     }
 
     const group = groups[groupKey];
-
-    const type = log.itemType.toLowerCase();
+    const type = (log.itemType || "additional").toLowerCase();
 
     if (type === "travel") group.travels.push(log as TravelLog);
     else if (type === "worktime") group.works.push(log as WorkTimeLog);
     else if (type === "accommodation")
       group.accommodations.push(log as AccommodationLog);
-    else if (type === "additional")
-      group.additionals.push(log as AdditionalLog);
-    else console.warn(`Unknown itemType: ${type}`, log);
+    else group.additionals.push(log as AdditionalLog);
   });
 
   return Object.values(groups).sort(
@@ -79,49 +70,72 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
   );
 }
 
-export default function DailyLogsList({ logs }: { logs: DailyLogFormState[] }) {
-  const groupedLogs = useMemo(() => groupLogs(logs), [logs]);
+export default function DailyLogsList({
+  logs,
+  attendants = [],
+}: {
+  logs: DailyLogFormState[];
+  attendants?: TripAttendant[];
+}) {
+  const [filters, setFilters] = useState<FilterState>({
+    userId: "all",
+    itemType: "all",
+    showGroupOnly: false,
+  });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  const processedData = useMemo(() => {
+    const filteredRawLogs = logs.filter((log) => {
+      if (filters.itemType !== "all" && log.itemType !== filters.itemType)
+        return false;
+
+      if (filters.showGroupOnly && !log.isGroupSource) return false;
+
+      if (filters.userId !== "all") {
+        const isCreator = log.userId === filters.userId;
+        const isIncluded = log.appliedTo?.includes(filters.userId);
+        if (!isCreator && !isIncluded) return false;
+      }
+
+      return true;
+    });
+
+    const grouped = groupLogs(filteredRawLogs);
+
+    const totalPages = Math.ceil(grouped.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const currentItems = grouped.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    return { totalPages, currentItems, totalCount: grouped.length };
+  }, [logs, filters, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [loadingNames, setLoadingNames] = useState(true);
 
   useEffect(() => {
-    if (!logs || logs.length === 0) {
+    if (!logs.length) {
       setLoadingNames(false);
       return;
     }
+    const allIds = new Set<string>();
+    logs.forEach((l) => {
+      if (l.userId) allIds.add(l.userId);
+      if (l.appliedTo) l.appliedTo.forEach((id) => allIds.add(id));
+    });
 
-    const fetchUserNames = async () => {
-      const allIds = new Set<string>();
-      logs.forEach((log) => {
-        if (log.userId) allIds.add(log.userId);
-        if (log.appliedTo) log.appliedTo.forEach((id) => allIds.add(id));
-      });
-
-      if (allIds.size === 0) {
-        setLoadingNames(false);
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/users/lookup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userIds: Array.from(allIds) }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setUserNames(data.users);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user names", error);
-      } finally {
-        setLoadingNames(false);
-      }
-    };
-
-    fetchUserNames();
+    fetch("/api/users/lookup", {
+      method: "POST",
+      body: JSON.stringify({ userIds: Array.from(allIds) }),
+    })
+      .then((res) => res.json())
+      .then((data) => setUserNames(data.users))
+      .finally(() => setLoadingNames(false));
   }, [logs]);
 
   if (!logs || logs.length === 0) {
@@ -134,15 +148,62 @@ export default function DailyLogsList({ logs }: { logs: DailyLogFormState[] }) {
   }
 
   return (
-    <div className="space-y-6 mt-4">
-      {groupedLogs.map((group) => (
-        <DailyLogCard
-          key={group.id}
-          group={group}
-          userNames={userNames}
-          loadingNames={loadingNames}
-        />
-      ))}
+    <div className="mt-4">
+      <LogFilters
+        attendants={attendants}
+        filters={filters}
+        onFilterChange={setFilters}
+      />
+
+      <div className="mb-4 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+        Showing {processedData.currentItems.length} of{" "}
+        {processedData.totalCount} Entries
+      </div>
+
+      <div className="space-y-6">
+        {processedData.currentItems.length > 0 ? (
+          processedData.currentItems.map((group) => (
+            <DailyLogCard
+              key={group.id}
+              group={group}
+              userNames={userNames}
+              loadingNames={loadingNames}
+            />
+          ))
+        ) : (
+          <div className="p-8 border border-dashed rounded-xl text-center text-muted-foreground bg-muted/5">
+            No logs match your filters.
+          </div>
+        )}
+      </div>
+
+      {processedData.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-10">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          <span className="text-sm font-medium text-foreground">
+            Page {currentPage} of {processedData.totalPages}
+          </span>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() =>
+              setCurrentPage((p) => Math.min(processedData.totalPages, p + 1))
+            }
+            disabled={currentPage === processedData.totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
