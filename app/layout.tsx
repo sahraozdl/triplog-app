@@ -4,6 +4,7 @@ import { Manrope } from "next/font/google";
 import { SidebarWrapper } from "@/components/navigation/layout/SidebarClientWrapper";
 import { AppUserProvider } from "@/components/providers/AppUserProvider";
 import { getUserDB } from "@/lib/getUserDB";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Auth0 Next.js App",
@@ -28,6 +29,10 @@ export default async function RootLayout({
         <AppUserProvider initialUser={user}>
           <SidebarWrapper>{children}</SidebarWrapper>
         </AppUserProvider>
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
