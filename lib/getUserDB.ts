@@ -1,44 +1,21 @@
-// lib/getCurrentUser.ts
 import { auth0 } from "@/lib/auth0";
 import User from "@/app/models/User";
 import { connectToDB } from "@/lib/mongodb";
 import { IUser } from "@/app/types/user";
+import { v4 as uuidv4 } from "uuid";
+
+export function generateUserId() {
+  return uuidv4();
+}
 
 export async function getUserDB(): Promise<IUser | null> {
   const session = await auth0.getSession();
-
   if (!session?.user) return null;
 
   const auth0User = session.user;
 
   await connectToDB();
-  const dbUser = await User.findOne({ userId: auth0User.sub }).lean();
+  const dbUser = await User.findOne({ auth0Id: auth0User.sub }).lean<IUser>();
 
-  if (!dbUser) {
-    return {
-      userId: auth0User.sub,
-      name: auth0User.name || "",
-      email: auth0User.email || "",
-      picture: auth0User.picture || "",
-      roles: auth0User.roles || [],
-      activeTrips: [],
-      pastTrips: [],
-      pendingInvites: [],
-      organizationId: null,
-      createdAt: new Date(),
-    };
-  }
-
-  return {
-    userId: dbUser.userId,
-    name: dbUser.name,
-    email: dbUser.email,
-    picture: dbUser.picture,
-    roles: dbUser.roles || [],
-    activeTrips: dbUser.activeTrips || [],
-    pastTrips: dbUser.pastTrips || [],
-    pendingInvites: dbUser.pendingInvites || [],
-    organizationId: dbUser.organizationId || null,
-    createdAt: dbUser.createdAt || new Date(),
-  };
+  return dbUser ?? null;
 }

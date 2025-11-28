@@ -1,35 +1,34 @@
 export interface TripAttendant {
   userId: string;
-  joinedAt: string;
+  joinedAt: string; // ISO datetime
   role: "employee" | "employer" | "moderator";
-  status: "active" | "removed";
+  status: "active" | "ended";
 }
 
 export interface TripInvite {
   code: string;
   createdBy: string;
-  expiresAt: string;
-  usedBy?: string;
+  expiresAt: string; // ISO datetime
 }
 
 export interface TripBasicInfo {
-  _id: string;
-  title: string; // e.g. “Ski Resort Assignment”
+  title: string;
   description: string;
 
-  startDate: string; // YYYY-MM-DD
-  endDate?: string; // Filled when trip ends
+  startDate: string; // ISO datetime
+  endDate?: string; // ISO datetime
 
-  country: string; // Sweden, Norway, etc.
-  resort?: string; // Optional
+  country: string;
+  resort?: string;
 
-  origin: string; // "Stockholm HQ"
-  primaryDestination: string; // "Ski Resort"
+  departureLocation: string;
+  arrivalLocation: string;
 }
 
 export interface Trip {
   _id: string;
   creatorId: string;
+
   attendants: TripAttendant[];
   invites: TripInvite[];
 
@@ -37,8 +36,6 @@ export interface Trip {
 
   status: "active" | "ended";
 
-  dailyLogs: string[];
-
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
 }

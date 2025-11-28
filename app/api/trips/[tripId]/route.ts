@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
-import Trip from "@/app/models/TripLog";
+import Trip from "@/app/models/Trip";
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ tripId: string }> },

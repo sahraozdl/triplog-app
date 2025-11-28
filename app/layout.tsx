@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Manrope } from "next/font/google";
 import { SidebarWrapper } from "@/components/navigation/layout/SidebarClientWrapper";
-import { UserProvider } from "@/components/providers/UserProvider";
+import { AppUserProvider } from "@/components/providers/AppUserProvider";
 import { getUserDB } from "@/lib/getUserDB";
 
 export const metadata: Metadata = {
@@ -25,9 +25,9 @@ export default async function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={manrope.className}>
-        <UserProvider initialUser={user}>
+        <AppUserProvider initialUser={user}>
           <SidebarWrapper>{children}</SidebarWrapper>
-        </UserProvider>
+        </AppUserProvider>
       </body>
     </html>
   );

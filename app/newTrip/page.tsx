@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/components/providers/UserProvider";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 
 export default function NewTripPage() {
   const router = useRouter();
-  const user = useUser();
+  const user = useAppUser();
   const userId = user?.userId;
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export default function NewTripPage() {
     endDate: "",
     country: "",
     resort: "",
-    origin: "",
-    primaryDestination: "",
+    departureLocation: "",
+    arrivalLocation: "",
   });
 
   async function createTrip(e: React.FormEvent<HTMLFormElement>) {
@@ -45,6 +45,13 @@ export default function NewTripPage() {
       router.push(`/tripDetail/${data.tripId}`);
     }
   }
+  const toLocalDatetime = (isoString: string) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto py-10 px-4 sm:px-6">
@@ -88,11 +95,14 @@ export default function NewTripPage() {
             <Label htmlFor="startDate">Start Date</Label>
             <Input
               id="startDate"
-              type="date"
-              value={basicInfo.startDate}
-              onChange={(e) =>
-                setBasicInfo({ ...basicInfo, startDate: e.target.value })
-              }
+              type="datetime-local"
+              value={toLocalDatetime(basicInfo.startDate)}
+              onChange={(e) => {
+                const isoString = e.target.value
+                  ? new Date(e.target.value).toISOString()
+                  : "";
+                setBasicInfo({ ...basicInfo, startDate: isoString });
+              }}
             />
           </div>
 
@@ -100,10 +110,38 @@ export default function NewTripPage() {
             <Label htmlFor="endDate">End Date</Label>
             <Input
               id="endDate"
-              type="date"
-              value={basicInfo.endDate}
+              type="datetime-local"
+              value={toLocalDatetime(basicInfo.endDate)}
+              onChange={(e) => {
+                const isoString = e.target.value
+                  ? new Date(e.target.value).toISOString()
+                  : "";
+                setBasicInfo({ ...basicInfo, endDate: isoString });
+              }}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="country">Country</Label>
+            <Input
+              id="country"
+              placeholder="e.g. Norway"
+              value={basicInfo.country}
               onChange={(e) =>
-                setBasicInfo({ ...basicInfo, endDate: e.target.value })
+                setBasicInfo({ ...basicInfo, country: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="resort">Resort (Optional)</Label>
+            <Input
+              id="resort"
+              placeholder="e.g. Holmenkollen Ski"
+              value={basicInfo.resort}
+              onChange={(e) =>
+                setBasicInfo({ ...basicInfo, resort: e.target.value })
               }
             />
           </div>
@@ -112,27 +150,30 @@ export default function NewTripPage() {
         {/* Locations */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="flex flex-col gap-1">
-            <Label htmlFor="origin">Departure Location</Label>
+            <Label htmlFor="departureLocation">Departure Location</Label>
             <Input
-              id="origin"
+              id="departureLocation"
               placeholder="e.g. Stockholm Office"
-              value={basicInfo.origin}
+              value={basicInfo.departureLocation}
               onChange={(e) =>
-                setBasicInfo({ ...basicInfo, origin: e.target.value })
+                setBasicInfo({
+                  ...basicInfo,
+                  departureLocation: e.target.value,
+                })
               }
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label htmlFor="primaryDestination">Arrival Location</Label>
+            <Label htmlFor="arrivalLocation">Arrival Location</Label>
             <Input
-              id="primaryDestination"
+              id="arrivalLocation"
               placeholder="e.g. Oslo HQ"
-              value={basicInfo.primaryDestination}
+              value={basicInfo.arrivalLocation}
               onChange={(e) =>
                 setBasicInfo({
                   ...basicInfo,
-                  primaryDestination: e.target.value,
+                  arrivalLocation: e.target.value,
                 })
               }
             />

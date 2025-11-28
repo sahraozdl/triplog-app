@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
-import Trip from "@/app/models/TripLog";
+import Trip from "@/app/models/Trip";
 
 export async function POST(
   req: NextRequest,
@@ -24,7 +24,7 @@ export async function POST(
     trip.status = "ended";
     trip.basicInfo.endDate = now;
 
-    trip.updatedAt = new Date();
+    trip.updatedAt = now;
 
     await trip.save();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@/components/providers/UserProvider";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 import ActiveTripCard from "@/components/trip/ActiveTripCard";
 import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTripStore } from "@/lib/store/useTripStore";
 
 export default function Dashboard() {
-  const user = useUser();
+  const user = useAppUser();
   const router = useRouter();
 
   const trips = useTripStore((s) => s.trips);

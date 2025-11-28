@@ -24,10 +24,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import LogoutButton from "../LogoutButton";
-import { useUser } from "@/components/providers/UserProvider";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 
 export function NavUser() {
-  const user = useUser();
+  const user = useAppUser();
   const { isMobile } = useSidebar();
   if (!user) {
     return null;

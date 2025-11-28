@@ -8,7 +8,7 @@ import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 import { Button } from "@/components/ui/button";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
-import { useUser } from "@/components/providers/UserProvider";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 
 import {
   TravelFields,
@@ -22,7 +22,7 @@ import { useTripStore } from "@/lib/store/useTripStore";
 export default function DailyLogPage() {
   const router = useRouter();
   const { tripId } = useParams();
-  const user = useUser();
+  const user = useAppUser();
   const loggedInUserId = user?.userId;
 
   const { getTrip, updateTrip, invalidate } = useTripStore();

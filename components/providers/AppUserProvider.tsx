@@ -2,9 +2,9 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { IUser } from "@/app/types/user";
 
-const UserContext = createContext<IUser | null>(null);
+const AppUserContext = createContext<IUser | null>(null);
 
-export function UserProvider({
+export function AppUserProvider({
   initialUser,
   children,
 }: {
@@ -13,9 +13,11 @@ export function UserProvider({
 }) {
   const [user] = useState<IUser | null>(initialUser);
 
-  return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
+  return (
+    <AppUserContext.Provider value={user}>{children}</AppUserContext.Provider>
+  );
 }
 
-export function useUser() {
-  return useContext(UserContext);
+export function useAppUser() {
+  return useContext(AppUserContext);
 }

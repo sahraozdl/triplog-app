@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
-import Trip from "@/app/models/TripLog";
+import Trip from "@/app/models/Trip";
 import User from "@/app/models/User";
 import { generateInviteCode } from "@/lib/codeGenerator";
 import mongoose from "mongoose";
@@ -9,15 +9,9 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
     const body = await req.json();
-    if (!body.userId) {
+    if (!body.userId || !body.basicInfo) {
       return NextResponse.json(
-        { error: "UserId is missing in request body" },
-        { status: 400 },
-      );
-    }
-    if (!body.basicInfo) {
-      return NextResponse.json(
-        { error: "BasicInfo is missing in request body" },
+        { error: "Missing required fields (userId or basicInfo)" },
         { status: 400 },
       );
     }
@@ -30,22 +24,16 @@ export async function POST(req: NextRequest) {
       attendants: [
         {
           userId: creatorId,
-          joinedAt: new Date().toISOString(),
           role: "employer",
-          status: "active",
         },
       ],
       invites: [
         {
           code: inviteCode,
           createdBy: creatorId,
-          expiresAt: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
         },
       ],
       basicInfo: body.basicInfo,
-      dailyLogs: [],
     });
 
     // Add trip to creator's activeTrips
@@ -60,7 +48,7 @@ export async function POST(req: NextRequest) {
       inviteCode,
     });
   } catch (err) {
-    console.error(err);
+    console.error("ERROR /api/trips POST:", err);
     return NextResponse.json(
       { error: "Failed to create trip" },
       { status: 500 },
@@ -79,7 +67,16 @@ export async function GET(req: NextRequest) {
     }
 
     // convert string IDs → ObjectId[]
-    const idArray = ids.split(",").map((id) => new mongoose.Types.ObjectId(id));
+    const idArray: mongoose.Types.ObjectId[] = [];
+    ids.split(",").forEach((id) => {
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        idArray.push(new mongoose.Types.ObjectId(id));
+      }
+    });
+
+    if (idArray.length === 0) {
+      return NextResponse.json({ success: true, trips: [] });
+    }
 
     const trips = await Trip.find({ _id: { $in: idArray } }).lean();
 
