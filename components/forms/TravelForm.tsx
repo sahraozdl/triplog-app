@@ -99,6 +99,7 @@ export default function TravelForm({ value, onChange }: Props) {
                   <Input
                     id="startTime"
                     type="time"
+                    onClick={(e) => e.currentTarget.showPicker()}
                     value={value.startTime}
                     onChange={(e) => update({ startTime: e.target.value })}
                   />
@@ -108,6 +109,7 @@ export default function TravelForm({ value, onChange }: Props) {
                   <Input
                     id="endTime"
                     type="time"
+                    onClick={(e) => e.currentTarget.showPicker()}
                     value={value.endTime}
                     onChange={(e) => update({ endTime: e.target.value })}
                   />

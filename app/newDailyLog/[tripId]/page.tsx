@@ -22,7 +22,8 @@ import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
+import { Calendar, CalendarIcon } from "lucide-react";
+// I will make them global types for the forms later
 type TravelFormState = Omit<
   TravelLog,
   | "_id"
@@ -327,24 +328,26 @@ export default function DailyLogPage() {
           onSubmit={saveDailyLog}
           className="flex flex-col gap-6 items-center bg-background p-6 rounded-xl shadow-sm space-y-2"
         >
-          <Label
-            htmlFor="dateTime"
-            className="text-sm font-semibold text-foreground"
-          >
-            Date of Entry{" "}
-          </Label>
-          <Input
-            className="max-w-sm w-full"
-            id="dateTime"
-            type="datetime-local"
-            value={toLocalDatetime(dateTime)}
-            onChange={(e) => {
-              const isoString = e.target.value
-                ? new Date(e.target.value).toISOString()
-                : "";
-              setDateTime(isoString);
-            }}
-          />
+          <div className="max-w-sm w-full">
+            <Label
+              htmlFor="logDate"
+              className="mb-2 block font-semibold text-foreground text-xl"
+            >
+              Date & Time of Entry
+            </Label>
+            <Input
+              id="logDate"
+              type="datetime-local"
+              onClick={(e) => e.currentTarget.showPicker()}
+              value={toLocalDatetime(dateTime)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDateTime(val ? new Date(val).toISOString() : "");
+              }}
+              className="w-full h-14 text-xl font-medium cursor-pointer bg-input-back hover:bg-muted/50 transition-colors border border-input"
+            />
+          </div>
+
           <TravelForm value={travel} onChange={setTravel} />
           <WorkTimeForm value={workTime} onChange={setWorkTime} />
           <AccommodationMealsForm

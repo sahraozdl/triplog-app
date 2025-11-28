@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -8,8 +9,11 @@ import {
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { QuickTags } from "@/components/form-elements/QuickTags";
 import { WorkTimeLog } from "@/app/types/DailyLog";
+import { Wand2, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type WorkTimeFormState = Omit<
   WorkTimeLog,
@@ -32,17 +36,49 @@ interface Props {
 }
 
 export default function WorkTimeForm({ value, onChange }: Props) {
+  const [generating, setGenerating] = useState(false);
+
   const update = (field: Partial<WorkTimeFormState>) =>
     onChange({ ...value, ...field });
 
   function insertTag(tag: string) {
     update({
-      description: value.description.includes(tag)
-        ? value.description
-        : value.description.trim().length
-          ? `${value.description}, ${tag}`
-          : tag,
+      description: value.description ? `${value.description}, ${tag}` : tag,
     });
+  }
+
+  async function handleAiGenerate() {
+    if (!value.startTime || !value.endTime) {
+      alert("Please fill in start and end times first.");
+      return;
+    }
+
+    if (!value.description.trim()) {
+      alert("Please select at least one tag or write a keyword first.");
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate_description",
+          timeRange: `${value.startTime} - ${value.endTime}`,
+          selectedTags: value.description.split(","),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.description) {
+        update({ description: data.description });
+      }
+    } catch (error) {
+      console.error("AI Gen Failed", error);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
@@ -67,6 +103,7 @@ export default function WorkTimeForm({ value, onChange }: Props) {
                   <Input
                     type="time"
                     id="time-from"
+                    onClick={(e) => e.currentTarget.showPicker()}
                     value={value.startTime}
                     onChange={(e) => update({ startTime: e.target.value })}
                   />
@@ -77,27 +114,46 @@ export default function WorkTimeForm({ value, onChange }: Props) {
                   <Input
                     type="time"
                     id="time-to"
+                    onClick={(e) => e.currentTarget.showPicker()}
                     value={value.endTime}
                     onChange={(e) => update({ endTime: e.target.value })}
                   />
                 </div>
               </div>
 
-              {/* DESCRIPTION */}
+              {/* DESCRIPTION & AI BUTTON */}
               <div className="flex flex-col gap-2 w-full">
-                <Label htmlFor="work-description">Work Description</Label>
-                <textarea
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="work-description">Work Description</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAiGenerate}
+                    disabled={generating}
+                    className="text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 h-7"
+                  >
+                    {generating ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="mr-1 h-3 w-3" />
+                    )}
+                    {generating ? "Writing..." : "AI Auto-Write"}
+                  </Button>
+                </div>
+
+                <Textarea
                   id="work-description"
                   aria-label="Work Description"
-                  placeholder="e.g. Worked on project X, Y, Z"
-                  className="h-40 w-full resize-none border rounded-md p-3 bg-background focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm"
+                  placeholder="e.g. Click tags below (Coding, Meeting...) then hit 'AI Auto-Write'"
+                  className="h-32 w-full resize-none border rounded-md p-3 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm transition-all"
                   value={value.description}
                   onChange={(e) => update({ description: e.target.value })}
-                ></textarea>
+                ></Textarea>
               </div>
 
-              {/* QUICK TAGS */}
-              <div className="flex flex-col gap-2 w-full">
+              {/* SMART TAGS */}
+              <div className="flex flex-col gap-2 w-full pt-2 border-t border-dashed">
                 <QuickTags onTagClick={insertTag} />
               </div>
             </div>
