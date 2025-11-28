@@ -8,8 +8,30 @@ const UserSchema = new Schema<IUserDocument>({
   name: String,
   picture: String,
   roles: [String],
-  createdAt: { type: String, default: new Date().toISOString() },
-  updatedAt: { type: String, default: new Date().toISOString() },
+
+  employeeDetail: {
+    identityNumber: { type: String, default: "" },
+    jobTitle: { type: String, default: "" },
+    department: { type: String, default: "" },
+
+    homeAddress: {
+      street: String,
+      city: String,
+      zip: String,
+      country: String,
+      // In the future, we can add lat/lng (coordinates) here
+    },
+    workAddress: {
+      street: String,
+      city: String,
+      zip: String,
+      country: String,
+    },
+  },
+
+  createdAt: { type: String, default: () => new Date().toISOString() },
+  updatedAt: { type: String, default: () => new Date().toISOString() },
+
   activeTrips: [String],
   pastTrips: [String],
   pendingInvites: [String],

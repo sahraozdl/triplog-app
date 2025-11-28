@@ -8,7 +8,6 @@ import WorkTimeForm from "@/components/forms/WorkTimeForm";
 import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 
-import DateAndTimePicker from "@/components/form-elements/DateAndTimePicker";
 import { Button } from "@/components/ui/button";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { useAppUser } from "@/components/providers/AppUserProvider";
@@ -21,6 +20,8 @@ import {
 } from "@/app/types/DailyLog";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type TravelFormState = Omit<
   TravelLog,
@@ -175,6 +176,14 @@ export default function DailyLogPage() {
       body: JSON.stringify(body),
     });
   };
+  //same thing is inside newTrip page, but we need it here too for the input make it global function
+  const toLocalDatetime = (isoString: string) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
 
   async function saveDailyLog(e: React.FormEvent) {
     e.preventDefault();
@@ -291,11 +300,14 @@ export default function DailyLogPage() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             {attendants.length > 1 && (
-              <Button variant="outline" onClick={() => setInviteOpen(true)}>
-                {appliedTo.length > 0
-                  ? `${appliedTo.length} Colleagues Selected`
-                  : "Invite Colleagues"}
-              </Button>
+              <InviteColleaguesDialog
+                mode="select"
+                attendants={attendants.map((a) => a.userId)}
+                open={inviteOpen}
+                onOpenChange={setInviteOpen}
+                selected={appliedTo}
+                onSelect={setAppliedTo}
+              />
             )}
 
             <div className="flex gap-2">
@@ -310,49 +322,38 @@ export default function DailyLogPage() {
         </div>
 
         {/* GLOBAL DATE SELECTOR */}
-        <div className="bg-background p-6 rounded-xl border border-border shadow-sm space-y-2">
-          <label className="text-sm font-semibold text-foreground">
-            Date of Entry
-          </label>
-          <div className="max-w-sm">
-            <DateAndTimePicker
-              value={dateTime ? new Date(dateTime) : undefined}
-              onChange={(date) => setDateTime(date ? date.toISOString() : "")}
-            />
-          </div>
-        </div>
-
-        {/* FORMS CONTAINER */}
         <form
           id="dailyLogForm"
           onSubmit={saveDailyLog}
-          className="flex flex-col gap-6"
+          className="flex flex-col gap-6 items-center bg-background p-6 rounded-xl shadow-sm space-y-2"
         >
-          {/* 1. Travel Form (Accordion) */}
+          <Label
+            htmlFor="dateTime"
+            className="text-sm font-semibold text-foreground"
+          >
+            Date of Entry{" "}
+          </Label>
+          <Input
+            className="max-w-sm w-full"
+            id="dateTime"
+            type="datetime-local"
+            value={toLocalDatetime(dateTime)}
+            onChange={(e) => {
+              const isoString = e.target.value
+                ? new Date(e.target.value).toISOString()
+                : "";
+              setDateTime(isoString);
+            }}
+          />
           <TravelForm value={travel} onChange={setTravel} />
-
-          {/* 2. Work Time Form (Accordion) */}
           <WorkTimeForm value={workTime} onChange={setWorkTime} />
-
-          {/* 3. Accommodation & Meals Form (Accordion) */}
           <AccommodationMealsForm
             value={accommodationMeals}
             onChange={setAccommodationMeals}
           />
 
-          {/* 4. Additional Form (Accordion) */}
           <AdditionalForm value={additional} onChange={setAdditional} />
         </form>
-
-        {/* INVITE DIALOG */}
-        <InviteColleaguesDialog
-          mode="select"
-          attendants={attendants.map((a) => a.userId)}
-          open={inviteOpen}
-          onOpenChange={setInviteOpen}
-          selected={appliedTo}
-          onSelect={setAppliedTo}
-        />
       </div>
     </div>
   );

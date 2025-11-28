@@ -9,6 +9,7 @@ import DailyLogsList from "@/components/trip/DailyLogsList";
 import AttendantsList from "@/components/trip/AttendantsList";
 import { TripAttendant } from "@/app/types/Trip";
 import UserFilter from "@/components/trip/UserFilter";
+import DownloadReportButton from "@/components/trip/DownloadReportButton";
 
 export default function TripDetailPage() {
   const router = useRouter();
@@ -83,7 +84,6 @@ export default function TripDetailPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 flex flex-col gap-8">
-      {/* Header */}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
           {trip.basicInfo.title}
@@ -108,17 +108,21 @@ export default function TripDetailPage() {
         </p>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-row justify-between gap-4">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="flex gap-4 w-full sm:w-auto">
+          <Button
+            variant="destructive"
+            className="flex-1 sm:flex-none"
+            onClick={handleEndTrip}
+          >
+            End Trip
+          </Button>
+
+          <DownloadReportButton trip={trip} logs={logs} />
+        </div>
+
         <Button
-          variant="destructive"
-          className="w-1/2 sm:w-auto"
-          onClick={handleEndTrip}
-        >
-          End Trip
-        </Button>
-        <Button
-          className="w-1/2 sm:w-auto"
+          className="w-full sm:w-auto"
           onClick={() => router.push(`/newDailyLog/${tripId}`)}
         >
           New Daily Log
