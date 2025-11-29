@@ -17,11 +17,11 @@ import {
   WorkTimeLog,
   DailyLogFormState,
 } from "@/app/types/DailyLog";
+//ı will add edit colleagues dialog later
 import { Trip, TripAttendant } from "@/app/types/Trip";
-import { useTripStore } from "@/lib/store/useTripStore";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
-
+import { useTripStore } from "@/lib/store/useTripStore";
 type FormState<T> = Omit<
   T,
   | "_id"
@@ -104,6 +104,7 @@ export default function EditDailyLogPage() {
 
   const [dateTime, setDateTime] = useState<string>("");
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
+  //will be used by edit colleagues dialog later
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const [travel, setTravel] = useState<TravelFormState>(
@@ -265,14 +266,12 @@ export default function EditDailyLogPage() {
       <div className="w-full max-w-4xl space-y-6">
         {/* HEADER */}
         <div className="flex justify-between items-center pb-4 border-b border-border">
-          <h1 className="text-2xl font-bold text-foreground">
-            Günlük Kayıt Düzenleme
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Daily Log Edit</h1>
           <Button
             variant="ghost"
             onClick={() => router.push(`/tripDetail/${tripId}`)}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" /> Seyahate Geri Dön
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Trip
           </Button>
         </div>
 
@@ -283,7 +282,7 @@ export default function EditDailyLogPage() {
               htmlFor="logDate"
               className="mb-2 block font-semibold text-foreground"
             >
-              Kayıt Tarihi ve Saati (Orijinal:{" "}
+              Record Date and Time (Original:{" "}
               {new Date(dateTime).toLocaleDateString()})
             </Label>
             <Input
@@ -323,7 +322,7 @@ export default function EditDailyLogPage() {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Güncellemeleri Kaydet
+            Save Updates
           </Button>
         </form>
       </div>
