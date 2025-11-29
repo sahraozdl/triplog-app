@@ -3,6 +3,7 @@ import {
   Bell,
   ChevronsUpDown,
   CreditCard,
+  Link,
   LogOut,
   Sparkles,
 } from "lucide-react";
@@ -25,9 +26,11 @@ import {
 } from "@/components/ui/sidebar";
 import LogoutButton from "../LogoutButton";
 import { useAppUser } from "@/components/providers/AppUserProvider";
+import { useRouter } from "next/navigation";
 
 export function NavUser() {
   const user = useAppUser();
+  const router = useRouter();
   const { isMobile } = useSidebar();
   if (!user) {
     return null;
@@ -74,22 +77,22 @@ export function NavUser() {
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
-                Upgrade to Pro
+                Upgrade to Pro (Coming Soon)
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <BadgeCheck />
-                Account
+                Settings
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard />
-                Billing
+                Billing (Coming Soon)
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
-                Notifications
+                Notifications (Coming Soon)
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

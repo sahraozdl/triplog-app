@@ -14,7 +14,6 @@ import {
   UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip } from "@/app/types/Trip";
-import { IEmployeeDetail } from "@/app/types/user";
 import { robotoBase64 } from "@/lib/fonts";
 
 interface Props {
@@ -52,29 +51,19 @@ async function fetchImage(
 export default function DownloadReportButton({ trip, logs }: Props) {
   const [generating, setGenerating] = useState(false);
 
-  const getMockEmployeeDetail = (
-    userId: string,
-    index: number,
-  ): IEmployeeDetail & { name: string } => {
-    const shortId = userId.slice(-4).toUpperCase();
-    return {
-      name: `Employee ${shortId}`,
-      identityNumber: `${10000000000 + index}`,
-      jobTitle: index === 0 ? "Team Lead" : "Developer",
-      department: "IT / Engineering",
-      homeAddress: {
-        street: index === 0 ? "Main St. No:1" : "Broadway Ave. No:10",
-        city: "New York",
-        zip: "10001",
-        country: "USA",
-      },
-      workAddress: {
-        street: "Tech Park Blvd. No:100",
-        city: "San Francisco",
-        zip: "94016",
-        country: "USA",
-      },
-    };
+  const fetchAttendantDetails = async (userIds: string[]) => {
+    try {
+      const res = await fetch("/api/users/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds, detailed: true }),
+      });
+      const data = await res.json();
+      return data.users || {};
+    } catch (e) {
+      console.error("Failed to fetch user details", e);
+      return {};
+    }
   };
 
   const generatePDF = async () => {
@@ -85,17 +74,25 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       doc.addFileToVFS("MyCustomFont.ttf", robotoBase64);
       doc.addFont("MyCustomFont.ttf", "MyCustomFont", "normal");
       doc.setFont("MyCustomFont");
-    } else {
-      console.warn("Custom font not loaded. Some characters may be broken.");
     }
 
-    const attendants = trip.attendants || [];
-    const users = attendants.map((a, index) => ({
-      id: a.userId,
-      ...getMockEmployeeDetail(a.userId, index),
-    }));
+    const attendantIds = trip.attendants?.map((a) => a.userId) || [];
+    const userDetailsMap = await fetchAttendantDetails(attendantIds);
 
-    // --- HEADER ---
+    const users = attendantIds.map((id) => {
+      const user = userDetailsMap[id];
+      const details = user?.employeeDetail || {};
+      return {
+        id: id,
+        name: user?.name || "Unknown User",
+        jobTitle: details.jobTitle || "-",
+        department: details.department || "-",
+        identityNumber: details.identityNumber || "-",
+        homeAddress: details.homeAddress,
+        workAddress: details.workAddress,
+      };
+    });
+
     doc.setFontSize(18);
     doc.text(`Trip Report: ${trip.basicInfo.title}`, 14, 20);
 
@@ -110,7 +107,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
     headerY += lineHeight;
 
     if (trip.basicInfo.departureLocation || trip.basicInfo.arrivalLocation) {
-      const routeText = `Route: ${trip.basicInfo.departureLocation || "Departure Location"} - ${trip.basicInfo.arrivalLocation || "Arrival Location"}`;
+      const routeText = `Route: ${trip.basicInfo.departureLocation || "Origin"} -> ${trip.basicInfo.arrivalLocation || "Destination"}`;
       const splitRoute = doc.splitTextToSize(routeText, 180);
       doc.text(splitRoute, 14, headerY);
       headerY += splitRoute.length * lineHeight;
@@ -120,7 +117,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       .filter(Boolean)
       .join(" / ");
     if (locationDetails) {
-      doc.text(`Location/Resort: ${locationDetails}`, 14, headerY);
+      doc.text(`Destination: ${locationDetails}`, 14, headerY);
       headerY += lineHeight;
     }
 
@@ -137,9 +134,9 @@ export default function DownloadReportButton({ trip, logs }: Props) {
 
     const infoHeaders = ["Detail", ...users.map((u) => u.name)];
     const infoRows = [
-      ["Position", ...users.map((u) => u.jobTitle || "-")],
-      ["Department", ...users.map((u) => u.department || "-")],
-      ["ID Number", ...users.map((u) => u.identityNumber || "-")],
+      ["Position", ...users.map((u) => u.jobTitle)],
+      ["Department", ...users.map((u) => u.department)],
+      ["ID Number", ...users.map((u) => u.identityNumber)],
       [
         "Home Address",
         ...users.map(
@@ -170,7 +167,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         cellPadding: 2,
         font: robotoBase64 ? "MyCustomFont" : "helvetica",
       },
-      headStyles: { fillColor: [50, 50, 50], fontSize: 9 },
+      headStyles: { fillColor: [40, 40, 40], fontSize: 9, textColor: 255 },
       columnStyles: { 0: { fontStyle: "bold", cellWidth: 30 } },
     });
 
@@ -304,15 +301,13 @@ export default function DownloadReportButton({ trip, logs }: Props) {
           font: robotoBase64 ? "MyCustomFont" : "helvetica",
         },
         columnStyles: { 0: { cellWidth: 25 } },
-
+        headStyles: { fillColor: [70, 58, 128], fontSize: 9, textColor: 255 },
         didDrawCell: (data) => {
           if (data.section === "body" && data.column.index > 0) {
             const cellKey = `${data.row.index}-${data.column.index}`;
             const images = cellImagesMap[cellKey];
-
             if (images && images.length > 0) {
               const cellX = data.cell.x + 4;
-
               let currentImgY = data.cell.y + data.cell.height - 4;
               [...images].reverse().forEach((img) => {
                 currentImgY -= img.h;
@@ -335,7 +330,6 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       currentY = doc.lastAutoTable.finalY + 15;
     };
 
-    // --- MODULES ---
     await drawModuleTable("travel", "1. Travel Records", (log) => {
       const t = log as TravelLog;
       return `Reason: ${t.travelReason || "-"}\nRoute: ${t.departureLocation || "?"} -> ${t.destination || "?"}\nDistance: ${t.distance} km`;
@@ -383,7 +377,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       ) : (
         <Download className="h-4 w-4" />
       )}
-      {generating ? "Generating..." : "Download Report"}
+      {generating ? "Generating..." : "Download Report (PDF)"}
     </Button>
   );
 }

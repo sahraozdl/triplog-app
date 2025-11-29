@@ -118,6 +118,12 @@ export default function TripDetailPage() {
           </Button>
 
           <DownloadReportButton trip={trip} logs={logs} />
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/reports/${tripId}`)}
+          >
+            View Report
+          </Button>
         </div>
 
         <Button

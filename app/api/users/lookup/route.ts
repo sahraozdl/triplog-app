@@ -5,19 +5,30 @@ import User from "@/app/models/User";
 export async function POST(req: NextRequest) {
   try {
     await connectToDB();
-    const { userIds } = await req.json();
+    const { userIds, detailed } = await req.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ users: {} });
     }
 
-    const users = await User.find({ userId: { $in: userIds } }).select(
-      "userId name email",
-    );
-    const userMap: Record<string, string> = {};
+    const fields = detailed
+      ? "userId name email employeeDetail"
+      : "userId name email";
+
+    const users = await User.find({ userId: { $in: userIds } }).select(fields);
+
+    const userMap: Record<string, any> = {};
 
     users.forEach((u) => {
-      userMap[u.userId] = u.name || u.email || "Unknown User";
+      if (detailed) {
+        userMap[u.userId] = {
+          name: u.name || u.email || "Unknown User",
+          email: u.email,
+          employeeDetail: u.employeeDetail,
+        };
+      } else {
+        userMap[u.userId] = u.name || u.email || "Unknown User";
+      }
     });
 
     return NextResponse.json({ users: userMap });

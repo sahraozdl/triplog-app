@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  BookOpen,
   LuggageIcon,
   Bus,
   Frame,
@@ -13,6 +12,7 @@ import {
   Send,
   Settings2,
   ListTree,
+  FileText,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -73,9 +73,9 @@ const data = {
       ],
     },
     {
-      title: "Documentation (Coming Soon)",
-      url: "#",
-      icon: BookOpen,
+      title: "Reports",
+      url: "/reports",
+      icon: FileText,
       items: [
         {
           title: "Introduction (Coming Soon)",
@@ -88,8 +88,8 @@ const data = {
       ],
     },
     {
-      title: "Settings (Coming Soon)",
-      url: "#",
+      title: "Settings",
+      url: "/settings",
       icon: Settings2,
       items: [
         {
