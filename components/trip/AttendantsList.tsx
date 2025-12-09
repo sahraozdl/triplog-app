@@ -49,7 +49,7 @@ export default function AttendantsList({
   }
 
   return (
-    <div className="border bg-card text-card-foreground rounded-xl shadow-sm overflow-hidden">
+    <div className="w-full border bg-card text-card-foreground rounded-xl shadow-sm overflow-hidden">
       <div className="bg-muted/30 px-4 py-3 border-b border-border flex items-center gap-2">
         <User className="w-4 h-4 text-primary" />
         <h3 className="font-semibold text-sm">Trip Attendants</h3>
@@ -64,11 +64,19 @@ export default function AttendantsList({
           return (
             <div
               key={a.userId}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-4 hover:bg-muted/20 transition-colors items-center"
+              className="
+                w-full p-4
+                flex flex-col gap-4
+                sm:grid sm:grid-cols-1
+                md:grid md:grid-cols-[minmax(0,2.5fr)_minmax(0,1.2fr)_minmax(0,1.2fr)]
+                md:items-center
+                hover:bg-muted/20
+                transition-colors
+              "
             >
               {/* User Info */}
-              <div className="flex flex-col">
-                <span className="font-medium text-sm text-foreground">
+              <div className="flex flex-col gap-1 w-full">
+                <span className="font-medium text-sm text-foreground wrap-break-word">
                   {userName}
                 </span>
                 <span
@@ -80,21 +88,21 @@ export default function AttendantsList({
               </div>
 
               {/* Role */}
-              <div className="flex flex-col sm:items-center md:items-start">
-                <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mb-0.5">
+              <div className="flex flex-col gap-1 w-full sm:flex-row sm:items-center md:flex-col md:items-start">
+                <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
                   Role
                 </span>
-                <span className="text-sm capitalize bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 inline-block">
+                <span className="mt-0.5 text-sm capitalize bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 inline-flex items-center justify-center max-w-full">
                   {a.role}
                 </span>
               </div>
 
               {/* Status */}
-              <div className="flex flex-col sm:items-center md:items-start">
-                <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mb-0.5">
+              <div className="flex flex-col gap-1 w-full sm:flex-row sm:items-center md:flex-col md:items-start">
+                <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
                   Status
                 </span>
-                <div className="flex items-center gap-1.5 text-sm">
+                <div className="mt-0.5 flex items-center gap-1.5 text-sm">
                   {a.status === "active" ? (
                     <BadgeCheck className="w-3.5 h-3.5 text-green-600" />
                   ) : (
@@ -102,16 +110,6 @@ export default function AttendantsList({
                   )}
                   <span className="capitalize">{a.status}</span>
                 </div>
-              </div>
-
-              {/* Joined At */}
-              <div className="flex flex-col sm:items-end md:items-end">
-                <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider mb-0.5">
-                  Joined
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {a.joinedAt ? new Date(a.joinedAt).toLocaleDateString() : "-"}
-                </span>
               </div>
             </div>
           );

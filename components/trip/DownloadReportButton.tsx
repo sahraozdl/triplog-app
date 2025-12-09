@@ -228,11 +228,6 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         for (let uIndex = 0; uIndex < users.length; uIndex++) {
           const user = users[uIndex];
           let userLogs = logsByDateUser[date]?.[user.id];
-
-          // 🔴 WORKTIME İÇİN ÖZEL DAVRANIŞ:
-          // Aynı güne ait hem owner log'u hem de appliedTo'dan gelen log'lar varsa
-          // - Önce userId == user.id olan "kendi" log'unu kullan
-          // - Yoksa fallback olarak group log'u kullan
           if (typeFilter === "worktime" && userLogs && userLogs.length > 0) {
             const directLogs = userLogs.filter((l) => l.userId === user.id);
             const groupLogs = userLogs.filter((l) => l.userId !== user.id);
@@ -338,8 +333,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         },
       });
 
-      // @ts-ignore
-      currentY = doc.lastAutoTable.finalY + 15;
+      currentY = (doc as any).lastAutoTable.finalY + 15;
     };
 
     await drawModuleTable("travel", "1. Travel Records", (log) => {
