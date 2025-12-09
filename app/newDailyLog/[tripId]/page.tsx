@@ -182,21 +182,21 @@ export default function DailyLogPage() {
 
   async function saveDailyLog(e: React.FormEvent) {
     e.preventDefault();
-  
+
     if (!selectedDate) {
       alert("Please select a date for this entry.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-  
+
     setIsSaving(true);
-  
+
     const [year, month, day] = selectedDate.split("-").map(Number);
     const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     const isoDateString = utcDate.toISOString();
-  
+
     const requests: Promise<Response>[] = [];
-  
+
     const isTravelFilled =
       travel.travelReason ||
       travel.vehicleType ||
@@ -205,14 +205,14 @@ export default function DailyLogPage() {
       (travel.distance && travel.distance > 0) ||
       travel.startTime ||
       travel.endTime;
-  
+
     if (isTravelFilled) {
       requests.push(createLogRequest("travel", travel, isoDateString));
     }
-  
+
     const isWorkFilled =
       workTime.description || workTime.startTime || workTime.endTime;
-  
+
     if (isWorkFilled) {
       const myLogBody = {
         itemType: "worktime",
@@ -224,7 +224,7 @@ export default function DailyLogPage() {
         data: workTime,
         files: [],
       };
-  
+
       requests.push(
         fetch("/api/daily-logs", {
           method: "POST",
@@ -232,21 +232,21 @@ export default function DailyLogPage() {
           body: JSON.stringify(myLogBody),
         }),
       );
-  
+
       if (appliedTo.length > 0) {
         appliedTo.forEach((colleagueId) => {
           const override = workTimeOverrides[colleagueId];
-  
+
           const description = override?.description || workTime.description;
           const startTime = override?.startTime || workTime.startTime;
           const endTime = override?.endTime || workTime.endTime;
-  
+
           const colleagueData = {
             description,
             startTime,
             endTime,
           };
-  
+
           const colleagueBody = {
             itemType: "worktime",
             tripId,
@@ -257,7 +257,7 @@ export default function DailyLogPage() {
             data: colleagueData,
             files: [],
           };
-  
+
           requests.push(
             fetch("/api/daily-logs", {
               method: "POST",
@@ -268,39 +268,39 @@ export default function DailyLogPage() {
         });
       }
     }
-  
+
     const isAccFilled =
       accommodationMeals.accommodationType ||
       accommodationMeals.overnightStay !== "" ||
       accommodationMeals.meals.breakfast.eaten;
-  
+
     if (isAccFilled) {
       requests.push(
         createLogRequest("accommodation", accommodationMeals, isoDateString),
       );
     }
-  
+
     const isAdditionalFilled =
       additional.notes || additional.uploadedFiles.length > 0;
-  
+
     if (isAdditionalFilled) {
       requests.push(createLogRequest("additional", additional, isoDateString));
     }
-  
+
     if (requests.length === 0) {
       alert("Please fill in at least one section to save.");
       setIsSaving(false);
       return;
     }
-  
+
     try {
       const responses = await Promise.all(requests);
       const failed = responses.some((r) => !r.ok);
-  
+
       if (failed) {
         throw new Error("Some logs failed to save.");
       }
-  
+
       invalidate();
       router.push(`/tripDetail/${tripId}`);
     } catch (error) {
@@ -310,7 +310,6 @@ export default function DailyLogPage() {
       setIsSaving(false);
     }
   }
-  
 
   if (loadingTrip)
     return (

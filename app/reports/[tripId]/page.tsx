@@ -246,7 +246,6 @@ export default function ReportPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Trip
         </Button>
         <div className="flex flex-wrap gap-2">
-
           <DownloadReportButton trip={trip} logs={logs} />
         </div>
       </div>

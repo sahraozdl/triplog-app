@@ -104,8 +104,7 @@ export default function WorkTimeForm({
     if (activeTab !== "me") {
       currentStart =
         effectiveOverrides[activeTab]?.startTime || value.startTime;
-      currentEnd =
-        effectiveOverrides[activeTab]?.endTime || value.endTime;
+      currentEnd = effectiveOverrides[activeTab]?.endTime || value.endTime;
       currentDesc = effectiveOverrides[activeTab]?.description || "";
     }
 
@@ -414,9 +413,7 @@ export default function WorkTimeForm({
                       type="time"
                       id="time-to"
                       value={value.endTime}
-                      onChange={(e) =>
-                        updateMain({ endTime: e.target.value })
-                      }
+                      onChange={(e) => updateMain({ endTime: e.target.value })}
                       className="bg-background text-foreground border-input 
                         [&::-webkit-calendar-picker-indicator]:invert 
                         [&::-webkit-calendar-picker-indicator]:opacity-80
