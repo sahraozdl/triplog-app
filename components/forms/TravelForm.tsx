@@ -176,6 +176,10 @@ export default function TravelForm({ value, onChange, onAddFile }: Props) {
                     onClick={(e) => e.currentTarget.showPicker()}
                     value={value.startTime}
                     onChange={(e) => update({ startTime: e.target.value })}
+                    className="bg-input-back text-foreground border-input 
+                   [&::-webkit-calendar-picker-indicator]:invert 
+                   [&::-webkit-calendar-picker-indicator]:opacity-80
+               "
                   />
                 </div>
                 <div className="flex flex-col gap-2 w-full">
@@ -186,6 +190,10 @@ export default function TravelForm({ value, onChange, onAddFile }: Props) {
                     onClick={(e) => e.currentTarget.showPicker()}
                     value={value.endTime}
                     onChange={(e) => update({ endTime: e.target.value })}
+                    className="bg-input-back text-foreground border-input 
+    [&::-webkit-calendar-picker-indicator]:invert 
+    [&::-webkit-calendar-picker-indicator]:opacity-80
+  "
                   />
                 </div>
               </div>

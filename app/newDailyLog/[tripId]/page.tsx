@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import TravelForm from "@/components/forms/TravelForm";
-import WorkTimeForm from "@/components/forms/WorkTimeForm";
+import WorkTimeForm, {
+  WorkTimeOverride,
+} from "@/components/forms/WorkTimeForm";
 import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 
@@ -24,7 +26,6 @@ import {
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
 
-// Type Helpers
 type TravelFormState = Omit<
   TravelLog,
   | "_id"
@@ -113,8 +114,7 @@ export default function DailyLogPage() {
     loadTrip();
   }, [tripId, trip, updateTrip]);
 
-  // Global State for Date (YYYY-MM-DD string)
-  const [date, setDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -135,6 +135,10 @@ export default function DailyLogPage() {
     endTime: "",
     description: "",
   });
+
+  const [workTimeOverrides, setWorkTimeOverrides] = useState<
+    Record<string, WorkTimeOverride>
+  >({});
 
   const [accommodationMeals, setAccommodationMeals] =
     useState<AccommodationFormState>({
@@ -179,7 +183,7 @@ export default function DailyLogPage() {
   async function saveDailyLog(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!date) {
+    if (!selectedDate) {
       alert("Please select a date for this entry.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -187,8 +191,7 @@ export default function DailyLogPage() {
 
     setIsSaving(true);
 
-    // Create UTC date at noon to avoid timezone shifts
-    const [year, month, day] = date.split("-").map(Number);
+    const [year, month, day] = selectedDate.split("-").map(Number);
     const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     const isoDateString = utcDate.toISOString();
 
@@ -211,24 +214,67 @@ export default function DailyLogPage() {
       workTime.description || workTime.startTime || workTime.endTime;
 
     if (isWorkFilled) {
-      requests.push(createLogRequest("worktime", workTime, isoDateString));
-    }
+      const myLogBody = {
+        itemType: "worktime",
+        tripId,
+        userId: loggedInUserId,
+        dateTime: isoDateString,
+        appliedTo: [],
+        isGroupSource: false,
+        data: workTime,
+        files: [],
+      };
+      requests.push(
+        fetch("/api/daily-logs", {
+          method: "POST",
+          body: JSON.stringify(myLogBody),
+        }),
+      );
 
-    const isMealsFilled =
-      accommodationMeals.meals.breakfast.eaten ||
-      accommodationMeals.meals.lunch.eaten ||
-      accommodationMeals.meals.dinner.eaten;
+      if (appliedTo.length > 0) {
+        appliedTo.forEach((colleagueId) => {
+          const override = workTimeOverrides[colleagueId];
+
+          const description = override?.description || workTime.description;
+          const startTime = override?.startTime || workTime.startTime;
+          const endTime = override?.endTime || workTime.endTime;
+
+          const colleagueData = {
+            description,
+            startTime,
+            endTime,
+          };
+
+          const colleagueBody = {
+            itemType: "worktime",
+            tripId,
+            userId: colleagueId,
+            dateTime: isoDateString,
+            appliedTo: [],
+            isGroupSource: false,
+            data: colleagueData,
+            files: [],
+          };
+          requests.push(
+            fetch("/api/daily-logs", {
+              method: "POST",
+              body: JSON.stringify(colleagueBody),
+            }),
+          );
+        });
+      }
+    }
 
     const isAccFilled =
       accommodationMeals.accommodationType ||
-      accommodationMeals.overnightStay !== "";
+      accommodationMeals.overnightStay !== "" ||
+      accommodationMeals.meals.breakfast.eaten;
 
-    if (isAccFilled || isMealsFilled) {
+    if (isAccFilled) {
       requests.push(
         createLogRequest("accommodation", accommodationMeals, isoDateString),
       );
     }
-
     const isAdditionalFilled =
       additional.notes || additional.uploadedFiles.length > 0;
 
@@ -270,7 +316,7 @@ export default function DailyLogPage() {
   return (
     <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
       <div className="w-full max-w-4xl space-y-6">
-        {/* HEADER */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground py-4">
@@ -307,45 +353,55 @@ export default function DailyLogPage() {
           </div>
         </div>
 
-        {/* GLOBAL DATE SELECTOR */}
+        {/* Global Date */}
         <div
-          className="p-3 rounded-xl border border-border shadow-sm space-y-4 dark:border-gray-800 
-        rounded-b-md bg-sidebar
-        max-w-full md:max-w-3/4 mx-auto
+          className="bg-sidebar p-6 rounded-xl border border-border shadow-sm space-y-2 dark:border-gray-800 
+        rounded-b-md max-w-full md:max-w-3/4 mx-auto
         px-4 md:px-8 py-4"
         >
           <div className="w-full flex flex-row items-center justify-between gap-2">
             <Label
               htmlFor="logDate"
-              className="font-semibold w-1/2 text-foreground flex flex-col gap-2 items-start justify-start"
+              className="font-semibold text-foreground w-1/2"
             >
               Date
-              <span className="text-xs text-muted-foreground">
-                Select the date for these activities.
-              </span>
             </Label>
-
             <div className="group w-1/2">
               <Input
                 id="logDate"
                 type="date"
                 onClick={(e) => e.currentTarget.showPicker()}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="p-3 text-base cursor-pointer hover:bg-muted/50 transition-colors"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors 
+                [&::-webkit-calendar-picker-indicator]:invert 
+                [&::-webkit-calendar-picker-indicator]:opacity-80
+              "
               />
             </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-2 pl-1">
+            Select the date for these activities.
+          </p>
         </div>
 
-        {/* FORMS */}
+        {/* Forms Container */}
         <form
           id="dailyLogForm"
           onSubmit={saveDailyLog}
           className="flex flex-col gap-6"
         >
           <TravelForm value={travel} onChange={setTravel} />
-          <WorkTimeForm value={workTime} onChange={setWorkTime} />
+
+          {/* UPDATED WORK TIME FORM CALL */}
+          <WorkTimeForm
+            value={workTime}
+            onChange={setWorkTime}
+            appliedTo={appliedTo}
+            attendants={attendants}
+            onOverridesChange={setWorkTimeOverrides}
+          />
+
           <AccommodationMealsForm
             value={accommodationMeals}
             onChange={setAccommodationMeals}
