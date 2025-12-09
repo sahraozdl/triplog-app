@@ -15,6 +15,7 @@ import { QuickTags } from "@/components/form-elements/QuickTags";
 import { WorkTimeLog } from "@/app/types/DailyLog";
 import { Wand2, Loader2, User } from "lucide-react";
 import { TripAttendant } from "@/app/types/Trip";
+import { Textarea } from "../ui/textarea";
 
 type WorkTimeFormState = Omit<
   WorkTimeLog,
@@ -42,6 +43,11 @@ interface Props {
   onChange: (val: WorkTimeFormState) => void;
   appliedTo?: string[];
   attendants?: TripAttendant[];
+
+  // parent'ten gelen override map'i
+  overrides?: Record<string, WorkTimeOverride>;
+
+  // override değişince parent'e geri bildirim
   onOverridesChange?: (overrides: Record<string, WorkTimeOverride>) => void;
 }
 
@@ -50,27 +56,32 @@ export default function WorkTimeForm({
   onChange,
   appliedTo = [],
   attendants = [],
+  overrides = {},
   onOverridesChange,
 }: Props) {
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("me");
 
-  const [overrides, setOverrides] = useState<Record<string, WorkTimeOverride>>(
-    {},
-  );
-
+  // appliedTo değişirse, geçersiz bir tab'deysek "me"ye dön
   useEffect(() => {
-    onOverridesChange?.(overrides);
-  }, [overrides, onOverridesChange]);
+    if (activeTab !== "me" && !appliedTo.includes(activeTab)) {
+      setActiveTab("me");
+    }
+  }, [appliedTo, activeTab]);
+
+  const effectiveOverrides = overrides || {};
 
   const updateMain = (field: Partial<WorkTimeFormState>) =>
     onChange({ ...value, ...field });
 
   const updateOverride = (userId: string, field: Partial<WorkTimeOverride>) => {
-    setOverrides((prev) => ({
+    if (!onOverridesChange) return;
+    const prev = effectiveOverrides;
+    const next: Record<string, WorkTimeOverride> = {
       ...prev,
       [userId]: { ...prev[userId], ...field },
-    }));
+    };
+    onOverridesChange(next);
   };
 
   function insertTag(tag: string) {
@@ -79,7 +90,7 @@ export default function WorkTimeForm({
       const newDesc = currentDesc ? `${currentDesc}, ${tag}` : tag;
       updateMain({ description: newDesc });
     } else {
-      const currentDesc = overrides[activeTab]?.description || "";
+      const currentDesc = effectiveOverrides[activeTab]?.description || "";
       const newDesc = currentDesc ? `${currentDesc}, ${tag}` : tag;
       updateOverride(activeTab, { description: newDesc });
     }
@@ -91,9 +102,11 @@ export default function WorkTimeForm({
     let currentDesc = value.description;
 
     if (activeTab !== "me") {
-      currentStart = overrides[activeTab]?.startTime || value.startTime;
-      currentEnd = overrides[activeTab]?.endTime || value.endTime;
-      currentDesc = overrides[activeTab]?.description || "";
+      currentStart =
+        effectiveOverrides[activeTab]?.startTime || value.startTime;
+      currentEnd =
+        effectiveOverrides[activeTab]?.endTime || value.endTime;
+      currentDesc = effectiveOverrides[activeTab]?.description || "";
     }
 
     if (!currentStart || !currentEnd) {
@@ -134,6 +147,8 @@ export default function WorkTimeForm({
   }
 
   const getName = (id: string) => {
+    const att = attendants.find((a) => a.userId === id);
+    if (att && (att as any).name) return (att as any).name as string;
     return `User ${id.slice(-4)}`;
   };
 
@@ -174,14 +189,15 @@ export default function WorkTimeForm({
                     >
                       <User className="h-3 w-3 opacity-70" />
                       {getName(uid)}
-                      {(overrides[uid]?.description ||
-                        overrides[uid]?.startTime) && (
+                      {(effectiveOverrides[uid]?.description ||
+                        effectiveOverrides[uid]?.startTime) && (
                         <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full" />
                       )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
 
+                {/* ME TAB */}
                 <TabsContent value="me" className="mt-0 flex flex-col gap-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                     <div className="flex flex-col gap-2 w-full">
@@ -196,10 +212,10 @@ export default function WorkTimeForm({
                           updateMain({ startTime: e.target.value })
                         }
                         className="
-    bg-background text-foreground border-input 
-    [&::-webkit-calendar-picker-indicator]:invert 
-    [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+                          bg-background text-foreground border-input 
+                          [&::-webkit-calendar-picker-indicator]:invert 
+                          [&::-webkit-calendar-picker-indicator]:opacity-80
+                        "
                       />
                     </div>
                     <div className="flex flex-col gap-2 w-full">
@@ -214,10 +230,10 @@ export default function WorkTimeForm({
                           updateMain({ endTime: e.target.value })
                         }
                         className="
-    bg-background text-foreground border-input 
-    [&::-webkit-calendar-picker-indicator]:invert 
-    [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+                          bg-background text-foreground border-input 
+                          [&::-webkit-calendar-picker-indicator]:invert 
+                          [&::-webkit-calendar-picker-indicator]:opacity-80
+                        "
                       />
                     </div>
                   </div>
@@ -263,6 +279,7 @@ export default function WorkTimeForm({
                   </div>
                 </TabsContent>
 
+                {/* COLLEAGUE TABS */}
                 {appliedTo.map((uid) => (
                   <TabsContent
                     key={uid}
@@ -286,16 +303,18 @@ export default function WorkTimeForm({
                           <Input
                             type="time"
                             id={`time-from-${uid}`}
-                            value={overrides[uid]?.startTime || ""}
+                            value={effectiveOverrides[uid]?.startTime || ""}
                             placeholder={value.startTime}
                             onChange={(e) =>
-                              updateOverride(uid, { startTime: e.target.value })
+                              updateOverride(uid, {
+                                startTime: e.target.value,
+                              })
                             }
                             className="
-    bg-background text-foreground border-input 
-    [&::-webkit-calendar-picker-indicator]:invert 
-    [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+                              bg-background text-foreground border-input 
+                              [&::-webkit-calendar-picker-indicator]:invert 
+                              [&::-webkit-calendar-picker-indicator]:opacity-80
+                            "
                           />
                         </div>
                         <div className="flex flex-col gap-2 w-full">
@@ -308,21 +327,23 @@ export default function WorkTimeForm({
                           <Input
                             type="time"
                             id={`time-to-${uid}`}
-                            value={overrides[uid]?.endTime || ""}
+                            value={effectiveOverrides[uid]?.endTime || ""}
                             placeholder={value.endTime}
                             onChange={(e) =>
-                              updateOverride(uid, { endTime: e.target.value })
+                              updateOverride(uid, {
+                                endTime: e.target.value,
+                              })
                             }
                             className="
-    bg-background text-foreground border-input 
-    [&::-webkit-calendar-picker-indicator]:invert 
-    [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+                              bg-background text-foreground border-input 
+                              [&::-webkit-calendar-picker-indicator]:invert 
+                              [&::-webkit-calendar-picker-indicator]:opacity-80
+                            "
                           />
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 w-full">
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify_between mb-1">
                           <Label
                             htmlFor={`work-desc-${uid}`}
                             className="text-foreground"
@@ -349,9 +370,11 @@ export default function WorkTimeForm({
                           id={`work-desc-${uid}`}
                           placeholder={`Specific work description for ${getName(uid)}...`}
                           className="h-32 w-full resize-none border rounded-md p-3 bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm text-foreground border-input"
-                          value={overrides[uid]?.description || ""}
+                          value={effectiveOverrides[uid]?.description || ""}
                           onChange={(e) =>
-                            updateOverride(uid, { description: e.target.value })
+                            updateOverride(uid, {
+                              description: e.target.value,
+                            })
                           }
                         />
                         <p className="text-xs text-muted-foreground mt-1">
@@ -363,6 +386,7 @@ export default function WorkTimeForm({
                 ))}
               </Tabs>
             ) : (
+              // hiç colleague yoksa
               <div className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                   <div className="flex flex-col gap-2 w-full">
@@ -377,9 +401,9 @@ export default function WorkTimeForm({
                         updateMain({ startTime: e.target.value })
                       }
                       className="bg-background text-foreground border-input 
-    [&::-webkit-calendar-picker-indicator]:invert 
-    [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+                        [&::-webkit-calendar-picker-indicator]:invert 
+                        [&::-webkit-calendar-picker-indicator]:opacity-80
+                      "
                     />
                   </div>
                   <div className="flex flex-col gap-2 w-full">
@@ -390,11 +414,13 @@ export default function WorkTimeForm({
                       type="time"
                       id="time-to"
                       value={value.endTime}
-                      onChange={(e) => updateMain({ endTime: e.target.value })}
+                      onChange={(e) =>
+                        updateMain({ endTime: e.target.value })
+                      }
                       className="bg-background text-foreground border-input 
-    [&::-webkit-calendar-picker-indicator]:invert 
-    [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+                        [&::-webkit-calendar-picker-indicator]:invert 
+                        [&::-webkit-calendar-picker-indicator]:opacity-80
+                      "
                     />
                   </div>
                 </div>
@@ -422,7 +448,7 @@ export default function WorkTimeForm({
                       AI Auto-Write
                     </Button>
                   </div>
-                  <textarea
+                  <Textarea
                     id="work-description"
                     aria-label="Work Description"
                     placeholder="e.g. Click tags below (Coding, Meeting...) then hit 'AI Auto-Write'"
@@ -435,6 +461,7 @@ export default function WorkTimeForm({
                 </div>
               </div>
             )}
+
             <div className="flex flex-col gap-2 w-full pt-4 border-t border-border border-dashed mt-2">
               <QuickTags onTagClick={insertTag} />
             </div>

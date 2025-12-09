@@ -14,7 +14,6 @@ import { Trip } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
 import DownloadReportButton from "@/components/trip/DownloadReportButton";
-import DownloadDocxButton from "@/components/trip/DownloadDocxButton";
 
 interface UserDetail {
   id: string;
@@ -247,7 +246,6 @@ export default function ReportPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Trip
         </Button>
         <div className="flex flex-wrap gap-2">
-          <DownloadDocxButton trip={trip} logs={logs} />
 
           <DownloadReportButton trip={trip} logs={logs} />
         </div>
