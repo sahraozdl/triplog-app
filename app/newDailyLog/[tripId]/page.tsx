@@ -3,89 +3,40 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+// Form Components
 import TravelForm from "@/components/forms/TravelForm";
 import WorkTimeForm from "@/components/forms/WorkTimeForm";
 import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 
+// UI Components
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { useAppUser } from "@/components/providers/AppUserProvider";
+import { CalendarIcon, Loader2 } from "lucide-react";
 
+// Types & Store
 import {
   TravelLog,
   AccommodationLog,
   AdditionalLog,
   WorkTimeLog,
-  UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Calendar, CalendarIcon } from "lucide-react";
-// I will make them global types for the forms later
-type TravelFormState = Omit<
-  TravelLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type WorkTimeFormState = Omit<
-  WorkTimeLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type AccommodationFormState = Omit<
-  AccommodationLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type AdditionalFormState = Omit<
-  AdditionalLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
+
+// Type Helpers
+type TravelFormState = Omit<TravelLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
+type WorkTimeFormState = Omit<WorkTimeLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
+type AccommodationFormState = Omit<AccommodationLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
+type AdditionalFormState = Omit<AdditionalLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
 
 export default function DailyLogPage() {
   const router = useRouter();
   const { tripId } = useParams();
-  const user = useAppUser();
+  const user = useAppUser(); 
   const loggedInUserId = user?.userId;
 
   const { getTrip, updateTrip, invalidate } = useTripStore();
@@ -94,12 +45,12 @@ export default function DailyLogPage() {
 
   const [loadingTrip, setLoadingTrip] = useState(true);
 
+  // --- TRIP LOAD ---
   useEffect(() => {
     if (trip) {
       setLoadingTrip(false);
       return;
     }
-
     async function loadTrip() {
       try {
         const res = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
@@ -111,15 +62,17 @@ export default function DailyLogPage() {
         setLoadingTrip(false);
       }
     }
-
     loadTrip();
   }, [tripId, trip, updateTrip]);
 
-  const [dateTime, setDateTime] = useState<string>("");
+  // --- GLOBAL STATES ---
+  // Store date as simple YYYY-MM-DD string
+  const [selectedDate, setSelectedDate] = useState<string>(""); 
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // --- FORM STATES ---
   const [travel, setTravel] = useState<TravelFormState>({
     travelReason: "",
     vehicleType: "",
@@ -137,17 +90,16 @@ export default function DailyLogPage() {
     description: "",
   });
 
-  const [accommodationMeals, setAccommodationMeals] =
-    useState<AccommodationFormState>({
-      accommodationType: "",
-      accommodationCoveredBy: "",
-      overnightStay: "",
-      meals: {
-        breakfast: { eaten: false, coveredBy: "" },
-        lunch: { eaten: false, coveredBy: "" },
-        dinner: { eaten: false, coveredBy: "" },
-      },
-    });
+  const [accommodationMeals, setAccommodationMeals] = useState<AccommodationFormState>({
+    accommodationType: "",
+    accommodationCoveredBy: "",
+    overnightStay: "",
+    meals: {
+      breakfast: { eaten: false, coveredBy: "" },
+      lunch: { eaten: false, coveredBy: "" },
+      dinner: { eaten: false, coveredBy: "" },
+    },
+  });
 
   const [additional, setAdditional] = useState<AdditionalFormState>({
     notes: "",
@@ -166,9 +118,7 @@ export default function DailyLogPage() {
       dateTime: isoDate,
       appliedTo,
       isGroupSource: appliedTo.length > 0,
-
       data,
-
       files: [],
     };
 
@@ -178,35 +128,27 @@ export default function DailyLogPage() {
       body: JSON.stringify(body),
     });
   };
-  // same thing is inside newTrip page, but we need it here too for the input make it global function
-  const toLocalDatetime = (isoString: string) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
-  };
-
-  const handleAddFile = (file: UploadedFile) => {
-    setAdditional((prev) => ({
-      ...prev,
-      uploadedFiles: [...prev.uploadedFiles, file],
-    }));
-  };
 
   async function saveDailyLog(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!dateTime) {
-      alert("Please select a date and time for this entry at the top.");
+    if (!selectedDate) {
+      alert("Please select a date for this entry at the top.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setIsSaving(true);
-    const isoDateString = dateTime;
+    
+    // --- DATE HANDLING ---
+    // Convert YYYY-MM-DD to ISO String (UTC Noon to prevent date shift)
+    const [year, month, day] = selectedDate.split("-").map(Number);
+    const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    const isoDateString = utcDate.toISOString();
+
     const requests: Promise<Response>[] = [];
 
+    // --- Form Checks ---
     const isTravelFilled =
       travel.travelReason ||
       travel.vehicleType ||
@@ -237,9 +179,7 @@ export default function DailyLogPage() {
       accommodationMeals.overnightStay !== "";
 
     if (isAccFilled || isMealsFilled) {
-      requests.push(
-        createLogRequest("accommodation", accommodationMeals, isoDateString),
-      );
+      requests.push(createLogRequest("accommodation", accommodationMeals, isoDateString));
     }
 
     const isAdditionalFilled =
@@ -250,32 +190,19 @@ export default function DailyLogPage() {
     }
 
     if (requests.length === 0) {
-      alert(
-        "Please fill in at least one section (Travel, Work, Meals, etc.) to save.",
-      );
+      alert("Please fill in at least one section to save.");
       setIsSaving(false);
       return;
     }
 
     try {
       const responses = await Promise.all(requests);
-
-      const failed = responses.filter((r) => !r.ok);
-      if (failed.length > 0) {
-        for (const res of failed) {
-          try {
-            const errorData = await res.json();
-            console.error("Error in API:", errorData);
-          } catch (jsonError) {
-            console.error(
-              "Error in API (JSON not readable):",
-              res.status,
-              res.statusText,
-            );
-          }
-        }
-        throw new Error("Some logs failed to save. Please check your inputs.");
+      const failed = responses.some((r) => !r.ok);
+      
+      if (failed) {
+        throw new Error("Some logs failed to save.");
       }
+
       invalidate();
       router.push(`/tripDetail/${tripId}`);
     } catch (error) {
@@ -286,43 +213,30 @@ export default function DailyLogPage() {
     }
   }
 
-  if (loadingTrip)
-    return (
-      <div className="p-6 text-center text-muted-foreground">
-        Loading trip data...
-      </div>
-    );
+  if (loadingTrip) return <div className="p-6 text-center text-muted-foreground">Loading trip data...</div>;
 
   return (
     <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
       <div className="w-full max-w-4xl space-y-6">
+        
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground py-4">
-              Daily Log Entry
-            </h1>
-            <p className="text-muted-foreground">
-              Record your activities, expenses, and meals.
-            </p>
+            <h1 className="text-3xl font-bold text-foreground py-4">Daily Log Entry</h1>
+            <p className="text-muted-foreground">Record your activities, expenses, and meals.</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             {attendants.length > 1 && (
-              <InviteColleaguesDialog
-                mode="select"
-                attendants={attendants.map((a) => a.userId)}
-                open={inviteOpen}
-                onOpenChange={setInviteOpen}
-                selected={appliedTo}
-                onSelect={setAppliedTo}
-              />
+              <Button variant="outline" onClick={() => setInviteOpen(true)}>
+                {appliedTo.length > 0
+                  ? `${appliedTo.length} Colleagues Selected`
+                  : "Invite Colleagues"}
+              </Button>
             )}
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={cancel} disabled={isSaving}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={cancel} disabled={isSaving}>Cancel</Button>
               <Button onClick={saveDailyLog} disabled={isSaving}>
                 {isSaving ? "Saving..." : "Save Entry"}
               </Button>
@@ -330,45 +244,46 @@ export default function DailyLogPage() {
           </div>
         </div>
 
-        {/* GLOBAL DATE SELECTOR */}
-        <form
-          id="dailyLogForm"
-          onSubmit={saveDailyLog}
-          className="flex flex-col gap-6 items-center bg-background p-6 rounded-xl shadow-sm space-y-2"
-        >
-          <div className="max-w-sm w-full">
-            <Label
-              htmlFor="logDate"
-              className="mb-2 block font-semibold text-foreground text-xl"
-            >
-              Date & Time of Entry
+        {/* GLOBAL DATE SELECTOR - SIMPLE DATE INPUT */}
+        <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-2">
+          <div className="max-w-sm w-full relative">
+            <Label htmlFor="logDate" className="mb-2 block font-semibold text-foreground">
+               Date
             </Label>
-            <Input
-              id="logDate"
-              type="datetime-local"
-              onClick={(e) => e.currentTarget.showPicker()}
-              value={toLocalDatetime(dateTime)}
-              onChange={(e) => {
-                const val = e.target.value;
-                setDateTime(val ? new Date(val).toISOString() : "");
-              }}
-              className="w-full h-14 text-xl font-medium cursor-pointer bg-input-back hover:bg-muted/50 transition-colors border border-input"
-            />
+            
+            <div className="relative group">
+              <Input 
+                  id="logDate"
+                  type="date"
+                  onClick={(e) => e.currentTarget.showPicker()}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
+              />
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-2 pl-1">
+            This date will apply to all sections filled below.
+          </p>
+        </div>
 
-          <TravelForm
-            value={travel}
-            onChange={setTravel}
-            onAddFile={handleAddFile}
-          />
+        {/* FORMS CONTAINER */}
+        <form id="dailyLogForm" onSubmit={saveDailyLog} className="flex flex-col gap-6">
+          <TravelForm value={travel} onChange={setTravel} />
           <WorkTimeForm value={workTime} onChange={setWorkTime} />
-          <AccommodationMealsForm
-            value={accommodationMeals}
-            onChange={setAccommodationMeals}
-          />
-
+          <AccommodationMealsForm value={accommodationMeals} onChange={setAccommodationMeals} />
           <AdditionalForm value={additional} onChange={setAdditional} />
         </form>
+
+        <InviteColleaguesDialog
+          mode="select"
+          attendants={attendants.map((a) => a.userId)}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          selected={appliedTo}
+          onSelect={setAppliedTo}
+        />
       </div>
     </div>
   );
