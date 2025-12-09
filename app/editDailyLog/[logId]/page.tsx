@@ -21,7 +21,6 @@ import { useTripStore } from "@/lib/store/useTripStore";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { Save, Loader2, ArrowLeft, CalendarIcon } from "lucide-react";
 
-// Type Helpers
 type FormState<T> = Omit<
   T,
   | "_id"
@@ -95,16 +94,13 @@ export default function EditDailyLogPage() {
   const [originalLogs, setOriginalLogs] = useState<DailyLogFormState[]>([]);
   const [tripId, setTripId] = useState<string>("");
 
-  // --- GLOBAL STATES ---
   const [date, setDate] = useState<string>("");
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  // Trip data for Invite Dialog
   const trip = getTrip(tripId);
   const attendants = trip?.attendants ?? [];
 
-  // --- FORM STATES ---
   const [travel, setTravel] = useState<TravelFormState>(
     getInitialState("travel"),
   );
@@ -123,8 +119,6 @@ export default function EditDailyLogPage() {
     additional?: string;
   }>({});
 
-  // --- HELPER: Date Input Value (YYYY-MM-DD) ---
-  // Converts ISO string to YYYY-MM-DD for date input
   const toInputDateValue = (isoString: string) => {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -134,7 +128,6 @@ export default function EditDailyLogPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // --- 1. FETCH DATA ---
   useEffect(() => {
     if (!logId) return;
 
@@ -143,7 +136,6 @@ export default function EditDailyLogPage() {
       const newLogIds: typeof logIds = {};
 
       try {
-        // Fetch initial log using the correct route: /api/daily-logs/[id]
         const initialLogRes = await fetch(`/api/daily-logs/${logId}`);
 
         if (!initialLogRes.ok) {
@@ -162,14 +154,12 @@ export default function EditDailyLogPage() {
 
         const tripIdToFetch = initialLog.tripId;
         const logUserId = initialLog.userId;
-        // Get date part from ISO string (YYYY-MM-DD)
         const logDate = initialLog.dateTime
           ? initialLog.dateTime.split("T")[0]
           : "";
 
         setTripId(tripIdToFetch);
 
-        // Fetch all logs for this day/user/trip
         const groupRes = await fetch(
           `/api/daily-logs?tripId=${tripIdToFetch}&userId=${logUserId}&date=${logDate}`,
         );
@@ -179,7 +169,6 @@ export default function EditDailyLogPage() {
 
         setOriginalLogs(logs);
 
-        // Fill form states
         logs.forEach((log) => {
           const type = log.itemType;
           const logData = log as any;
@@ -187,7 +176,6 @@ export default function EditDailyLogPage() {
           newLogIds[type as keyof typeof logIds] = log._id.toString();
 
           const formPayload = { ...logData };
-          // Clean up DB fields
           delete formPayload.__v;
           delete formPayload._id;
           delete formPayload.itemType;
@@ -210,7 +198,6 @@ export default function EditDailyLogPage() {
         });
 
         setLogIds(newLogIds);
-        // Set initial date string
         setDate(logDate);
         setAppliedTo(initialLog.appliedTo || []);
       } catch (error: any) {
@@ -224,7 +211,6 @@ export default function EditDailyLogPage() {
     fetchAndFillLogs();
   }, [logId]);
 
-  // --- 2. UPDATE LOGIC ---
   async function handleUpdateLog(e: React.FormEvent) {
     e.preventDefault();
 
@@ -234,7 +220,6 @@ export default function EditDailyLogPage() {
 
     setIsSaving(true);
 
-    // Convert YYYY-MM-DD to ISO String (UTC Noon)
     const [year, month, day] = date.split("-").map(Number);
     const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     const isoDateString = utcDate.toISOString();
@@ -254,13 +239,11 @@ export default function EditDailyLogPage() {
     ];
 
     forms.forEach((form) => {
-      // Check if form has data
       const hasData = Object.values(form.data).some(
         (val) => val && val !== "" && val !== 0 && val !== false,
       );
 
       if (form.id) {
-        // UPDATE existing log
         const updatedLog: DailyLogFormState = {
           _id: form.id as any,
           userId: loggedInUserId,
@@ -274,7 +257,6 @@ export default function EditDailyLogPage() {
 
         logsToUpdate.push(updatedLog);
       } else if (hasData) {
-        // CREATE new log
         const newLog = {
           itemType: form.type,
           tripId: tripId,
@@ -291,7 +273,6 @@ export default function EditDailyLogPage() {
     });
 
     try {
-      // 1. PUT Request (Update)
       if (logsToUpdate.length > 0) {
         const res = await fetch(`/api/daily-logs`, {
           method: "PUT",
@@ -307,7 +288,6 @@ export default function EditDailyLogPage() {
         }
       }
 
-      // 2. POST Request (Create new logs)
       if (logsToCreate.length > 0) {
         for (const newLog of logsToCreate) {
           await fetch("/api/daily-logs", {
@@ -378,7 +358,7 @@ export default function EditDailyLogPage() {
                 id="logDate"
                 type="date"
                 onClick={(e) => e.currentTarget.showPicker()}
-                value={date} // Directly bind YYYY-MM-DD string
+                value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
               />
@@ -420,11 +400,7 @@ export default function EditDailyLogPage() {
           />
           <AdditionalForm value={additional} onChange={setAdditional} />
 
-          <Button
-            type="submit"
-            disabled={isSaving}
-            className="mt-6 h-12 text-base"
-          >
+          <Button type="submit" disabled={isSaving} className="w-1/3 mx-auto">
             {isSaving ? (
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             ) : (

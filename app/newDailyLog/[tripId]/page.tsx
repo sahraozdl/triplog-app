@@ -308,30 +308,34 @@ export default function DailyLogPage() {
         </div>
 
         {/* GLOBAL DATE SELECTOR */}
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-2">
-          <div className="max-w-sm w-full relative">
+        <div
+          className="p-3 rounded-xl border border-border shadow-sm space-y-4 dark:border-gray-800 
+        rounded-b-md bg-sidebar
+        max-w-full md:max-w-3/4 mx-auto
+        px-4 md:px-8 py-4"
+        >
+          <div className="w-full flex flex-row items-center justify-between gap-2">
             <Label
               htmlFor="logDate"
-              className="mb-2 block font-semibold text-foreground"
+              className="font-semibold w-1/2 text-foreground flex flex-col gap-2 items-start justify-start"
             >
               Date
+              <span className="text-xs text-muted-foreground">
+                Select the date for these activities.
+              </span>
             </Label>
 
-            <div className="relative group">
+            <div className="group w-1/2">
               <Input
                 id="logDate"
                 type="date"
                 onClick={(e) => e.currentTarget.showPicker()}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
+                className="p-3 text-base cursor-pointer hover:bg-muted/50 transition-colors"
               />
-              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 pl-1">
-            Select the date for these activities.
-          </p>
         </div>
 
         {/* FORMS */}

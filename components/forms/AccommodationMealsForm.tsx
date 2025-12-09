@@ -6,7 +6,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MealSelector } from "@/components/form-elements/MealSelector";
@@ -49,16 +48,20 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
         className="w-full"
       >
         <AccordionItem value="accommodation-meals">
-          <AccordionTrigger className="hover:no-underline py-4">
+          <AccordionTrigger className="hover:no-underline py-4 text-foreground">
             <span className="text-lg font-semibold">Accommodation & Meals</span>
           </AccordionTrigger>
 
           <AccordionContent className="pt-4 pb-6">
             <div className="flex flex-col w-full gap-8">
-              {/* TOP TWO INPUTS  */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="accommodation-type">
+              {/* --- ACCOMMODATION TYPE & PAYMENT --- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-end">
+                {/* 1. Accommodation Type (Location Input) */}
+                <div className="flex flex-col gap-2 w-full">
+                  <Label
+                    htmlFor="accommodation-type"
+                    className="text-foreground"
+                  >
                     Accommodation / Hotel Name
                   </Label>
                   <LocationInput
@@ -66,25 +69,68 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
                     placeholder="Search hotel name or address..."
                     value={value.accommodationType}
                     onChange={(val) => update({ accommodationType: val })}
+                    className="bg-background text-foreground border-input"
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="accommodationCoveredBy">Fee Covered By</Label>
-                  <Input
-                    type="text"
-                    id="accommodationCoveredBy"
-                    placeholder="e.g. Company"
+                {/* 2. Fee Covered By (RADIO GROUP) */}
+                <div className="flex flex-col gap-2 w-full">
+                  <Label className="text-foreground">Fee Covered By</Label>
+                  <RadioGroup
                     value={value.accommodationCoveredBy}
-                    onChange={(e) =>
-                      update({ accommodationCoveredBy: e.target.value })
+                    onValueChange={(val) =>
+                      update({ accommodationCoveredBy: val })
                     }
-                  />
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    {/* Option: Company */}
+                    <Label
+                      htmlFor="covered-company"
+                      className={`
+                          flex items-center justify-start gap-3 p-3 border rounded-lg cursor-pointer transition-all
+                        ${
+                          value.accommodationCoveredBy === "company"
+                            ? "bg-primary/10 border-input text-primary shadow-sm"
+                            : "bg-background hover:bg-muted/50 border-border text-muted-foreground"
+                        }
+                      `}
+                    >
+                      <RadioGroupItem
+                        value="company"
+                        id="covered-company"
+                        className="text-primary border-primary"
+                      />
+                      <span className="text-xs font-medium">Company</span>
+                    </Label>
+
+                    {/* Option: Private */}
+                    <Label
+                      htmlFor="covered-private"
+                      className={`
+                        flex items-center justify-start gap-3 p-3 border rounded-lg cursor-pointer transition-all
+                        ${
+                          value.accommodationCoveredBy === "private"
+                            ? "bg-primary/10 border-input text-primary shadow-sm"
+                            : "bg-background hover:bg-muted/50 border-border text-muted-foreground"
+                        }
+                      `}
+                    >
+                      <RadioGroupItem
+                        value="private"
+                        id="covered-private"
+                        className="text-primary border-primary"
+                      />
+                      <span className="text-sm font-medium">Private</span>
+                    </Label>
+                  </RadioGroup>
                 </div>
               </div>
 
+              {/* --- OVERNIGHT STAY RADIO --- */}
               <div className="flex flex-col gap-3">
-                <Label className="text-base font-medium">Overnight Stay?</Label>
+                <Label className="text-base font-medium text-foreground">
+                  Overnight Stay?
+                </Label>
 
                 <RadioGroup
                   className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full"
@@ -93,32 +139,55 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
                     update({ overnightStay: v as "yes" | "no" | "" })
                   }
                 >
-                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors cursor-pointer">
-                    <RadioGroupItem value="yes" id="overnight-yes" />
-                    <Label
-                      htmlFor="overnight-yes"
-                      className="flex-1 cursor-pointer"
-                    >
+                  <Label
+                    htmlFor="overnight-yes"
+                    className={`
+                      flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all
+                      ${
+                        value.overnightStay === "yes"
+                          ? "bg-primary/5 border-input shadow-sm"
+                          : "bg-background hover:bg-muted/50 border-border"
+                      }
+                    `}
+                  >
+                    <RadioGroupItem
+                      value="yes"
+                      id="overnight-yes"
+                      className="text-primary border-primary"
+                    />
+                    <span className="text-sm font-medium text-foreground flex-1">
                       Yes
-                    </Label>
-                  </div>
+                    </span>
+                  </Label>
 
-                  <div className="flex items-center space-x-3 border p-3 rounded-md hover:bg-background transition-colors cursor-pointer">
-                    <RadioGroupItem value="no" id="overnight-no" />
-                    <Label
-                      htmlFor="overnight-no"
-                      className="flex-1 cursor-pointer"
-                    >
+                  <Label
+                    htmlFor="overnight-no"
+                    className={`
+                      flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all
+                      ${
+                        value.overnightStay === "no"
+                          ? "bg-primary/5 border-input shadow-sm"
+                          : "bg-background hover:bg-muted/50 border-border"
+                      }
+                    `}
+                  >
+                    <RadioGroupItem
+                      value="no"
+                      id="overnight-no"
+                      className="text-primary border-primary"
+                    />
+                    <span className="text-sm font-medium text-foreground flex-1">
                       No
-                    </Label>
-                  </div>
+                    </span>
+                  </Label>
                 </RadioGroup>
               </div>
 
-              <div className="border-t my-2"></div>
+              <div className="border-t border-border my-2"></div>
 
+              {/* --- MEALS SELECTOR --- */}
               <div className="flex flex-col gap-4">
-                <h3 className="font-medium text-lg">Meals</h3>
+                <h3 className="font-medium text-lg text-foreground">Meals</h3>
                 <MealSelector
                   meals={value.meals}
                   onChange={(updatedMeals) => updateMeals(updatedMeals)}

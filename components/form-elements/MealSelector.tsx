@@ -86,8 +86,8 @@ function MealCard({
             <label
               className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                 data.coveredBy === "company"
-                  ? "bg-muted border-border"
-                  : "bg-background hover:bg-border"
+                  ? "bg-muted border-input"
+                  : "bg-background hover:bg-border border-border"
               }`}
             >
               <RadioGroupItem value="company" id={`${label}-company`} />
@@ -98,8 +98,8 @@ function MealCard({
             <label
               className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                 data.coveredBy === "employee"
-                  ? "bg-muted border-border"
-                  : "bg-background hover:bg-border"
+                  ? "bg-muted border-input"
+                  : "bg-background hover:bg-border border-border"
               }`}
             >
               <RadioGroupItem value="employee" id={`${label}-employee`} />
@@ -110,8 +110,8 @@ function MealCard({
             <label
               className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                 data.coveredBy === "partner"
-                  ? "bg-muted border-border"
-                  : "bg-background hover:bg-border"
+                  ? "bg-muted border-input"
+                  : "bg-background hover:bg-border border-border"
               }`}
             >
               <RadioGroupItem value="partner" id={`${label}-partner`} />
@@ -122,8 +122,8 @@ function MealCard({
             <label
               className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                 data.coveredBy === "included in accommodation"
-                  ? "bg-muted border-border"
-                  : "bg-background hover:bg-border"
+                  ? "bg-muted border-input"
+                  : "bg-background hover:bg-border border-border"
               }`}
             >
               <RadioGroupItem
