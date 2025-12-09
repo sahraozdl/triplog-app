@@ -154,7 +154,7 @@ export default function EditDailyLogPage() {
 
       try {
         // Fetch initial log
-        const initialLogRes = await fetch(`/api/daily-logs/single?id=${logId}`);
+        const initialLogRes = await fetch(`/api/daily-logs/${logId}`);
         if (!initialLogRes.ok) throw new Error("Could not find initial log.");
         const initialLog = (await initialLogRes.json()) as DailyLogFormState;
 
