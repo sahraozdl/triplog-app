@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-// Form Components
 import TravelForm from "@/components/forms/TravelForm";
 import WorkTimeForm from "@/components/forms/WorkTimeForm";
 import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 
-// UI Components
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -17,7 +15,6 @@ import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesD
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { CalendarIcon, Loader2 } from "lucide-react";
 
-// Types & Store
 import {
   TravelLog,
   AccommodationLog,
@@ -28,15 +25,67 @@ import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
 
 // Type Helpers
-type TravelFormState = Omit<TravelLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
-type WorkTimeFormState = Omit<WorkTimeLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
-type AccommodationFormState = Omit<AccommodationLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
-type AdditionalFormState = Omit<AdditionalLog, "_id" | "userId" | "tripId" | "createdAt" | "updatedAt" | "files" | "sealed" | "isGroupSource" | "appliedTo" | "dateTime" | "itemType">;
+type TravelFormState = Omit<
+  TravelLog,
+  | "_id"
+  | "userId"
+  | "tripId"
+  | "createdAt"
+  | "updatedAt"
+  | "files"
+  | "sealed"
+  | "isGroupSource"
+  | "appliedTo"
+  | "dateTime"
+  | "itemType"
+>;
+type WorkTimeFormState = Omit<
+  WorkTimeLog,
+  | "_id"
+  | "userId"
+  | "tripId"
+  | "createdAt"
+  | "updatedAt"
+  | "files"
+  | "sealed"
+  | "isGroupSource"
+  | "appliedTo"
+  | "dateTime"
+  | "itemType"
+>;
+type AccommodationFormState = Omit<
+  AccommodationLog,
+  | "_id"
+  | "userId"
+  | "tripId"
+  | "createdAt"
+  | "updatedAt"
+  | "files"
+  | "sealed"
+  | "isGroupSource"
+  | "appliedTo"
+  | "dateTime"
+  | "itemType"
+>;
+type AdditionalFormState = Omit<
+  AdditionalLog,
+  | "_id"
+  | "userId"
+  | "tripId"
+  | "createdAt"
+  | "updatedAt"
+  | "files"
+  | "sealed"
+  | "isGroupSource"
+  | "appliedTo"
+  | "dateTime"
+  | "itemType"
+>;
 
 export default function DailyLogPage() {
   const router = useRouter();
   const { tripId } = useParams();
-  const user = useAppUser(); 
+  const user = useAppUser();
   const loggedInUserId = user?.userId;
 
   const { getTrip, updateTrip, invalidate } = useTripStore();
@@ -45,7 +94,6 @@ export default function DailyLogPage() {
 
   const [loadingTrip, setLoadingTrip] = useState(true);
 
-  // --- TRIP LOAD ---
   useEffect(() => {
     if (trip) {
       setLoadingTrip(false);
@@ -65,14 +113,12 @@ export default function DailyLogPage() {
     loadTrip();
   }, [tripId, trip, updateTrip]);
 
-  // --- GLOBAL STATES ---
-  // Store date as simple YYYY-MM-DD string
-  const [selectedDate, setSelectedDate] = useState<string>(""); 
+  // Global State for Date (YYYY-MM-DD string)
+  const [date, setDate] = useState<string>("");
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- FORM STATES ---
   const [travel, setTravel] = useState<TravelFormState>({
     travelReason: "",
     vehicleType: "",
@@ -90,16 +136,17 @@ export default function DailyLogPage() {
     description: "",
   });
 
-  const [accommodationMeals, setAccommodationMeals] = useState<AccommodationFormState>({
-    accommodationType: "",
-    accommodationCoveredBy: "",
-    overnightStay: "",
-    meals: {
-      breakfast: { eaten: false, coveredBy: "" },
-      lunch: { eaten: false, coveredBy: "" },
-      dinner: { eaten: false, coveredBy: "" },
-    },
-  });
+  const [accommodationMeals, setAccommodationMeals] =
+    useState<AccommodationFormState>({
+      accommodationType: "",
+      accommodationCoveredBy: "",
+      overnightStay: "",
+      meals: {
+        breakfast: { eaten: false, coveredBy: "" },
+        lunch: { eaten: false, coveredBy: "" },
+        dinner: { eaten: false, coveredBy: "" },
+      },
+    });
 
   const [additional, setAdditional] = useState<AdditionalFormState>({
     notes: "",
@@ -132,23 +179,21 @@ export default function DailyLogPage() {
   async function saveDailyLog(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!selectedDate) {
-      alert("Please select a date for this entry at the top.");
+    if (!date) {
+      alert("Please select a date for this entry.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setIsSaving(true);
-    
-    // --- DATE HANDLING ---
-    // Convert YYYY-MM-DD to ISO String (UTC Noon to prevent date shift)
-    const [year, month, day] = selectedDate.split("-").map(Number);
+
+    // Create UTC date at noon to avoid timezone shifts
+    const [year, month, day] = date.split("-").map(Number);
     const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     const isoDateString = utcDate.toISOString();
 
     const requests: Promise<Response>[] = [];
 
-    // --- Form Checks ---
     const isTravelFilled =
       travel.travelReason ||
       travel.vehicleType ||
@@ -179,7 +224,9 @@ export default function DailyLogPage() {
       accommodationMeals.overnightStay !== "";
 
     if (isAccFilled || isMealsFilled) {
-      requests.push(createLogRequest("accommodation", accommodationMeals, isoDateString));
+      requests.push(
+        createLogRequest("accommodation", accommodationMeals, isoDateString),
+      );
     }
 
     const isAdditionalFilled =
@@ -198,7 +245,7 @@ export default function DailyLogPage() {
     try {
       const responses = await Promise.all(requests);
       const failed = responses.some((r) => !r.ok);
-      
+
       if (failed) {
         throw new Error("Some logs failed to save.");
       }
@@ -213,17 +260,25 @@ export default function DailyLogPage() {
     }
   }
 
-  if (loadingTrip) return <div className="p-6 text-center text-muted-foreground">Loading trip data...</div>;
+  if (loadingTrip)
+    return (
+      <div className="p-6 text-center text-muted-foreground">
+        Loading trip data...
+      </div>
+    );
 
   return (
     <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
       <div className="w-full max-w-4xl space-y-6">
-        
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground py-4">Daily Log Entry</h1>
-            <p className="text-muted-foreground">Record your activities, expenses, and meals.</p>
+            <h1 className="text-3xl font-bold text-foreground py-4">
+              Daily Log Entry
+            </h1>
+            <p className="text-muted-foreground">
+              Record your activities, expenses, and meals.
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -236,43 +291,61 @@ export default function DailyLogPage() {
             )}
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={cancel} disabled={isSaving}>Cancel</Button>
+              <Button variant="outline" onClick={cancel} disabled={isSaving}>
+                Cancel
+              </Button>
               <Button onClick={saveDailyLog} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save Entry"}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  "Save Entry"
+                )}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* GLOBAL DATE SELECTOR - SIMPLE DATE INPUT */}
+        {/* GLOBAL DATE SELECTOR */}
         <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-2">
           <div className="max-w-sm w-full relative">
-            <Label htmlFor="logDate" className="mb-2 block font-semibold text-foreground">
-               Date
+            <Label
+              htmlFor="logDate"
+              className="mb-2 block font-semibold text-foreground"
+            >
+              Date
             </Label>
-            
+
             <div className="relative group">
-              <Input 
-                  id="logDate"
-                  type="date"
-                  onClick={(e) => e.currentTarget.showPicker()}
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
+              <Input
+                id="logDate"
+                type="date"
+                onClick={(e) => e.currentTarget.showPicker()}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
               />
               <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 pl-1">
-            This date will apply to all sections filled below.
+            Select the date for these activities.
           </p>
         </div>
 
-        {/* FORMS CONTAINER */}
-        <form id="dailyLogForm" onSubmit={saveDailyLog} className="flex flex-col gap-6">
+        {/* FORMS */}
+        <form
+          id="dailyLogForm"
+          onSubmit={saveDailyLog}
+          className="flex flex-col gap-6"
+        >
           <TravelForm value={travel} onChange={setTravel} />
           <WorkTimeForm value={workTime} onChange={setWorkTime} />
-          <AccommodationMealsForm value={accommodationMeals} onChange={setAccommodationMeals} />
+          <AccommodationMealsForm
+            value={accommodationMeals}
+            onChange={setAccommodationMeals}
+          />
           <AdditionalForm value={additional} onChange={setAdditional} />
         </form>
 
