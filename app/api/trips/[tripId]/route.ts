@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
-import { TripBasicInfo, TripAttendant, TripInvite, Trip } from "@/app/types/Trip";
+import { TripBasicInfo, TripAttendant, TripInvite, Trip as TripType } from "@/app/types/Trip";
 
 // Type definitions for route parameters
 interface RouteParams {
@@ -57,8 +57,8 @@ export async function GET(
 
     // Ensure additionalFiles is always an array (even if empty or undefined)
     // Type assertion needed because lean() returns a generic type
-    const tripData = trip as unknown as Trip;
-    const tripWithFiles: Trip = {
+    const tripData = trip as unknown as TripType;
+    const tripWithFiles: TripType = {
       ...tripData,
       additionalFiles: tripData.additionalFiles || [],
     };
