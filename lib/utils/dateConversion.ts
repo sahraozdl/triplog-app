@@ -6,10 +6,10 @@
 
 /**
  * Converts an ISO datetime string to a YYYY-MM-DD date string
- * @param isoString - ISO datetime string from database (e.g., "2025-11-29T13:00:00.000Z")
- * @returns YYYY-MM-DD date string (e.g., "2025-11-29") or empty string if invalid
+ * @param isoString - ISO datetime string from database (e.g., "2025-11-29T13:00:00.000Z") or undefined
+ * @returns YYYY-MM-DD date string (e.g., "2025-11-29") or empty string if invalid/undefined
  */
-export function isoToDateString(isoString: string): string {
+export function isoToDateString(isoString: string | undefined): string {
   if (!isoString) return "";
   try {
     const date = new Date(isoString);
