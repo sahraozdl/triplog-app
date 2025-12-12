@@ -22,6 +22,7 @@ import {
 import { useTripStore } from "@/lib/store/useTripStore";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { Save, Loader2, ArrowLeft, CalendarIcon } from "lucide-react";
+import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
 
 // Type Helpers
 type FormState<T> = Omit<
@@ -346,7 +347,7 @@ export default function EditDailyLogPage() {
       }
     });
 
-    // 2) MESAI ARKADAŞLARININ WORKTIME LOG'LARI  (ASIL EKSİK OLAN KISIM)
+    // 2) MESAI ARKADAŞLARININ WORKTIME LOG'LARI
 
     // Bu gün + trip için, owner olmayan worktime loglarını topla
     const existingColleagueWorklogs = new Map<string, DailyLogFormState>();
@@ -362,9 +363,26 @@ export default function EditDailyLogPage() {
       existingColleagueWorklogs.set(log.userId, log);
     });
 
+    // Track which colleague logs should be deleted (existed before but no longer needed)
+    const logsToDelete: string[] = [];
+    const currentColleagueIds = new Set(appliedTo);
+
+    // Delete colleague logs that are no longer in appliedTo or have no override
+    existingColleagueWorklogs.forEach((log, colleagueId) => {
+      if (!currentColleagueIds.has(colleagueId) || !hasNonEmptyOverride(workTimeOverrides[colleagueId])) {
+        logsToDelete.push(log._id.toString());
+      }
+    });
+
     // appliedTo içindeki HER bir mesai arkadaşı için update/create hazırla
+    // ONLY if override has non-empty fields
     appliedTo.forEach((colleagueId) => {
       const override = workTimeOverrides[colleagueId];
+
+      // Only create/update if override has at least one non-empty field
+      if (!hasNonEmptyOverride(override)) {
+        return;
+      }
 
       // override varsa onu, yoksa owner'ın default workTime'ını kullan
       const base = {
@@ -408,6 +426,15 @@ export default function EditDailyLogPage() {
     });
 
     try {
+      // DELETE colleague logs that are no longer needed
+      if (logsToDelete.length > 0) {
+        for (const logId of logsToDelete) {
+          await fetch(`/api/daily-logs/${logId}`, {
+            method: "DELETE",
+          });
+        }
+      }
+
       // UPDATE istekleri
       if (logsToUpdate.length > 0) {
         const res = await fetch(`/api/daily-logs`, {

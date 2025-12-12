@@ -25,6 +25,7 @@ import {
 } from "@/app/types/DailyLog";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
+import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
 
 type TravelFormState = Omit<
   TravelLog,
@@ -236,6 +237,11 @@ export default function DailyLogPage() {
       if (appliedTo.length > 0) {
         appliedTo.forEach((colleagueId) => {
           const override = workTimeOverrides[colleagueId];
+
+          // Only create colleague log if override has at least one non-empty field
+          if (!hasNonEmptyOverride(override)) {
+            return;
+          }
 
           const description = override?.description || workTime.description;
           const startTime = override?.startTime || workTime.startTime;

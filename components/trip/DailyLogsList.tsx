@@ -13,6 +13,7 @@ import DailyLogCard from "./DailyLogCard";
 import LogFilters, { FilterState } from "./LogFilters";
 import { TripAttendant } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
+import { effectiveLogForUser } from "@/lib/utils/dailyLogHelpers";
 
 export interface GroupedLog {
   id: string;
@@ -29,7 +30,12 @@ export interface GroupedLog {
 function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
   const groups: Record<string, GroupedLog> = {};
 
-  logs.forEach((log) => {
+  // Separate worktime logs for effective log computation
+  const worktimeLogs = logs.filter((log) => log.itemType === "worktime") as WorkTimeLog[];
+  const nonWorktimeLogs = logs.filter((log) => log.itemType !== "worktime");
+
+  // Process non-worktime logs first
+  nonWorktimeLogs.forEach((log) => {
     const validDate = log.dateTime || log.createdAt || new Date().toISOString();
     let dateKey = "";
     try {
@@ -59,10 +65,48 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
     const type = (log.itemType || "additional").toLowerCase();
 
     if (type === "travel") group.travels.push(log as TravelLog);
-    else if (type === "worktime") group.works.push(log as WorkTimeLog);
     else if (type === "accommodation")
       group.accommodations.push(log as AccommodationLog);
     else group.additionals.push(log as AdditionalLog);
+  });
+
+  // Process worktime logs - only create groups for users who have actual database records
+  // (i.e., log.userId === userId, not just users in appliedTo)
+  worktimeLogs.forEach((log) => {
+    const validDate = log.dateTime || log.createdAt || new Date().toISOString();
+    let dateKey = "";
+    try {
+      dateKey = validDate.split("T")[0];
+    } catch {
+      dateKey = "unknown";
+    }
+
+    // Only create groups for the actual owner of the log (log.userId)
+    // Don't create groups for users who are only in appliedTo
+    const userId = log.userId || "unknown";
+    const groupKey = `${dateKey}_${userId}`;
+
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        id: groupKey,
+        date: validDate,
+        userId: userId,
+        isGroup: log.isGroupSource || false,
+        appliedTo: log.appliedTo || [],
+        travels: [],
+        works: [],
+        accommodations: [],
+        additionals: [],
+      };
+    }
+
+    // Add the worktime log to the owner's group
+    const existingWorkId = groups[groupKey].works.find(
+      (w) => w._id.toString() === log._id.toString()
+    );
+    if (!existingWorkId) {
+      groups[groupKey].works.push(log);
+    }
   });
 
   return Object.values(groups).sort(

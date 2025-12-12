@@ -15,6 +15,7 @@ import {
 } from "@/app/types/DailyLog";
 import { Trip } from "@/app/types/Trip";
 import { robotoBase64 } from "@/lib/fonts";
+import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
 
 interface Props {
   trip: Trip;
@@ -228,11 +229,14 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         for (let uIndex = 0; uIndex < users.length; uIndex++) {
           const user = users[uIndex];
           let userLogs = logsByDateUser[date]?.[user.id];
-          if (typeFilter === "worktime" && userLogs && userLogs.length > 0) {
-            const directLogs = userLogs.filter((l) => l.userId === user.id);
-            const groupLogs = userLogs.filter((l) => l.userId !== user.id);
-
-            userLogs = directLogs.length > 0 ? directLogs : groupLogs;
+          
+          // For worktime, use effective log computation
+          if (typeFilter === "worktime") {
+            const allWorktimeLogs = filteredLogs.filter(
+              (l) => l.itemType === "worktime"
+            ) as WorkTimeLog[];
+            const effectiveLog = effectiveLogForUser(date, user.id, allWorktimeLogs);
+            userLogs = effectiveLog ? [effectiveLog] : [];
           }
 
           if (!userLogs || userLogs.length === 0) {
@@ -351,7 +355,12 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       "3. Accommodation & Meals",
       (log) => {
         const a = log as AccommodationLog;
-        return `Hotel: ${a.accommodationType || "-"}\nPaid By: ${a.accommodationCoveredBy}\nOvernight: ${a.overnightStay}`;
+        let content = `Hotel: ${a.accommodationType || "-"}\nPaid By: ${a.accommodationCoveredBy || "-"}\nOvernight: ${a.overnightStay || "-"}`;
+        const mealsText = formatMeals(a);
+        if (mealsText) {
+          content += `\n\nMeals:\n${mealsText}`;
+        }
+        return content;
       },
     );
 

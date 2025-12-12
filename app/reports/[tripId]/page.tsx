@@ -14,6 +14,7 @@ import { Trip } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
 import DownloadReportButton from "@/components/trip/DownloadReportButton";
+import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
 
 interface UserDetail {
   id: string;
@@ -156,7 +157,17 @@ export default function ReportPage() {
                     {new Date(date).toLocaleDateString()}
                   </td>
                   {users.map((user) => {
-                    const userLogs = logsByDateUser[date]?.[user.id];
+                    let userLogs = logsByDateUser[date]?.[user.id];
+                    
+                    // For worktime, use effective log computation
+                    if (type === "worktime" && userLogs) {
+                      const allWorktimeLogs = filteredLogs.filter(
+                        (l) => l.itemType === "worktime"
+                      ) as WorkTimeLog[];
+                      const effectiveLog = effectiveLogForUser(date, user.id, allWorktimeLogs);
+                      userLogs = effectiveLog ? [effectiveLog] : [];
+                    }
+                    
                     return (
                       <td
                         key={user.id}
@@ -427,10 +438,11 @@ export default function ReportPage() {
             type="accommodation"
             renderContent={(log) => {
               const a = log as AccommodationLog;
+              const mealsText = formatMeals(a);
               return (
                 <div className="text-sm">
                   <div className="font-semibold text-foreground">
-                    {a.accommodationType}
+                    {a.accommodationType || "-"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                     <div>
@@ -440,8 +452,16 @@ export default function ReportPage() {
                       </span>
                     </div>
                     <div>
-                      Overnight: {a.overnightStay === "yes" ? "Yes" : "No"}
+                      Overnight: {a.overnightStay === "yes" ? "Yes" : a.overnightStay === "no" ? "No" : "-"}
                     </div>
+                    {mealsText && (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <div className="font-semibold mb-1">Meals:</div>
+                        <div className="whitespace-pre-line text-xs">
+                          {mealsText}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
