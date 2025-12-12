@@ -210,10 +210,15 @@ export async function POST(
       "Updated trip additionalFiles count:",
       updatedTripData.additionalFiles?.length || 0,
     );
-    if (updatedTripData.additionalFiles && updatedTripData.additionalFiles.length > 0) {
+    if (
+      updatedTripData.additionalFiles &&
+      updatedTripData.additionalFiles.length > 0
+    ) {
       console.log(
         "Latest file:",
-        updatedTripData.additionalFiles[updatedTripData.additionalFiles.length - 1],
+        updatedTripData.additionalFiles[
+          updatedTripData.additionalFiles.length - 1
+        ],
       );
     }
 

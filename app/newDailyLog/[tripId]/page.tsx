@@ -135,8 +135,6 @@ export default function DailyLogPage() {
     endTime: "",
   });
 
-  const [travelFiles, setTravelFiles] = useState<UploadedFile[]>([]);
-
   const [workTime, setWorkTime] = useState<WorkTimeFormState>({
     startTime: "",
     endTime: "",
@@ -219,9 +217,7 @@ export default function DailyLogPage() {
       travel.endTime;
 
     if (isTravelFilled) {
-      requests.push(
-        createLogRequest("travel", travel, isoDateString, travelFiles),
-      );
+      requests.push(createLogRequest("travel", travel, isoDateString, []));
     }
 
     const isWorkFilled =
@@ -418,7 +414,18 @@ export default function DailyLogPage() {
           <TravelForm
             value={travel}
             onChange={setTravel}
-            onAddFile={(file) => setTravelFiles((prev) => [...prev, file])}
+            onAddMapImage={(file) => {
+              setAdditional((prev) => {
+                // Check if file already exists to avoid duplicates
+                if (prev.uploadedFiles.find((f) => f.url === file.url)) {
+                  return prev;
+                }
+                return {
+                  ...prev,
+                  uploadedFiles: [...prev.uploadedFiles, file],
+                };
+              });
+            }}
           />
 
           {/* UPDATED WORK TIME FORM CALL */}

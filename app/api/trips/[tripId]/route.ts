@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
-import { TripBasicInfo, TripAttendant, TripInvite, Trip as TripType } from "@/app/types/Trip";
+import {
+  TripBasicInfo,
+  TripAttendant,
+  TripInvite,
+  Trip as TripType,
+} from "@/app/types/Trip";
 
 // Type definitions for route parameters
 interface RouteParams {

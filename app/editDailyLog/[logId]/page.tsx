@@ -587,7 +587,22 @@ export default function EditDailyLogPage() {
           onSubmit={handleUpdateLog}
           className="flex flex-col gap-6"
         >
-          <TravelForm value={travel} onChange={setTravel} />
+          <TravelForm
+            value={travel}
+            onChange={setTravel}
+            onAddMapImage={(file) => {
+              setAdditional((prev) => {
+                // Check if file already exists to avoid duplicates
+                if (prev.uploadedFiles.find((f) => f.url === file.url)) {
+                  return prev;
+                }
+                return {
+                  ...prev,
+                  uploadedFiles: [...prev.uploadedFiles, file],
+                };
+              });
+            }}
+          />
 
           <WorkTimeForm
             value={workTime}

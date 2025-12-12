@@ -42,12 +42,13 @@ export default function TripDetailPage() {
 
   // Check if user can edit (creator or moderator)
   const canEdit =
-    trip &&
-    user &&
-    (trip.creatorId === user.userId ||
-      trip.attendants?.some(
-        (a) => a.userId === user.userId && a.role === "moderator",
-      )) || false;
+    (trip &&
+      user &&
+      (trip.creatorId === user.userId ||
+        trip.attendants?.some(
+          (a) => a.userId === user.userId && a.role === "moderator",
+        ))) ||
+    false;
 
   const fetchLogs = async () => {
     try {

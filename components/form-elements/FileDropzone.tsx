@@ -68,14 +68,25 @@ export default function FileDropzone({
           {
             method: "POST",
             body: file,
+            headers: {
+              // Don't set Content-Type, let the browser set it with boundary for multipart
+            },
           },
         );
 
         if (!response.ok) {
-          throw new Error("Upload failed");
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage =
+            errorData.error || `Upload failed with status ${response.status}`;
+          console.error("Upload error:", errorMessage, response.status);
+          throw new Error(errorMessage);
         }
 
         const blob = await response.json();
+
+        if (!blob || !blob.url) {
+          throw new Error("Invalid response from upload endpoint");
+        }
 
         newUploads.push({
           url: blob.url,
