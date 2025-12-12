@@ -202,15 +202,18 @@ export async function POST(
       );
     }
 
+    // Type assertion needed because lean() returns a generic type
+    const updatedTripData = updatedTrip as unknown as TripType;
+
     // Debug: Log to verify the field was saved
     console.log(
       "Updated trip additionalFiles count:",
-      updatedTrip.additionalFiles?.length || 0,
+      updatedTripData.additionalFiles?.length || 0,
     );
-    if (updatedTrip.additionalFiles && updatedTrip.additionalFiles.length > 0) {
+    if (updatedTripData.additionalFiles && updatedTripData.additionalFiles.length > 0) {
       console.log(
         "Latest file:",
-        updatedTrip.additionalFiles[updatedTrip.additionalFiles.length - 1],
+        updatedTripData.additionalFiles[updatedTripData.additionalFiles.length - 1],
       );
     }
 
