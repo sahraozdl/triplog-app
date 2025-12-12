@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import LocationInput from "@/components/form-elements/LocationInput";
+import { dateStringToISO } from "@/lib/utils/dateConversion";
 
 export default function NewTripPage() {
   const router = useRouter();
@@ -17,8 +18,8 @@ export default function NewTripPage() {
   const [basicInfo, setBasicInfo] = useState({
     title: "",
     description: "",
-    startDate: "",
-    endDate: "",
+    startDate: "", // YYYY-MM-DD
+    endDate: "", // YYYY-MM-DD
     country: "",
     resort: "",
     departureLocation: "",
@@ -27,14 +28,6 @@ export default function NewTripPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const toLocalDatetime = (isoString: string) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
-  };
-
   async function createTrip(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!userId) return;
@@ -42,13 +35,22 @@ export default function NewTripPage() {
     setIsSubmitting(true);
 
     try {
+      // Convert date strings to ISO datetimes
+      const payload = {
+        userId,
+        basicInfo: {
+          ...basicInfo,
+          startDate: dateStringToISO(basicInfo.startDate),
+          endDate: basicInfo.endDate
+            ? dateStringToISO(basicInfo.endDate)
+            : undefined,
+        },
+      };
+
       const response = await fetch("/api/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          basicInfo,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -108,14 +110,12 @@ export default function NewTripPage() {
             <Label htmlFor="startDate">Start Date</Label>
             <Input
               id="startDate"
-              type="datetime-local"
-              onClick={(e) => e.currentTarget.showPicker()}
-              value={toLocalDatetime(basicInfo.startDate)}
+              type="date"
+              value={basicInfo.startDate}
               onChange={(e) => {
-                const val = e.target.value;
                 setBasicInfo({
                   ...basicInfo,
-                  startDate: val ? new Date(val).toISOString() : "",
+                  startDate: e.target.value,
                 });
               }}
               required
@@ -126,14 +126,12 @@ export default function NewTripPage() {
             <Label htmlFor="endDate">End Date</Label>
             <Input
               id="endDate"
-              type="datetime-local"
-              onClick={(e) => e.currentTarget.showPicker()}
-              value={toLocalDatetime(basicInfo.endDate)}
+              type="date"
+              value={basicInfo.endDate}
               onChange={(e) => {
-                const val = e.target.value;
                 setBasicInfo({
                   ...basicInfo,
-                  endDate: val ? new Date(val).toISOString() : "",
+                  endDate: e.target.value,
                 });
               }}
             />
