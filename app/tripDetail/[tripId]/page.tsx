@@ -47,7 +47,7 @@ export default function TripDetailPage() {
     (trip.creatorId === user.userId ||
       trip.attendants?.some(
         (a) => a.userId === user.userId && a.role === "moderator",
-      ));
+      )) || false;
 
   const fetchLogs = async () => {
     try {

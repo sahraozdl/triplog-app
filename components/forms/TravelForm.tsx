@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -107,19 +107,19 @@ export default function TravelForm({
               url: staticMapUrl,
             };
 
-            // Add to local state
+            // Add to local state - use functional update to ensure we have latest state
             setTravelFiles((prev) => {
               // Check if already added to avoid duplicates
               if (prev.find((f) => f.url === staticMapUrl)) {
                 return prev;
               }
-              return [...prev, mapFile];
+              const updated = [...prev, mapFile];
+              // Also notify parent via onAddFile callback
+              if (onAddFile) {
+                onAddFile(mapFile);
+              }
+              return updated;
             });
-
-            // Also notify parent via onAddFile callback
-            if (onAddFile) {
-              onAddFile(mapFile);
-            }
           } catch (error) {
             console.error("Failed to fetch map image:", error);
             // Still add the file with the URL even if we can't get the size
@@ -134,12 +134,13 @@ export default function TravelForm({
               if (prev.find((f) => f.url === staticMapUrl)) {
                 return prev;
               }
-              return [...prev, mapFile];
+              const updated = [...prev, mapFile];
+              // Also notify parent via onAddFile callback
+              if (onAddFile) {
+                onAddFile(mapFile);
+              }
+              return updated;
             });
-
-            if (onAddFile) {
-              onAddFile(mapFile);
-            }
           }
         }
       }
