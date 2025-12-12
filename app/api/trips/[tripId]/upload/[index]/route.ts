@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
+import { Trip as TripType } from "@/app/types/Trip";
 
 // Type definitions for route parameters
 interface RouteParams {
@@ -50,11 +51,14 @@ export async function DELETE(
       );
     }
 
+    // Type assertion needed because lean() returns a generic type
+    const tripData = trip as unknown as TripType;
+
     // Check permissions: only creator or moderator can delete
-    const isCreator = trip.creatorId === user.userId;
+    const isCreator = tripData.creatorId === user.userId;
     const isModerator =
-      Array.isArray(trip.attendants) &&
-      trip.attendants.some(
+      Array.isArray(tripData.attendants) &&
+      tripData.attendants.some(
         (a: any) => a?.userId === user.userId && a?.role === "moderator",
       );
 
@@ -70,9 +74,9 @@ export async function DELETE(
 
     // Verify file exists at index
     if (
-      !trip.additionalFiles ||
-      !Array.isArray(trip.additionalFiles) ||
-      fileIndex >= trip.additionalFiles.length
+      !tripData.additionalFiles ||
+      !Array.isArray(tripData.additionalFiles) ||
+      fileIndex >= tripData.additionalFiles.length
     ) {
       return NextResponse.json(
         { success: false, error: "File not found" },

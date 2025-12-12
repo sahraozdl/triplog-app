@@ -3,6 +3,7 @@ import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
 import { put } from "@vercel/blob";
+import { Trip as TripType } from "@/app/types/Trip";
 
 // Type definitions for route parameters
 interface RouteParams {
@@ -77,11 +78,14 @@ export async function POST(
       );
     }
 
+    // Type assertion needed because lean() returns a generic type
+    const tripData = trip as unknown as TripType;
+
     // Check permissions: only creator or moderator can upload
-    const isCreator = trip.creatorId === user.userId;
+    const isCreator = tripData.creatorId === user.userId;
     const isModerator =
-      Array.isArray(trip.attendants) &&
-      trip.attendants.some(
+      Array.isArray(tripData.attendants) &&
+      tripData.attendants.some(
         (a: any) => a?.userId === user.userId && a?.role === "moderator",
       );
 
