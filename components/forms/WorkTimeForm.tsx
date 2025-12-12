@@ -44,10 +44,8 @@ interface Props {
   appliedTo?: string[];
   attendants?: TripAttendant[];
 
-  // parent'ten gelen override map'i
   overrides?: Record<string, WorkTimeOverride>;
 
-  // override değişince parent'e geri bildirim
   onOverridesChange?: (overrides: Record<string, WorkTimeOverride>) => void;
 }
 
@@ -61,8 +59,19 @@ export default function WorkTimeForm({
 }: Props) {
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("me");
+  const [nameMap, setNameMap] = useState<Record<string, string>>({});
 
-  // appliedTo değişirse, geçersiz bir tab'deysek "me"ye dön
+useEffect(() => {
+  try {
+    const raw = localStorage.getItem("tripAttendantNames");
+    if (raw) {
+      setNameMap(JSON.parse(raw));
+    }
+  } catch (e) {
+    console.error("Failed to read cached names", e);
+  }
+}, []);
+
   useEffect(() => {
     if (activeTab !== "me" && !appliedTo.includes(activeTab)) {
       setActiveTab("me");
@@ -146,10 +155,9 @@ export default function WorkTimeForm({
   }
 
   const getName = (id: string) => {
-    const att = attendants.find((a) => a.userId === id);
-    if (att && (att as any).name) return (att as any).name as string;
-    return `User ${id.slice(-4)}`;
+    return nameMap[id] || "Unknown User";
   };
+  
 
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300">

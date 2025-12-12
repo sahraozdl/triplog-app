@@ -29,6 +29,11 @@ export default function AttendantsList({
         if (res.ok) {
           const data = await res.json();
           setNames(data.users);
+          try {
+            localStorage.setItem("tripAttendantNames", JSON.stringify(data.users));
+          } catch (e) {
+            console.error("Failed to cache attendant names", e);
+          }
         }
       } catch (err) {
         console.error("Failed to load attendant names", err);

@@ -333,14 +333,6 @@ export default function DailyLogPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            {attendants.length > 1 && (
-              <Button variant="outline" onClick={() => setInviteOpen(true)}>
-                {appliedTo.length > 0
-                  ? `${appliedTo.length} Colleagues Selected`
-                  : "Invite Colleagues"}
-              </Button>
-            )}
-
             <div className="flex gap-2">
               <Button variant="outline" onClick={cancel} disabled={isSaving}>
                 Cancel
@@ -396,6 +388,14 @@ export default function DailyLogPage() {
           onSubmit={saveDailyLog}
           className="flex flex-col gap-6"
         >
+          <InviteColleaguesDialog
+          mode="select"
+          attendants={attendants.map((a) => a.userId)}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          selected={appliedTo}
+          onSelect={setAppliedTo}
+        />
           <TravelForm value={travel} onChange={setTravel} />
 
           {/* UPDATED WORK TIME FORM CALL */}
@@ -415,14 +415,7 @@ export default function DailyLogPage() {
           <AdditionalForm value={additional} onChange={setAdditional} />
         </form>
 
-        <InviteColleaguesDialog
-          mode="select"
-          attendants={attendants.map((a) => a.userId)}
-          open={inviteOpen}
-          onOpenChange={setInviteOpen}
-          selected={appliedTo}
-          onSelect={setAppliedTo}
-        />
+        
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import TravelForm from "@/components/forms/TravelForm";
 import WorkTimeForm, {
@@ -483,7 +483,7 @@ export default function EditDailyLogPage() {
         <ArrowLeft className="h-4 w-4 inline mr-2" /> Trip context missing.
       </div>
     );
-
+    
   return (
     <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
       <div className="w-full max-w-4xl space-y-6">
@@ -535,21 +535,9 @@ export default function EditDailyLogPage() {
                 Applied To
               </Label>
 
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => setInviteOpen(true)}
-                className="mb-2"
-              >
-                {appliedTo.length > 0
-                  ? `${appliedTo.length} colleagues selected`
-                  : "Select colleagues"}
-              </Button>
-
               <InviteColleaguesDialog
                 mode="select"
-                attendants={attendants.map((a: any) => a.userId)}
+                attendants={attendants.map((a) => a.userId)}
                 open={inviteOpen}
                 onOpenChange={setInviteOpen}
                 selected={appliedTo}
