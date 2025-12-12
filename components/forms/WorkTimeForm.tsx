@@ -61,16 +61,16 @@ export default function WorkTimeForm({
   const [activeTab, setActiveTab] = useState("me");
   const [nameMap, setNameMap] = useState<Record<string, string>>({});
 
-useEffect(() => {
-  try {
-    const raw = localStorage.getItem("tripAttendantNames");
-    if (raw) {
-      setNameMap(JSON.parse(raw));
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("tripAttendantNames");
+      if (raw) {
+        setNameMap(JSON.parse(raw));
+      }
+    } catch (e) {
+      console.error("Failed to read cached names", e);
     }
-  } catch (e) {
-    console.error("Failed to read cached names", e);
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (activeTab !== "me" && !appliedTo.includes(activeTab)) {
@@ -157,7 +157,6 @@ useEffect(() => {
   const getName = (id: string) => {
     return nameMap[id] || "Unknown User";
   };
-  
 
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300">

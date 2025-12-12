@@ -483,7 +483,7 @@ export default function EditDailyLogPage() {
         <ArrowLeft className="h-4 w-4 inline mr-2" /> Trip context missing.
       </div>
     );
-    
+
   return (
     <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
       <div className="w-full max-w-4xl space-y-6">

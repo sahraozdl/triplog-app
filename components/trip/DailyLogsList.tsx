@@ -73,9 +73,13 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
 export default function DailyLogsList({
   logs,
   attendants = [],
+  tripId,
+  onLogsChange,
 }: {
   logs: DailyLogFormState[];
   attendants?: TripAttendant[];
+  tripId: string;
+  onLogsChange: () => void;
 }) {
   const [filters, setFilters] = useState<FilterState>({
     userId: "all",
@@ -168,6 +172,8 @@ export default function DailyLogsList({
               group={group}
               userNames={userNames}
               loadingNames={loadingNames}
+              tripId={tripId}
+              onDelete={onLogsChange}
             />
           ))
         ) : (

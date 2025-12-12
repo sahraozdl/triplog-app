@@ -389,13 +389,13 @@ export default function DailyLogPage() {
           className="flex flex-col gap-6"
         >
           <InviteColleaguesDialog
-          mode="select"
-          attendants={attendants.map((a) => a.userId)}
-          open={inviteOpen}
-          onOpenChange={setInviteOpen}
-          selected={appliedTo}
-          onSelect={setAppliedTo}
-        />
+            mode="select"
+            attendants={attendants.map((a) => a.userId)}
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+            selected={appliedTo}
+            onSelect={setAppliedTo}
+          />
           <TravelForm value={travel} onChange={setTravel} />
 
           {/* UPDATED WORK TIME FORM CALL */}
@@ -414,8 +414,6 @@ export default function DailyLogPage() {
           />
           <AdditionalForm value={additional} onChange={setAdditional} />
         </form>
-
-        
       </div>
     </div>
   );

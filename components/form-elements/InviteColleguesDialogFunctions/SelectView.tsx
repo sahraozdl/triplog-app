@@ -87,9 +87,7 @@ export default function SelectView({
               key={id}
               onClick={() => toggle(id)}
               className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                isSelected
-                  ? "border-primary bg-primary/5"
-                  : "hover:bg-muted/50"
+                isSelected ? "border-primary bg-primary/5" : "hover:bg-muted/50"
               }`}
             >
               <div className="flex items-center gap-3">

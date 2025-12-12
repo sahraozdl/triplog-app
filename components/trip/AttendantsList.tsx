@@ -30,7 +30,10 @@ export default function AttendantsList({
           const data = await res.json();
           setNames(data.users);
           try {
-            localStorage.setItem("tripAttendantNames", JSON.stringify(data.users));
+            localStorage.setItem(
+              "tripAttendantNames",
+              JSON.stringify(data.users),
+            );
           } catch (e) {
             console.error("Failed to cache attendant names", e);
           }

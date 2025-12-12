@@ -19,25 +19,25 @@ export default function TripDetailPage() {
   const trip = useTripStore((state) => state.getTrip(tripId as string));
   const [logs, setLogs] = useState<DailyLogFormState[]>([]);
 
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
 
-        if (!res.ok) {
-          console.error("Logs could not be fetched, Status:", res.status);
-          setLogs([]);
-          return;
-        }
-
-        const data = await res.json();
-        setLogs((data.logs || []) as DailyLogFormState[]);
-      } catch (error) {
-        console.error("Failed to fetch logs:", error);
+      if (!res.ok) {
+        console.error("Logs could not be fetched, Status:", res.status);
         setLogs([]);
+        return;
       }
-    }
 
+      const data = await res.json();
+      setLogs((data.logs || []) as DailyLogFormState[]);
+    } catch (error) {
+      console.error("Failed to fetch logs:", error);
+      setLogs([]);
+    }
+  };
+
+  useEffect(() => {
     if (tripId) {
       fetchLogs();
     }
@@ -149,6 +149,8 @@ export default function TripDetailPage() {
           <DailyLogsList
             logs={logs}
             attendants={trip.attendants as TripAttendant[]}
+            tripId={tripId as string}
+            onLogsChange={fetchLogs}
           />
         )}
       </div>
