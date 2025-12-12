@@ -55,7 +55,16 @@ export async function GET(
       );
     }
 
-    return NextResponse.json<SuccessResponse>({ success: true, trip });
+    // Ensure additionalFiles is always an array (even if empty or undefined)
+    const tripWithFiles = {
+      ...trip,
+      additionalFiles: trip.additionalFiles || [],
+    };
+
+    return NextResponse.json<SuccessResponse>({
+      success: true,
+      trip: tripWithFiles,
+    });
   } catch (error) {
     console.error("GET /api/trips/[tripId] error:", error);
     const errorMessage =
@@ -172,7 +181,10 @@ export async function PUT(
     // Convert to plain object for response
     const tripData = trip.toObject ? trip.toObject() : trip;
 
-    return NextResponse.json<SuccessResponse>({ success: true, trip: tripData });
+    return NextResponse.json<SuccessResponse>({
+      success: true,
+      trip: tripData,
+    });
   } catch (error) {
     console.error("PUT /api/trips/[tripId] error:", error);
     const errorMessage =

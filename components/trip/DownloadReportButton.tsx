@@ -229,13 +229,17 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         for (let uIndex = 0; uIndex < users.length; uIndex++) {
           const user = users[uIndex];
           let userLogs = logsByDateUser[date]?.[user.id];
-          
+
           // For worktime, use effective log computation
           if (typeFilter === "worktime") {
             const allWorktimeLogs = filteredLogs.filter(
-              (l) => l.itemType === "worktime"
+              (l) => l.itemType === "worktime",
             ) as WorkTimeLog[];
-            const effectiveLog = effectiveLogForUser(date, user.id, allWorktimeLogs);
+            const effectiveLog = effectiveLogForUser(
+              date,
+              user.id,
+              allWorktimeLogs,
+            );
             userLogs = effectiveLog ? [effectiveLog] : [];
           }
 
@@ -372,6 +376,192 @@ export default function DownloadReportButton({ trip, logs }: Props) {
         return `Notes: ${ad.notes || "-"}`;
       },
     );
+
+    // 5. Additional Files (Trip-level)
+    if (
+      trip.additionalFiles &&
+      Array.isArray(trip.additionalFiles) &&
+      trip.additionalFiles.length > 0
+    ) {
+      const additionalFiles = trip.additionalFiles.filter(
+        (f): f is NonNullable<typeof f> =>
+          f !== null &&
+          f !== undefined &&
+          typeof f === "object" &&
+          "url" in f &&
+          typeof f.url === "string",
+      );
+
+      if (additionalFiles.length > 0) {
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text("5. Additional Files", 14, currentY);
+        currentY += 6;
+
+        // Prepare image data using same scaling as Additional Notes & Files table
+        const imageDataMap: Record<
+          number,
+          { base64: string; w: number; h: number }
+        > = {};
+
+        for (let i = 0; i < additionalFiles.length; i++) {
+          const file = additionalFiles[i];
+          if (!file || !file.url) continue;
+
+          const isImage =
+            file.type?.startsWith("image/") ||
+            file.url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) != null;
+
+          if (isImage) {
+            const imgData = await fetchImage(file.url);
+            if (imgData) {
+              // Use same scaling as Additional Notes & Files table
+              const targetWidth = 50;
+              const targetHeight =
+                (imgData.height / imgData.width) * targetWidth;
+              imageDataMap[i] = {
+                base64: imgData.base64,
+                w: targetWidth,
+                h: targetHeight,
+              };
+            }
+          }
+        }
+
+        // Create table with one image per cell
+        // Use same cell padding and styling as other tables
+        const cellPadding = 3;
+        const imagesPerRow = 2; // 2 images per row
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const cellWidth = (pageWidth - 28 - cellPadding * 4) / 2; // Account for margins and padding
+        const minCellHeight = 60; // Minimum height per cell (enough for small images with padding)
+
+        const tableRows: any[] = [];
+        for (let i = 0; i < additionalFiles.length; i += imagesPerRow) {
+          const row: any[] = [];
+          let maxHeightInRow = minCellHeight;
+
+          // Calculate max height needed for this row
+          for (let j = 0; j < imagesPerRow; j++) {
+            const fileIndex = i + j;
+            if (fileIndex < additionalFiles.length) {
+              const imgData = imageDataMap[fileIndex];
+              if (imgData) {
+                const neededHeight = imgData.h + cellPadding * 2 + 8;
+                if (neededHeight > maxHeightInRow) {
+                  maxHeightInRow = neededHeight;
+                }
+              }
+            }
+          }
+
+          // Create row with proper height using newlines (same approach as Additional Notes table)
+          for (let j = 0; j < imagesPerRow; j++) {
+            const fileIndex = i + j;
+            if (fileIndex < additionalFiles.length) {
+              // Add newlines to create cell height (3.5 is approximate line height in points)
+              const imgData = imageDataMap[fileIndex];
+              const linesNeeded = imgData
+                ? Math.ceil(maxHeightInRow / 3.5)
+                : Math.ceil(minCellHeight / 3.5);
+              row.push({
+                content: "\n".repeat(Math.max(linesNeeded, 5)),
+              });
+            } else {
+              // Empty cell in last row
+              row.push({
+                content: "\n".repeat(Math.ceil(minCellHeight / 3.5)),
+              });
+            }
+          }
+          tableRows.push(row);
+        }
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [["", ""]], // Empty headers
+          body: tableRows,
+          theme: "grid",
+          pageBreak: "auto",
+          rowPageBreak: "avoid",
+          styles: {
+            fontSize: 8,
+            cellPadding: cellPadding,
+            valign: "top",
+            overflow: "linebreak",
+            font: robotoBase64 ? "MyCustomFont" : "helvetica",
+          },
+          columnStyles: {
+            0: { cellWidth: cellWidth },
+            1: { cellWidth: cellWidth },
+          },
+          headStyles: {
+            fillColor: [70, 58, 128],
+            fontSize: 9,
+            textColor: 255,
+          },
+          didDrawCell: (data) => {
+            if (
+              data.section === "body" &&
+              data.column.index >= 0 &&
+              data.cell
+            ) {
+              const fileIndex =
+                data.row.index * imagesPerRow + data.column.index;
+
+              if (fileIndex < additionalFiles.length) {
+                const file = additionalFiles[fileIndex];
+                const imgData = imageDataMap[fileIndex];
+
+                if (file && imgData) {
+                  // Use same positioning logic as Additional Notes & Files table
+                  const cellX = data.cell.x + 4;
+                  const cellY = data.cell.y + data.cell.height - 4;
+                  const imgY = cellY - imgData.h; // Position from bottom
+
+                  // Ensure image fits within cell bounds
+                  if (
+                    cellX + imgData.w <=
+                      data.cell.x + data.cell.width - cellPadding &&
+                    imgY >= data.cell.y + cellPadding &&
+                    imgY + imgData.h <=
+                      data.cell.y + data.cell.height - cellPadding
+                  ) {
+                    try {
+                      // Determine image format from base64 or URL
+                      let format: "JPEG" | "PNG" = "JPEG";
+                      if (
+                        imgData.base64.startsWith("data:image/png") ||
+                        file.url.match(/\.png$/i)
+                      ) {
+                        format = "PNG";
+                      }
+
+                      // Add the image using same size as Additional Notes & Files
+                      doc.addImage(
+                        imgData.base64,
+                        format,
+                        cellX,
+                        imgY,
+                        imgData.w,
+                        imgData.h,
+                      );
+                    } catch (error) {
+                      console.error(
+                        `Failed to add image for file ${file.name}:`,
+                        error,
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          },
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
+    }
 
     const safeTitle = trip.basicInfo.title
       .replace(/[^a-z0-9]/gi, "_")

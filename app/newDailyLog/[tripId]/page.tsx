@@ -16,12 +16,15 @@ import { Button } from "@/components/ui/button";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { CalendarIcon, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/useToast";
+import { ToastContainer } from "@/components/ui/toast";
 
 import {
   TravelLog,
   AccommodationLog,
   AdditionalLog,
   WorkTimeLog,
+  UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
@@ -119,6 +122,7 @@ export default function DailyLogPage() {
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { toasts, showToast, removeToast } = useToast();
 
   const [travel, setTravel] = useState<TravelFormState>({
     travelReason: "",
@@ -130,6 +134,8 @@ export default function DailyLogPage() {
     startTime: "",
     endTime: "",
   });
+
+  const [travelFiles, setTravelFiles] = useState<UploadedFile[]>([]);
 
   const [workTime, setWorkTime] = useState<WorkTimeFormState>({
     startTime: "",
@@ -162,7 +168,12 @@ export default function DailyLogPage() {
     router.push(`/tripDetail/${tripId}`);
   }
 
-  const createLogRequest = (itemType: string, data: any, isoDate: string) => {
+  const createLogRequest = (
+    itemType: string,
+    data: any,
+    isoDate: string,
+    files: UploadedFile[] = [],
+  ) => {
     const body = {
       itemType,
       tripId,
@@ -171,7 +182,7 @@ export default function DailyLogPage() {
       appliedTo,
       isGroupSource: appliedTo.length > 0,
       data,
-      files: [],
+      files,
     };
 
     return fetch("/api/daily-logs", {
@@ -208,7 +219,9 @@ export default function DailyLogPage() {
       travel.endTime;
 
     if (isTravelFilled) {
-      requests.push(createLogRequest("travel", travel, isoDateString));
+      requests.push(
+        createLogRequest("travel", travel, isoDateString, travelFiles),
+      );
     }
 
     const isWorkFilled =
@@ -402,7 +415,11 @@ export default function DailyLogPage() {
             selected={appliedTo}
             onSelect={setAppliedTo}
           />
-          <TravelForm value={travel} onChange={setTravel} />
+          <TravelForm
+            value={travel}
+            onChange={setTravel}
+            onAddFile={(file) => setTravelFiles((prev) => [...prev, file])}
+          />
 
           {/* UPDATED WORK TIME FORM CALL */}
           <WorkTimeForm
@@ -420,6 +437,9 @@ export default function DailyLogPage() {
           />
           <AdditionalForm value={additional} onChange={setAdditional} />
         </form>
+
+        {/* Toast Container */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
       </div>
     </div>
   );

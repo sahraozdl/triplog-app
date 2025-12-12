@@ -369,7 +369,10 @@ export default function EditDailyLogPage() {
 
     // Delete colleague logs that are no longer in appliedTo or have no override
     existingColleagueWorklogs.forEach((log, colleagueId) => {
-      if (!currentColleagueIds.has(colleagueId) || !hasNonEmptyOverride(workTimeOverrides[colleagueId])) {
+      if (
+        !currentColleagueIds.has(colleagueId) ||
+        !hasNonEmptyOverride(workTimeOverrides[colleagueId])
+      ) {
         logsToDelete.push(log._id.toString());
       }
     });

@@ -25,6 +25,14 @@ export interface TripBasicInfo {
   arrivalLocation: string;
 }
 
+export interface TripAdditionalFile {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface Trip {
   _id: string;
   creatorId: string;
@@ -38,4 +46,6 @@ export interface Trip {
 
   createdAt: string;
   updatedAt: string;
+
+  additionalFiles?: TripAdditionalFile[];
 }

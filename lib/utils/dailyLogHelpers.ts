@@ -1,9 +1,14 @@
-import { DailyLogFormState, WorkTimeLog, AccommodationLog, MealFields } from "@/app/types/DailyLog";
+import {
+  DailyLogFormState,
+  WorkTimeLog,
+  AccommodationLog,
+  MealFields,
+} from "@/app/types/DailyLog";
 
 /**
  * Computes the effective worktime log for a given user and date.
  * Priority: 1) User-specific log (log.userId === userId), 2) Owner shared log (isGroupSource && appliedTo includes userId)
- * 
+ *
  * @param date - Date string in YYYY-MM-DD format
  * @param userId - User ID to get effective log for
  * @param logs - Array of all worktime logs for the date
@@ -12,7 +17,7 @@ import { DailyLogFormState, WorkTimeLog, AccommodationLog, MealFields } from "@/
 export function effectiveLogForUser(
   date: string,
   userId: string,
-  logs: DailyLogFormState[]
+  logs: DailyLogFormState[],
 ): WorkTimeLog | null {
   // Filter logs for the specific date
   const dateLogs = logs.filter((log) => {
@@ -29,7 +34,7 @@ export function effectiveLogForUser(
 
   // Priority 2: Owner shared log (isGroupSource && appliedTo includes userId)
   const sharedLog = dateLogs.find(
-    (log) => log.isGroupSource && log.appliedTo?.includes(userId)
+    (log) => log.isGroupSource && log.appliedTo?.includes(userId),
   );
   if (sharedLog) {
     return sharedLog;
@@ -79,7 +84,7 @@ export function formatMeal(mealName: string, meal: MealFields): string {
  */
 export function formatMeals(accommodation: AccommodationLog): string {
   if (!accommodation.meals) return "";
-  
+
   const meals: string[] = [];
   if (accommodation.meals.breakfast) {
     meals.push(formatMeal("Breakfast", accommodation.meals.breakfast));
@@ -90,7 +95,6 @@ export function formatMeals(accommodation: AccommodationLog): string {
   if (accommodation.meals.dinner) {
     meals.push(formatMeal("Dinner", accommodation.meals.dinner));
   }
-  
+
   return meals.join("\n");
 }
-

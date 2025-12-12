@@ -158,16 +158,20 @@ export default function ReportPage() {
                   </td>
                   {users.map((user) => {
                     let userLogs = logsByDateUser[date]?.[user.id];
-                    
+
                     // For worktime, use effective log computation
                     if (type === "worktime" && userLogs) {
                       const allWorktimeLogs = filteredLogs.filter(
-                        (l) => l.itemType === "worktime"
+                        (l) => l.itemType === "worktime",
                       ) as WorkTimeLog[];
-                      const effectiveLog = effectiveLogForUser(date, user.id, allWorktimeLogs);
+                      const effectiveLog = effectiveLogForUser(
+                        date,
+                        user.id,
+                        allWorktimeLogs,
+                      );
                       userLogs = effectiveLog ? [effectiveLog] : [];
                     }
-                    
+
                     return (
                       <td
                         key={user.id}
@@ -452,7 +456,12 @@ export default function ReportPage() {
                       </span>
                     </div>
                     <div>
-                      Overnight: {a.overnightStay === "yes" ? "Yes" : a.overnightStay === "no" ? "No" : "-"}
+                      Overnight:{" "}
+                      {a.overnightStay === "yes"
+                        ? "Yes"
+                        : a.overnightStay === "no"
+                          ? "No"
+                          : "-"}
                     </div>
                     {mealsText && (
                       <div className="mt-2 pt-2 border-t border-border">

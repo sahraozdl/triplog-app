@@ -56,7 +56,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, message: "Log deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Log deleted successfully",
+    });
   } catch (error) {
     console.error("DELETE Log Error:", error);
     return NextResponse.json(

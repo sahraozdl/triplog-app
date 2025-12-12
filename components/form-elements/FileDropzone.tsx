@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, DragEvent, ChangeEvent } from "react";
+import { useState, DragEvent, ChangeEvent, useRef, useEffect } from "react";
 import { Loader2, UploadCloud, FileIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UploadedFile } from "@/app/types/DailyLog";
@@ -15,6 +15,38 @@ export default function FileDropzone({
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  // Use ref to always have the latest value for async operations
+  const valueRef = useRef<UploadedFile[]>(value);
+
+  // Update ref whenever value prop changes
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  const validateFile = (file: File): string | null => {
+    const validImageTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+    ];
+    const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
+
+    const hasValidMime = validImageTypes.some((type) =>
+      file.type.toLowerCase().startsWith(type),
+    );
+    const hasValidExtension = validExtensions.some((ext) =>
+      file.name.toLowerCase().endsWith(ext),
+    );
+
+    if (!hasValidMime && !hasValidExtension) {
+      return "Invalid file type. Only images are allowed.";
+    }
+
+    return null;
+  };
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -24,6 +56,13 @@ export default function FileDropzone({
 
     try {
       for (const file of Array.from(files)) {
+        // Validate file type
+        const validationError = validateFile(file);
+        if (validationError) {
+          alert(validationError);
+          continue;
+        }
+
         const response = await fetch(
           `/api/upload?filename=${encodeURIComponent(file.name)}`,
           {
@@ -46,7 +85,15 @@ export default function FileDropzone({
         });
       }
 
-      onChange([...value, ...newUploads]);
+      // Use ref to get the latest value, avoiding stale closure issues
+      // This is important when uploading multiple files in quick succession
+      const currentFiles = valueRef.current;
+      // Check for duplicates by URL to avoid adding the same file twice
+      const existingUrls = new Set(currentFiles.map((f) => f.url));
+      const uniqueNewUploads = newUploads.filter(
+        (f) => !existingUrls.has(f.url),
+      );
+      onChange([...currentFiles, ...uniqueNewUploads]);
     } catch (error) {
       console.error("Upload error:", error);
       alert("Failed to upload file(s). Please try again.");
@@ -117,7 +164,7 @@ export default function FileDropzone({
                 or drag and drop
               </p>
               <p className="text-xs text-muted-foreground">
-                Images, PDF, Docs (Max 4MB)
+                Images only (JPG, PNG, GIF, WEBP, SVG)
               </p>
             </>
           )}
@@ -126,6 +173,7 @@ export default function FileDropzone({
         <input
           id="dropzone-file"
           type="file"
+          accept="image/*"
           multiple
           className="hidden"
           onChange={onFileSelect}

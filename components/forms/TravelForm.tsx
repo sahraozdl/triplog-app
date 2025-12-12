@@ -21,6 +21,7 @@ import {
 import { Map, Loader2 } from "lucide-react";
 
 import LocationInput from "@/components/form-elements/LocationInput";
+import FileDropzone from "@/components/form-elements/FileDropzone";
 import { TravelLog, UploadedFile } from "@/app/types/DailyLog";
 
 type TravelFormState = Omit<
@@ -42,11 +43,22 @@ interface Props {
   value: TravelFormState;
   onChange: (val: TravelFormState) => void;
   onAddFile?: (file: UploadedFile) => void;
+  tripId?: string;
+  onUploadSuccess?: () => void;
+  onUploadError?: (error: string) => void;
 }
 
-export default function TravelForm({ value, onChange, onAddFile }: Props) {
+export default function TravelForm({
+  value,
+  onChange,
+  onAddFile,
+  tripId,
+  onUploadSuccess,
+  onUploadError,
+}: Props) {
   const [calculating, setCalculating] = useState(false);
   const [mapUrl, setMapUrl] = useState<string>("");
+  const [travelFiles, setTravelFiles] = useState<UploadedFile[]>([]);
 
   const update = (field: Partial<TravelFormState>) =>
     onChange({ ...value, ...field });
@@ -82,14 +94,52 @@ export default function TravelForm({ value, onChange, onAddFile }: Props) {
 
           setMapUrl(staticMapUrl);
 
-          if (onAddFile) {
+          // Add map image to file upload input
+          // Fetch the image to get its size
+          try {
+            const imageResponse = await fetch(staticMapUrl);
+            const imageBlob = await imageResponse.blob();
+
+            const mapFile: UploadedFile = {
+              name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
+              type: "image/png",
+              size: imageBlob.size,
+              url: staticMapUrl,
+            };
+
+            // Add to local state
+            setTravelFiles((prev) => {
+              // Check if already added to avoid duplicates
+              if (prev.find((f) => f.url === staticMapUrl)) {
+                return prev;
+              }
+              return [...prev, mapFile];
+            });
+
+            // Also notify parent via onAddFile callback
+            if (onAddFile) {
+              onAddFile(mapFile);
+            }
+          } catch (error) {
+            console.error("Failed to fetch map image:", error);
+            // Still add the file with the URL even if we can't get the size
             const mapFile: UploadedFile = {
               name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
               type: "image/png",
               size: 0,
               url: staticMapUrl,
             };
-            onAddFile(mapFile);
+
+            setTravelFiles((prev) => {
+              if (prev.find((f) => f.url === staticMapUrl)) {
+                return prev;
+              }
+              return [...prev, mapFile];
+            });
+
+            if (onAddFile) {
+              onAddFile(mapFile);
+            }
           }
         }
       }
@@ -289,6 +339,29 @@ export default function TravelForm({ value, onChange, onAddFile }: Props) {
                   </div>
                 </div>
               )}
+
+              {/* File Upload Section */}
+              <div className="w-full space-y-2">
+                <Label>Attachments</Label>
+                <FileDropzone
+                  value={travelFiles}
+                  onChange={(files) => {
+                    // Find new files that weren't in the previous state
+                    const newFiles = files.filter(
+                      (file) => !travelFiles.find((f) => f.url === file.url),
+                    );
+
+                    setTravelFiles(files);
+
+                    // Notify parent via onAddFile for each new file
+                    if (onAddFile) {
+                      newFiles.forEach((file) => {
+                        onAddFile(file);
+                      });
+                    }
+                  }}
+                />
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>

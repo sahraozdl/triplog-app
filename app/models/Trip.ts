@@ -56,6 +56,16 @@ const TripSchema = new mongoose.Schema(
       type: String,
       default: () => new Date().toISOString(),
     },
+
+    additionalFiles: [
+      {
+        name: { type: String, required: true },
+        url: { type: String, required: true },
+        type: { type: String, required: true },
+        size: { type: Number, required: true },
+        uploadedAt: { type: String, required: true },
+      },
+    ],
   },
   { timestamps: false },
 );

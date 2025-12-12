@@ -31,7 +31,9 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
   const groups: Record<string, GroupedLog> = {};
 
   // Separate worktime logs for effective log computation
-  const worktimeLogs = logs.filter((log) => log.itemType === "worktime") as WorkTimeLog[];
+  const worktimeLogs = logs.filter(
+    (log) => log.itemType === "worktime",
+  ) as WorkTimeLog[];
   const nonWorktimeLogs = logs.filter((log) => log.itemType !== "worktime");
 
   // Process non-worktime logs first
@@ -102,7 +104,7 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
 
     // Add the worktime log to the owner's group
     const existingWorkId = groups[groupKey].works.find(
-      (w) => w._id.toString() === log._id.toString()
+      (w) => w._id.toString() === log._id.toString(),
     );
     if (!existingWorkId) {
       groups[groupKey].works.push(log);
