@@ -116,13 +116,15 @@ export async function PUT(
     const isModerator =
       Array.isArray(trip.attendants) &&
       trip.attendants.some(
-        (a) =>
-          a &&
+        (a: unknown): a is TripAttendant =>
+          a !== null &&
           typeof a === "object" &&
           "userId" in a &&
           "role" in a &&
-          a.userId === user.userId &&
-          a.role === "moderator",
+          typeof (a as { userId: unknown }).userId === "string" &&
+          typeof (a as { role: unknown }).role === "string" &&
+          (a as TripAttendant).userId === user.userId &&
+          (a as TripAttendant).role === "moderator",
       );
 
     if (!isCreator && !isModerator) {
