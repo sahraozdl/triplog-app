@@ -20,7 +20,7 @@ export default function ActiveTripCard({ trip }: { trip: Trip }) {
   const user = useAppUser();
 
   const handleViewTrip = () => {
-    router.push(`/tripDetail/${trip._id}`);
+    router.push(`/trips/${trip._id}`);
   };
 
   const formatDate = (dateString?: string) => {

@@ -163,7 +163,7 @@ export default function DailyLogPage() {
   });
 
   function cancel() {
-    router.push(`/tripDetail/${tripId}`);
+    router.push(`/trips/${tripId}`);
   }
 
   const createLogRequest = (
@@ -317,7 +317,7 @@ export default function DailyLogPage() {
       }
 
       invalidate();
-      router.push(`/tripDetail/${tripId}`);
+      router.push(`/trips/${tripId}`);
     } catch (error) {
       console.error(error);
       alert("An error occurred while saving logs.");

@@ -491,7 +491,7 @@ export default function EditDailyLogPage() {
       }
 
       invalidate();
-      router.push(`/tripDetail/${tripId}`);
+      router.push(`/trips/${tripId}`);
     } catch (error) {
       console.error("Update failed:", error);
       alert("Update failed.");
@@ -522,7 +522,7 @@ export default function EditDailyLogPage() {
           <h1 className="text-2xl font-bold text-foreground">Edit Daily Log</h1>
           <Button
             variant="ghost"
-            onClick={() => router.push(`/tripDetail/${tripId}`)}
+            onClick={() => router.push(`/trips/${tripId}`)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Trip
           </Button>
