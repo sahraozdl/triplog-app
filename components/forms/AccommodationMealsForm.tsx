@@ -62,11 +62,11 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
                     htmlFor="accommodation-type"
                     className="text-foreground"
                   >
-                    Accommodation / Hotel Name
+                    Accommodation Name
                   </Label>
                   <LocationInput
                     id="accommodation-type"
-                    placeholder="Search hotel name or address..."
+                    placeholder="Search accommodation name or address..."
                     value={value.accommodationType}
                     onChange={(val) => update({ accommodationType: val })}
                     className="bg-background text-foreground border-input"

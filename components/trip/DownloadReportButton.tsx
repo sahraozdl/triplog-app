@@ -98,13 +98,13 @@ export default function DownloadReportButton({ trip, logs }: Props) {
     doc.text(`Trip Report: ${trip.basicInfo.title}`, 14, 20);
 
     doc.setFontSize(10);
-    doc.setTextColor(80);
+    doc.setTextColor(0, 0, 0);
 
     let headerY = 28;
     const lineHeight = 6;
 
     const dateRange = `${new Date(trip.basicInfo.startDate).toLocaleDateString()} - ${trip.basicInfo.endDate ? new Date(trip.basicInfo.endDate).toLocaleDateString() : "Ongoing"}`;
-    doc.text(`Date Range: ${dateRange}`, 14, headerY);
+    doc.text(`Date: ${dateRange}`, 14, headerY);
     headerY += lineHeight;
 
     if (trip.basicInfo.departureLocation || trip.basicInfo.arrivalLocation) {
@@ -132,6 +132,40 @@ export default function DownloadReportButton({ trip, logs }: Props) {
     }
 
     headerY += 5;
+
+    // Calculate summary statistics
+    const accommodationLogs = logs.filter(
+      (l) => l.itemType === "accommodation",
+    ) as AccommodationLog[];
+    const totalNights = accommodationLogs.filter(
+      (a) => a.overnightStay === "yes",
+    ).length;
+    const totalNightsCoveredByEmployee = accommodationLogs.filter(
+      (a) =>
+        a.overnightStay === "yes" && a.accommodationCoveredBy === "private",
+    ).length;
+
+    const travelLogs = logs.filter(
+      (l) => l.itemType === "travel",
+    ) as TravelLog[];
+    const totalKm = travelLogs.reduce((sum, t) => {
+      const distance = typeof t.distance === "number" ? t.distance : 0;
+      return sum + distance;
+    }, 0);
+
+    // Add summary statistics
+    doc.setFontSize(10);
+    doc.setTextColor(80);
+    doc.text(`Total Nights: ${totalNights}`, 14, headerY);
+    headerY += lineHeight;
+    doc.text(
+      `Total Nights Covered by Employee: ${totalNightsCoveredByEmployee}`,
+      14,
+      headerY,
+    );
+    headerY += lineHeight;
+    doc.text(`Total km: ${totalKm.toFixed(2)}`, 14, headerY);
+    headerY += lineHeight + 5;
 
     const infoHeaders = ["Detail", ...users.map((u) => u.name)];
     const infoRows = [
@@ -359,7 +393,7 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       "3. Accommodation & Meals",
       (log) => {
         const a = log as AccommodationLog;
-        let content = `Hotel: ${a.accommodationType || "-"}\nPaid By: ${a.accommodationCoveredBy || "-"}\nOvernight: ${a.overnightStay || "-"}`;
+        let content = `Accommodation: ${a.accommodationType || "-"}\nPaid By: ${a.accommodationCoveredBy || "-"}\nOvernight: ${a.overnightStay || "-"}`;
         const mealsText = formatMeals(a);
         if (mealsText) {
           content += `\n\nMeals:\n${mealsText}`;
