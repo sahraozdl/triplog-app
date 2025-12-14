@@ -13,7 +13,7 @@ import {
 import { Trip } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
-import DownloadReportButton from "@/components/trip/DownloadReportButton";
+import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
 import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
 
 interface UserDetail {

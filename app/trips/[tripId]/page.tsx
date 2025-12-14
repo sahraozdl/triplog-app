@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DailyLogFormState } from "@/app/types/DailyLog";
 import DailyLogsList from "@/components/trip/DailyLogsList";
 import { TripAttendant } from "@/app/types/Trip";
-import DownloadReportButton from "@/components/trip/DownloadReportButton";
+import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
 import { TripInfoCard } from "@/components/trip/TripInfoCard";
 import { TripEditInline } from "@/components/trip/TripEditInline";
 import { formDataToPayload } from "@/components/trip/TripEditForm";

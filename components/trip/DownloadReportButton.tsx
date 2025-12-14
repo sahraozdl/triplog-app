@@ -16,6 +16,7 @@ import {
 import { Trip } from "@/app/types/Trip";
 import { robotoBase64 } from "@/lib/fonts";
 import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 
 interface Props {
   trip: Trip;
@@ -49,8 +50,9 @@ async function fetchImage(
   }
 }
 
-export default function DownloadReportButton({ trip, logs }: Props) {
+export function DownloadReportButton({ trip, logs }: Props) {
   const [generating, setGenerating] = useState(false);
+  const user = useAppUser();
 
   const fetchAttendantDetails = async (userIds: string[]) => {
     try {
@@ -153,6 +155,15 @@ export default function DownloadReportButton({ trip, logs }: Props) {
       return sum + distance;
     }, 0);
 
+    // Calculate total attendants
+    const attendantsList = trip.attendants || [];
+    const isUserInAttendantsList = attendantsList.some(
+      (attendant) => attendant.userId === user?.userId,
+    );
+    const totalAttendants = isUserInAttendantsList
+      ? attendantsList.length
+      : attendantsList.length + 1;
+
     // Add summary statistics
     doc.setFontSize(10);
     doc.setTextColor(80);
@@ -165,6 +176,8 @@ export default function DownloadReportButton({ trip, logs }: Props) {
     );
     headerY += lineHeight;
     doc.text(`Total km: ${totalKm.toFixed(2)}`, 14, headerY);
+    headerY += lineHeight;
+    doc.text(`Total attendants: ${totalAttendants}`, 14, headerY);
     headerY += lineHeight + 5;
 
     const infoHeaders = ["Detail", ...users.map((u) => u.name)];
