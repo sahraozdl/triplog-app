@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
+import { requireAuth } from "@/lib/auth-utils";
 import {
   TripBasicInfo,
   TripAttendant,
@@ -39,6 +40,11 @@ export async function GET(
   req: NextRequest,
   { params }: RouteParams,
 ): Promise<NextResponse<ApiResponse>> {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     await connectToDB();
 

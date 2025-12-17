@@ -3,14 +3,12 @@ import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
 import { put } from "@vercel/blob";
-import { Trip as TripType } from "@/app/types/Trip";
+import { Trip as TripType, TripAttendant } from "@/app/types/Trip";
 
-// Type definitions for route parameters
 interface RouteParams {
   params: Promise<{ tripId: string }>;
 }
 
-// Valid image MIME types
 const VALID_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -20,7 +18,6 @@ const VALID_IMAGE_TYPES = [
   "image/svg+xml",
 ];
 
-// Valid image file extensions
 const VALID_IMAGE_EXTENSIONS = [
   ".jpg",
   ".jpeg",
@@ -60,7 +57,6 @@ export async function POST(
       );
     }
 
-    // Get current user
     const user = await getUserDB();
     if (!user) {
       return NextResponse.json(
@@ -69,7 +65,6 @@ export async function POST(
       );
     }
 
-    // Get trip and verify permissions (use lean for read-only check)
     const trip = await Trip.findById(tripId).lean();
     if (!trip) {
       return NextResponse.json(
@@ -78,15 +73,14 @@ export async function POST(
       );
     }
 
-    // Type assertion needed because lean() returns a generic type
     const tripData = trip as unknown as TripType;
 
-    // Check permissions: only creator or moderator can upload
     const isCreator = tripData.creatorId === user.userId;
     const isModerator =
       Array.isArray(tripData.attendants) &&
       tripData.attendants.some(
-        (a: any) => a?.userId === user.userId && a?.role === "moderator",
+        (a: TripAttendant) =>
+          a?.userId === user.userId && a?.role === "moderator",
       );
 
     if (!isCreator && !isModerator) {
@@ -99,7 +93,6 @@ export async function POST(
       );
     }
 
-    // Parse form data
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const base64Data = formData.get("base64") as string | null;
@@ -111,12 +104,10 @@ export async function POST(
     let fileSize: number;
 
     if (file) {
-      // Handle multipart/form-data file upload
       mimeType = file.type;
       originalFilename = file.name;
       fileSize = file.size;
 
-      // Validate file type
       if (!isValidImageType(mimeType, originalFilename)) {
         return NextResponse.json(
           {
@@ -130,7 +121,6 @@ export async function POST(
       const arrayBuffer = await file.arrayBuffer();
       fileBuffer = Buffer.from(arrayBuffer);
     } else if (base64Data && filename) {
-      // Handle base64 image upload (from Auto Calculate Map)
       const base64Match = base64Data.match(/^data:([^;]+);base64,(.+)$/);
       if (!base64Match) {
         return NextResponse.json(
@@ -142,7 +132,6 @@ export async function POST(
       mimeType = base64Match[1];
       const base64Content = base64Match[2];
 
-      // Validate file type
       if (!isValidImageType(mimeType, filename)) {
         return NextResponse.json(
           {
@@ -163,19 +152,16 @@ export async function POST(
       );
     }
 
-    // Generate unique filename to prevent duplicates
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 9);
     const fileExtension = originalFilename.split(".").pop() || "png";
     const uniqueFilename = `trip-${tripId}-${timestamp}-${randomSuffix}.${fileExtension}`;
 
-    // Upload to Vercel Blob
     const blob = await put(uniqueFilename, fileBuffer, {
       access: "public",
       contentType: mimeType,
     });
 
-    // Prepare file metadata
     const fileMetadata = {
       name: originalFilename,
       url: blob.url,
@@ -184,8 +170,6 @@ export async function POST(
       uploadedAt: new Date().toISOString(),
     };
 
-    // Atomically update trip with new file
-    // Use findOneAndUpdate for atomic operation
     const updatedTrip = await Trip.findOneAndUpdate(
       { _id: tripId },
       {
@@ -202,10 +186,8 @@ export async function POST(
       );
     }
 
-    // Type assertion needed because lean() returns a generic type
     const updatedTripData = updatedTrip as unknown as TripType;
 
-    // Debug: Log to verify the field was saved
     console.log(
       "Updated trip additionalFiles count:",
       updatedTripData.additionalFiles?.length || 0,

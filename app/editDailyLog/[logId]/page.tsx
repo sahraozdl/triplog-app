@@ -9,80 +9,24 @@ import WorkTimeForm, {
 import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAppUser } from "@/components/providers/AppUserProvider";
+import { DailyLogFormState } from "@/app/types/DailyLog";
 import {
-  TravelLog,
-  AccommodationLog,
-  AdditionalLog,
-  WorkTimeLog,
-  DailyLogFormState,
-} from "@/app/types/DailyLog";
+  TravelFormState,
+  WorkTimeFormState,
+  AccommodationFormState,
+  AdditionalFormState,
+} from "@/app/types/FormStates";
+import { LogCreationPayload } from "@/app/types/LogCreation";
 import { useTripStore } from "@/lib/store/useTripStore";
-import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
-import { Save, Loader2, ArrowLeft, CalendarIcon } from "lucide-react";
+import { Save, Loader2, ArrowLeft } from "lucide-react";
 import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
-
-// Type Helpers
-type FormState<T> = Omit<
-  T,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type TravelFormState = FormState<TravelLog>;
-type WorkTimeFormState = FormState<WorkTimeLog>;
-type AccommodationFormState = FormState<AccommodationLog>;
-type AdditionalFormState = FormState<AdditionalLog>;
-
-const getInitialState = <T extends {}>(itemType: string): T => {
-  switch (itemType) {
-    case "travel":
-      return {
-        travelReason: "",
-        vehicleType: "",
-        startTime: "",
-        endTime: "",
-        departureLocation: "",
-        destination: "",
-        distance: 0,
-        isRoundTrip: false,
-      } as unknown as T;
-    case "worktime":
-      return {
-        startTime: "",
-        endTime: "",
-        description: "",
-      } as unknown as T;
-    case "accommodation":
-      return {
-        accommodationType: "",
-        accommodationCoveredBy: "",
-        overnightStay: "",
-        meals: {
-          breakfast: { eaten: false, coveredBy: "" },
-          lunch: { eaten: false, coveredBy: "" },
-          dinner: { eaten: false, coveredBy: "" },
-        },
-      } as unknown as T;
-    case "additional":
-      return {
-        notes: "",
-        uploadedFiles: [],
-      } as unknown as T;
-    default:
-      return {} as T;
-  }
-};
+import { getInitialFormState } from "@/lib/utils/formInitialStates";
+import {
+  transformLogToFormState,
+  extractWorkTimeOverride,
+} from "@/lib/utils/logDataTransformers";
+import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
 
 export default function EditDailyLogPage() {
   const router = useRouter();
@@ -104,16 +48,14 @@ export default function EditDailyLogPage() {
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  // Trip data for Invite Dialog
   const trip = getTrip(tripId);
   const attendants = trip?.attendants ?? [];
 
-  // --- FORM STATES ---
   const [travel, setTravel] = useState<TravelFormState>(
-    getInitialState("travel"),
+    getInitialFormState("travel"),
   );
   const [workTime, setWorkTime] = useState<WorkTimeFormState>(
-    getInitialState("worktime"),
+    getInitialFormState("worktime"),
   );
 
   const [workTimeOverrides, setWorkTimeOverrides] = useState<
@@ -121,9 +63,9 @@ export default function EditDailyLogPage() {
   >({});
 
   const [accommodationMeals, setAccommodationMeals] =
-    useState<AccommodationFormState>(getInitialState("accommodation"));
+    useState<AccommodationFormState>(getInitialFormState("accommodation"));
   const [additional, setAdditional] = useState<AdditionalFormState>(
-    getInitialState("additional"),
+    getInitialFormState("additional"),
   );
 
   const [logIds, setLogIds] = useState<{
@@ -132,16 +74,6 @@ export default function EditDailyLogPage() {
     accommodation?: string;
     additional?: string;
   }>({});
-
-  // --- HELPER: Date Input Value (YYYY-MM-DD) ---
-  const toInputDateValue = (isoString: string) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   useEffect(() => {
     if (!logId) return;
@@ -178,53 +110,37 @@ export default function EditDailyLogPage() {
         logs.forEach((log) => {
           const type = log.itemType;
 
-          // OWNER bu ekranın sahibiydi
           const ownerId = logUserId;
-          const logData = log as any;
+          const logData = log;
 
           if (type === "worktime") {
+            const workTimeLog = log as DailyLogFormState & {
+              itemType: "worktime";
+            };
             if (log.userId === ownerId) {
-              // Bu kullanıcının kendi worktime'ı
               newLogIds.worktime = log._id.toString();
               setWorkTime({
-                startTime: logData.startTime || "",
-                endTime: logData.endTime || "",
-                description: logData.description || "",
+                startTime: workTimeLog.startTime || "",
+                endTime: workTimeLog.endTime || "",
+                description: workTimeLog.description || "",
               });
 
-              // Group source ise appliedTo'dan da ekle
               if (Array.isArray(log.appliedTo)) {
                 log.appliedTo.forEach((uid: string) => foundAppliedTo.add(uid));
               }
             } else {
-              // Diğer attendants → override olarak kaydediyoruz
-              foundOverrides[log.userId] = {
-                startTime: logData.startTime || "",
-                endTime: logData.endTime || "",
-                description: logData.description || "",
-              };
+              foundOverrides[log.userId] = extractWorkTimeOverride(
+                log as DailyLogFormState & { itemType: "worktime" },
+              );
               foundAppliedTo.add(log.userId);
             }
 
-            return; // diğer tiplere geçmeden skip
+            return;
           }
-
-          // --- DİĞER TİPLER (travel, accommodation, additional) ---
           if (log.userId === ownerId) {
             newLogIds[type as keyof typeof logIds] = log._id.toString();
 
-            const formPayload = { ...(logData as any) };
-            delete formPayload.__v;
-            delete formPayload._id;
-            delete formPayload.itemType;
-            delete formPayload.userId;
-            delete formPayload.tripId;
-            delete formPayload.dateTime;
-            delete formPayload.appliedTo;
-            delete formPayload.isGroupSource;
-            delete formPayload.createdAt;
-            delete formPayload.updatedAt;
-            delete formPayload.sealed;
+            const formPayload = transformLogToFormState(log);
 
             if (type === "travel") setTravel(formPayload as TravelFormState);
             else if (type === "accommodation")
@@ -238,9 +154,11 @@ export default function EditDailyLogPage() {
         setWorkTimeOverrides(foundOverrides);
         setSelectedDate(logDate);
         setAppliedTo(Array.from(foundAppliedTo));
-      } catch (error: any) {
+      } catch (error) {
         console.error("Failed to load logs for editing:", error);
-        alert(`Error: ${error.message}`);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        alert(`Error: ${errorMessage}`);
       } finally {
         setLoadingLogs(false);
       }
@@ -271,29 +189,23 @@ export default function EditDailyLogPage() {
     loadTrip();
   }, [tripId, getTrip, updateTrip]);
 
-  // EditDailyLogPage içinde
   async function handleUpdateLog(e: React.FormEvent) {
     e.preventDefault();
-
-    // context kontrolü
     if (!selectedDate || !tripId || (!ownerUserId && !loggedInUserId)) {
       return alert("Missing context.");
     }
 
-    // Bu edit ekranındaki log setinin “sahibi” kimse (ilk açtığın log)
     const effectiveUserId = ownerUserId ?? loggedInUserId!;
 
     setIsSaving(true);
 
-    // YYYY-MM-DD -> ISO
     const [year, month, day] = selectedDate.split("-").map(Number);
     const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     const isoDateString = utcDate.toISOString();
 
     const logsToUpdate: DailyLogFormState[] = [];
-    const logsToCreate: any[] = [];
+    const logsToCreate: LogCreationPayload[] = [];
 
-    // 1) OWNER'ın kendi travel/worktime/accommodation/additional logları
     const forms = [
       { type: "travel" as const, data: travel, id: logIds.travel },
       { type: "worktime" as const, data: workTime, id: logIds.worktime },
@@ -310,46 +222,38 @@ export default function EditDailyLogPage() {
         (val) => val && val !== "" && val !== 0 && val !== false,
       );
 
-      // bütün tipler için appliedTo aynı set’ten gidiyor (istersen worktime'a özel boş da yapabilirsin)
       const appliedToForThis = appliedTo;
       const isGroupSourceForThis = appliedToForThis.length > 0;
 
       if (form.id) {
-        // EXISTING LOG → UPDATE
         const updatedLog: DailyLogFormState = {
-          _id: form.id as any,
+          _id: form.id,
           userId: effectiveUserId,
           tripId,
           dateTime: isoDateString,
           appliedTo: appliedToForThis,
           isGroupSource: isGroupSourceForThis,
           itemType: form.type,
-          ...(form.data as any),
+          ...form.data,
         } as DailyLogFormState;
 
         logsToUpdate.push(updatedLog);
       } else if (hasData) {
-        // YENİ LOG → CREATE
-        const newLog = {
+        const newLog: LogCreationPayload = {
           itemType: form.type,
           tripId,
           userId: effectiveUserId,
           dateTime: isoDateString,
           appliedTo: appliedToForThis,
           isGroupSource: isGroupSourceForThis,
-          // travel / worktime / accommodation / additional alanları:
-          ...(form.data as any),
+          data: form.data,
           files: [],
-          sealed: false,
         };
 
         logsToCreate.push(newLog);
       }
     });
 
-    // 2) MESAI ARKADAŞLARININ WORKTIME LOG'LARI
-
-    // Bu gün + trip için, owner olmayan worktime loglarını topla
     const existingColleagueWorklogs = new Map<string, DailyLogFormState>();
 
     originalLogs.forEach((log) => {
@@ -363,11 +267,9 @@ export default function EditDailyLogPage() {
       existingColleagueWorklogs.set(log.userId, log);
     });
 
-    // Track which colleague logs should be deleted (existed before but no longer needed)
     const logsToDelete: string[] = [];
     const currentColleagueIds = new Set(appliedTo);
 
-    // Delete colleague logs that are no longer in appliedTo or have no override
     existingColleagueWorklogs.forEach((log, colleagueId) => {
       if (
         !currentColleagueIds.has(colleagueId) ||
@@ -377,17 +279,13 @@ export default function EditDailyLogPage() {
       }
     });
 
-    // appliedTo içindeki HER bir mesai arkadaşı için update/create hazırla
-    // ONLY if override has non-empty fields
     appliedTo.forEach((colleagueId) => {
       const override = workTimeOverrides[colleagueId];
 
-      // Only create/update if override has at least one non-empty field
       if (!hasNonEmptyOverride(override)) {
         return;
       }
 
-      // override varsa onu, yoksa owner'ın default workTime'ını kullan
       const base = {
         startTime: override?.startTime || workTime.startTime,
         endTime: override?.endTime || workTime.endTime,
@@ -397,13 +295,12 @@ export default function EditDailyLogPage() {
       const existing = existingColleagueWorklogs.get(colleagueId);
 
       if (existing) {
-        // Bu mesai arkadaşına ait bir log zaten var → UPDATE
         const updatedColleagueLog: DailyLogFormState = {
           _id: existing._id,
-          userId: colleagueId, // 🔴 owner değil, colleague
+          userId: colleagueId,
           tripId,
           dateTime: isoDateString,
-          appliedTo: [], // onların kendisi group source değil
+          appliedTo: [],
           isGroupSource: false,
           itemType: "worktime",
           ...(base as any),
@@ -411,17 +308,15 @@ export default function EditDailyLogPage() {
 
         logsToUpdate.push(updatedColleagueLog);
       } else {
-        // Bu mesai arkadaşına ait log yok → CREATE
-        const newColleagueLog = {
+        const newColleagueLog: LogCreationPayload = {
           itemType: "worktime",
           tripId,
           userId: colleagueId,
           dateTime: isoDateString,
           appliedTo: [],
           isGroupSource: false,
-          ...(base as any),
+          data: base,
           files: [],
-          sealed: false,
         };
 
         logsToCreate.push(newColleagueLog);
@@ -429,7 +324,6 @@ export default function EditDailyLogPage() {
     });
 
     try {
-      // DELETE colleague logs that are no longer needed
       if (logsToDelete.length > 0) {
         for (const logId of logsToDelete) {
           await fetch(`/api/daily-logs/${logId}`, {
@@ -438,7 +332,6 @@ export default function EditDailyLogPage() {
         }
       }
 
-      // UPDATE istekleri
       if (logsToUpdate.length > 0) {
         const res = await fetch(`/api/daily-logs`, {
           method: "PUT",
@@ -453,37 +346,19 @@ export default function EditDailyLogPage() {
         }
       }
 
-      // CREATE istekleri
       if (logsToCreate.length > 0) {
         for (const newLog of logsToCreate) {
           await fetch("/api/daily-logs", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              // backend’in create’de beklediği shape'e göre:
               itemType: newLog.itemType,
               tripId: newLog.tripId,
               userId: newLog.userId,
               dateTime: newLog.dateTime,
               appliedTo: newLog.appliedTo,
               isGroupSource: newLog.isGroupSource,
-              data: {
-                startTime: newLog.startTime,
-                endTime: newLog.endTime,
-                description: newLog.description,
-                accommodationType: (newLog as any).accommodationType,
-                accommodationCoveredBy: (newLog as any).accommodationCoveredBy,
-                overnightStay: (newLog as any).overnightStay,
-                meals: (newLog as any).meals,
-                travelReason: (newLog as any).travelReason,
-                vehicleType: (newLog as any).vehicleType,
-                departureLocation: (newLog as any).departureLocation,
-                destination: (newLog as any).destination,
-                distance: (newLog as any).distance,
-                isRoundTrip: (newLog as any).isRoundTrip,
-                notes: (newLog as any).notes,
-                uploadedFiles: (newLog as any).uploadedFiles,
-              },
+              data: newLog.data,
               files: [],
             }),
           });
@@ -529,57 +404,15 @@ export default function EditDailyLogPage() {
         </div>
 
         {/* GLOBAL DATE SELECTOR + APPLIED TO */}
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-4">
-          <div className="max-w-sm w-full relative">
-            <Label
-              htmlFor="logDate"
-              className="mb-2 block font-semibold text-foreground"
-            >
-              Date
-            </Label>
-            <div className="relative group">
-              <Input
-                id="logDate"
-                type="date"
-                onClick={(e) => e.currentTarget.showPicker()}
-                value={toInputDateValue(selectedDate)}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (!val) {
-                    setSelectedDate("");
-                    return;
-                  }
-                  const [year, month, day] = val.split("-").map(Number);
-                  const safeDate = new Date(year, month - 1, day, 12, 0, 0);
-                  setSelectedDate(safeDate.toISOString().split("T")[0]);
-                }}
-                className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
-              />
-              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
-            </div>
-          </div>
-
-          {attendants.length > 0 && (
-            <div className="max-w-sm w-full">
-              <Label className="mb-2 block font-semibold text-foreground">
-                Applied To
-              </Label>
-
-              <InviteColleaguesDialog
-                mode="select"
-                attendants={attendants.map((a) => a.userId)}
-                open={inviteOpen}
-                onOpenChange={setInviteOpen}
-                selected={appliedTo}
-                onSelect={setAppliedTo}
-              />
-
-              <p className="text-xs text-muted-foreground mt-1">
-                {appliedTo.length} selected.
-              </p>
-            </div>
-          )}
-        </div>
+        <DateAndAppliedToSelector
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          appliedTo={appliedTo}
+          onAppliedToChange={setAppliedTo}
+          inviteOpen={inviteOpen}
+          onInviteOpenChange={setInviteOpen}
+          attendants={attendants}
+        />
 
         {/* FORMS */}
         <form
@@ -592,7 +425,6 @@ export default function EditDailyLogPage() {
             onChange={setTravel}
             onAddMapImage={(file) => {
               setAdditional((prev) => {
-                // Check if file already exists to avoid duplicates
                 if (prev.uploadedFiles.find((f) => f.url === file.url)) {
                   return prev;
                 }

@@ -6,6 +6,7 @@ import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useTripStore } from "@/lib/store/useTripStore";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export default function Dashboard() {
   const user = useAppUser();
@@ -40,35 +41,37 @@ export default function Dashboard() {
   const tripList = Object.values(trips);
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8">
-      {/* Header + Button Row */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <AuthGuard>
+      <div className="w-full max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8">
+        {/* Header + Button Row */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
 
-        <Button
-          className="w-full sm:w-auto"
-          onClick={() => router.push("/newTrip")}
-        >
-          Start New Trip
-        </Button>
-      </div>
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => router.push("/newTrip")}
+          >
+            Start New Trip
+          </Button>
+        </div>
 
-      {/* Active Trips */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Active Trips</h2>
+        {/* Active Trips */}
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Active Trips</h2>
 
-        <div id="active-trips" className="flex flex-wrap gap-4">
-          {tripList.length > 0 ? (
-            tripList.map((trip) => (
-              <ActiveTripCard key={trip._id} trip={trip} />
-            ))
-          ) : (
-            <div className="text-muted-foreground">
-              {!initialized ? "Loading..." : "No active trips"}
-            </div>
-          )}
+          <div id="active-trips" className="flex flex-wrap gap-4">
+            {tripList.length > 0 ? (
+              tripList.map((trip) => (
+                <ActiveTripCard key={trip._id} trip={trip} />
+              ))
+            ) : (
+              <div className="text-muted-foreground">
+                {!initialized ? "Loading..." : "No active trips"}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

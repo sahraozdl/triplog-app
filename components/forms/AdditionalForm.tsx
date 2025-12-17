@@ -10,22 +10,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import FileDropzone from "@/components/form-elements/FileDropzone";
-import { AdditionalLog, UploadedFile } from "@/app/types/DailyLog";
-
-type AdditionalFormState = Omit<
-  AdditionalLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
+import { UploadedFile } from "@/app/types/DailyLog";
+import { AdditionalFormState } from "@/app/types/FormStates";
 
 interface Props {
   value: AdditionalFormState;
@@ -33,10 +19,7 @@ interface Props {
 }
 
 export default function AdditionalForm({ value, onChange }: Props) {
-  // Use ref to always have the latest value for async operations
   const valueRef = useRef<AdditionalFormState>(value);
-
-  // Update ref whenever value prop changes
   useEffect(() => {
     valueRef.current = value;
   }, [value]);
@@ -45,7 +28,6 @@ export default function AdditionalForm({ value, onChange }: Props) {
     onChange({ ...value, ...field });
 
   const updateUploadedFiles = (files: UploadedFile[]) => {
-    // Use ref to get the latest value, avoiding stale closure issues
     const currentValue = valueRef.current;
     onChange({ ...currentValue, uploadedFiles: files });
   };

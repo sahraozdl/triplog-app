@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -21,22 +21,8 @@ import {
 import { Map, Loader2 } from "lucide-react";
 
 import LocationInput from "@/components/form-elements/LocationInput";
-import { TravelLog, UploadedFile } from "@/app/types/DailyLog";
-
-type TravelFormState = Omit<
-  TravelLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
+import { UploadedFile } from "@/app/types/DailyLog";
+import { TravelFormState } from "@/app/types/FormStates";
 
 interface Props {
   value: TravelFormState;
@@ -47,14 +33,7 @@ interface Props {
   onUploadError?: (error: string) => void;
 }
 
-export default function TravelForm({
-  value,
-  onChange,
-  onAddMapImage,
-  tripId,
-  onUploadSuccess,
-  onUploadError,
-}: Props) {
+export default function TravelForm({ value, onChange, onAddMapImage }: Props) {
   const [calculating, setCalculating] = useState(false);
   const [mapUrl, setMapUrl] = useState<string>("");
 
@@ -92,8 +71,6 @@ export default function TravelForm({
 
           setMapUrl(staticMapUrl);
 
-          // Add map image to file upload input
-          // Fetch the image to get its size
           try {
             const imageResponse = await fetch(staticMapUrl);
             const imageBlob = await imageResponse.blob();
@@ -105,13 +82,11 @@ export default function TravelForm({
               url: staticMapUrl,
             };
 
-            // Pass map image to AdditionalForm via callback
             if (onAddMapImage) {
               onAddMapImage(mapFile);
             }
           } catch (error) {
             console.error("Failed to fetch map image:", error);
-            // Still add the file with the URL even if we can't get the size
             const mapFile: UploadedFile = {
               name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
               type: "image/png",
@@ -119,7 +94,6 @@ export default function TravelForm({
               url: staticMapUrl,
             };
 
-            // Pass map image to AdditionalForm via callback
             if (onAddMapImage) {
               onAddMapImage(mapFile);
             }
@@ -260,7 +234,6 @@ export default function TravelForm({
                   <div className="flex justify-between items-center">
                     <Label htmlFor="distance">Distance (km)</Label>
 
-                    {/* OTOMATİK HESAPLAMA BUTONU */}
                     {value.departureLocation && value.destination && (
                       <Button
                         variant="ghost"
@@ -318,7 +291,7 @@ export default function TravelForm({
                     className="w-full h-48 object-cover opacity-95 group-hover:opacity-100 transition-opacity"
                   />
                   <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] text-white font-medium shadow-sm">
-                    Rota Önizlemesi
+                    Rota Preview
                   </div>
                 </div>
               )}

@@ -23,6 +23,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown, FileText } from "lucide-react";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 type EditMode = "display" | "inline";
 
@@ -180,9 +181,11 @@ export default function TripDetailPage() {
 
   if (!trip || loading)
     return (
-      <div className="p-6 text-center text-lg text-muted-foreground">
-        Loading trip details...
-      </div>
+      <AuthGuard>
+        <div className="p-6 text-center text-lg text-muted-foreground">
+          Loading trip details...
+        </div>
+      </AuthGuard>
     );
 
   // Files section component (reusable for both desktop and mobile)
@@ -218,126 +221,132 @@ export default function TripDetailPage() {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8">
-      {/* Mobile: Collapsible Files Section */}
-      <div className="lg:hidden mb-6">
-        <Collapsible open={filesOpen} onOpenChange={setFilesOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span>Trip Files</span>
-                {trip.additionalFiles && trip.additionalFiles.length > 0 && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                    {trip.additionalFiles.length}
-                  </span>
-                )}
+    <AuthGuard>
+      <div className="w-full max-w-7xl mx-auto px-4 py-8">
+        {/* Mobile: Collapsible Files Section */}
+        <div className="lg:hidden mb-6">
+          <Collapsible open={filesOpen} onOpenChange={setFilesOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span>Trip Files</span>
+                  {trip.additionalFiles && trip.additionalFiles.length > 0 && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      {trip.additionalFiles.length}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    filesOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <div className="border rounded-lg p-4 bg-card">
+                <FilesSection />
               </div>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${
-                  filesOpen ? "rotate-180" : ""
-                }`}
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Main Content Column (4/5 width) */}
+          <div className="lg:col-span-4 flex flex-col gap-8">
+            {/* Header with Edit Control */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+                Trip Details
+              </h1>
+              {canEdit && editMode === "display" && (
+                <Button
+                  variant="outline"
+                  onClick={handleEdit}
+                  className="gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+            </div>
+
+            {/* Trip Info Card or Edit Form */}
+            {editMode === "inline" ? (
+              <TripEditInline
+                trip={trip}
+                onSave={handleSave}
+                onCancel={handleCancel}
+                isSaving={saving}
               />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <div className="border rounded-lg p-4 bg-card">
+            ) : (
+              <TripInfoCard trip={trip} />
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div className="flex gap-4 w-full sm:w-auto">
+                <Button
+                  variant="destructive"
+                  className="flex-1 sm:flex-none"
+                  onClick={handleEndTrip}
+                >
+                  End Trip
+                </Button>
+
+                <DownloadReportButton trip={trip} logs={logs} />
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/reports/${tripId}`)}
+                >
+                  View Report
+                </Button>
+              </div>
+
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() => router.push(`/newDailyLog/${tripId}`)}
+              >
+                New Daily Log
+              </Button>
+            </div>
+
+            {/* Daily Logs */}
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Daily Logs
+              </h2>
+
+              {logs.length === 0 ? (
+                <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
+                  <p className="text-muted-foreground text-sm">
+                    No logs recorded yet.
+                  </p>
+                </div>
+              ) : (
+                <DailyLogsList
+                  logs={logs}
+                  attendants={trip.attendants as TripAttendant[]}
+                  tripId={tripId as string}
+                  onLogsChange={fetchLogs}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Files Sidebar Column (1/5 width) - Desktop Only */}
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-8 border rounded-lg p-4 bg-card h-[calc(100vh-4rem)] flex flex-col">
               <FilesSection />
             </div>
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Main Content Column (4/5 width) */}
-        <div className="lg:col-span-4 flex flex-col gap-8">
-          {/* Header with Edit Control */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Trip Details
-            </h1>
-            {canEdit && editMode === "display" && (
-              <Button variant="outline" onClick={handleEdit} className="gap-2">
-                <Edit className="h-4 w-4" />
-                Edit
-              </Button>
-            )}
-          </div>
-
-          {/* Trip Info Card or Edit Form */}
-          {editMode === "inline" ? (
-            <TripEditInline
-              trip={trip}
-              onSave={handleSave}
-              onCancel={handleCancel}
-              isSaving={saving}
-            />
-          ) : (
-            <TripInfoCard trip={trip} />
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="flex gap-4 w-full sm:w-auto">
-              <Button
-                variant="destructive"
-                className="flex-1 sm:flex-none"
-                onClick={handleEndTrip}
-              >
-                End Trip
-              </Button>
-
-              <DownloadReportButton trip={trip} logs={logs} />
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/reports/${tripId}`)}
-              >
-                View Report
-              </Button>
-            </div>
-
-            <Button
-              className="w-full sm:w-auto"
-              onClick={() => router.push(`/newDailyLog/${tripId}`)}
-            >
-              New Daily Log
-            </Button>
-          </div>
-
-          {/* Daily Logs */}
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xl font-semibold text-foreground">
-              Daily Logs
-            </h2>
-
-            {logs.length === 0 ? (
-              <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
-                <p className="text-muted-foreground text-sm">
-                  No logs recorded yet.
-                </p>
-              </div>
-            ) : (
-              <DailyLogsList
-                logs={logs}
-                attendants={trip.attendants as TripAttendant[]}
-                tripId={tripId as string}
-                onLogsChange={fetchLogs}
-              />
-            )}
           </div>
         </div>
 
-        {/* Files Sidebar Column (1/5 width) - Desktop Only */}
-        <div className="hidden lg:block lg:col-span-1">
-          <div className="sticky top-8 border rounded-lg p-4 bg-card h-[calc(100vh-4rem)] flex flex-col">
-            <FilesSection />
-          </div>
-        </div>
+        {/* Toast Container */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
       </div>
-
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} onClose={removeToast} />
-    </div>
+    </AuthGuard>
   );
 }

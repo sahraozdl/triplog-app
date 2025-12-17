@@ -22,6 +22,7 @@ import {
   AdditionalLog,
 } from "@/app/types/DailyLog";
 import { useState } from "react";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 
 interface GroupedLog {
   id: string;
@@ -49,9 +50,12 @@ export default function DailyLogCard({
   onDelete: () => void;
 }) {
   const router = useRouter();
+  const user = useAppUser();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const dateObj = new Date(group.date);
+
+  const canEdit = user?.userId === group.userId;
 
   const getName = (id: string) =>
     loadingNames ? "..." : userNames[id] || "Unknown";
@@ -73,7 +77,6 @@ export default function DailyLogCard({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // Extract date part (YYYY-MM-DD) from the date string
       const datePart = group.date.split("T")[0];
 
       const response = await fetch(
@@ -88,7 +91,6 @@ export default function DailyLogCard({
         throw new Error(errorData.error || "Failed to delete logs");
       }
 
-      // Close dialog and refresh logs
       setShowDeleteDialog(false);
       onDelete();
     } catch (error) {
@@ -105,15 +107,17 @@ export default function DailyLogCard({
         {/* ACTION BUTTONS */}
         {firstLogId && (
           <div className="absolute top-2 right-2 z-10 flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2 h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
-              onClick={handleEdit}
-              title="Edit Log Group"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
+                onClick={handleEdit}
+                title="Edit Log Group"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

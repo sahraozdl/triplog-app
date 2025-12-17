@@ -12,25 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuickTags } from "@/components/form-elements/QuickTags";
-import { WorkTimeLog } from "@/app/types/DailyLog";
 import { Wand2, Loader2, User } from "lucide-react";
 import { TripAttendant } from "@/app/types/Trip";
 import { Textarea } from "../ui/textarea";
-
-type WorkTimeFormState = Omit<
-  WorkTimeLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
+import { WorkTimeFormState } from "@/app/types/FormStates";
 
 export interface WorkTimeOverride {
   description?: string;
@@ -122,8 +107,31 @@ export default function WorkTimeForm({
       return;
     }
 
-    if (!currentDesc || !currentDesc.trim()) {
-      alert("Please select at least one tag or write keywords first.");
+    const textareaId =
+      activeTab === "me"
+        ? appliedTo.length > 0
+          ? "work-description-me"
+          : "work-description"
+        : `work-desc-${activeTab}`;
+    const textareaElement = document.getElementById(
+      textareaId,
+    ) as HTMLTextAreaElement;
+
+    if (!textareaElement) {
+      console.error("Textarea element not found");
+      return;
+    }
+
+    const fullText = textareaElement.value || currentDesc || "";
+    const selectedText = textareaElement.value.substring(
+      textareaElement.selectionStart,
+      textareaElement.selectionEnd,
+    );
+
+    if (!currentDesc?.trim() && !selectedText.trim()) {
+      alert(
+        "Please select at least one tag or write keywords first, or select text to regenerate.",
+      );
       return;
     }
 
@@ -135,20 +143,38 @@ export default function WorkTimeForm({
         body: JSON.stringify({
           action: "generate_description",
           timeRange: `${currentStart} - ${currentEnd}`,
-          selectedTags: currentDesc.split(","),
+          selectedTags: currentDesc ? currentDesc.split(",") : [],
+          fullText: fullText || undefined,
+          selectedText: selectedText.trim() || undefined,
         }),
       });
 
       const data = await res.json();
       if (data.description) {
-        if (activeTab === "me") {
-          updateMain({ description: data.description });
+        let newDescription: string;
+
+        if (selectedText.trim()) {
+          const beforeSelection = fullText.substring(
+            0,
+            textareaElement.selectionStart,
+          );
+          const afterSelection = fullText.substring(
+            textareaElement.selectionEnd,
+          );
+          newDescription = `${beforeSelection}${data.description}${afterSelection}`;
         } else {
-          updateOverride(activeTab, { description: data.description });
+          newDescription = data.description;
+        }
+
+        if (activeTab === "me") {
+          updateMain({ description: newDescription });
+        } else {
+          updateOverride(activeTab, { description: newDescription });
         }
       }
     } catch (error) {
       console.error("AI Gen Failed", error);
+      alert("Failed to generate description. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -392,7 +418,6 @@ export default function WorkTimeForm({
                 ))}
               </Tabs>
             ) : (
-              // hiç colleague yoksa
               <div className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                   <div className="flex flex-col gap-2 w-full">

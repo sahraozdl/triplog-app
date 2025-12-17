@@ -11,6 +11,7 @@ import {
   UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip } from "@/app/types/Trip";
+import { IAddress } from "@/app/types/user";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
 import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
@@ -22,8 +23,8 @@ interface UserDetail {
   jobTitle: string;
   department: string;
   identityNumber: string;
-  homeAddress: any;
-  workAddress: any;
+  homeAddress: IAddress;
+  workAddress: IAddress;
 }
 
 export default function ReportPage() {
@@ -52,7 +53,8 @@ export default function ReportPage() {
         setLogs(logsData.logs || []);
 
         const attendantIds =
-          tripData.trip.attendants?.map((a: any) => a.userId) || [];
+          tripData.trip.attendants?.map((a: { userId: string }) => a.userId) ||
+          [];
         if (attendantIds.length > 0) {
           const userRes = await fetch("/api/users/lookup", {
             method: "POST",
@@ -296,7 +298,10 @@ export default function ReportPage() {
               </span>
               {[trip.basicInfo.country, trip.basicInfo.resort]
                 .filter(Boolean)
-                .join(", ")}
+                .join(", ") ||
+                (trip.basicInfo.arrivalLocation
+                  ? trip.basicInfo.arrivalLocation
+                  : "Not specified")}
             </div>
             {trip.basicInfo.description && (
               <div className="md:col-span-2">

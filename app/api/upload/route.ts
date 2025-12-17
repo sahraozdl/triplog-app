@@ -1,15 +1,18 @@
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth-utils";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const originalFilename = searchParams.get("filename") || "file";
 
-    // Get the file from the request body
-    // The body can be a ReadableStream, Blob, or File
     const body = await request.blob().catch(async () => {
-      // If blob() fails, try to get it as arrayBuffer and convert
       const arrayBuffer = await request.arrayBuffer();
       return new Blob([arrayBuffer]);
     });
@@ -21,7 +24,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename to prevent conflicts
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 9);
     const fileExtension = originalFilename.split(".").pop() || "";
@@ -30,11 +32,10 @@ export async function POST(request: NextRequest) {
       ? `${baseName}-${timestamp}-${randomSuffix}.${fileExtension}`
       : `${baseName}-${timestamp}-${randomSuffix}`;
 
-    // Upload to Vercel Blob with unique filename
     const blob = await put(uniqueFilename, body, {
       access: "public",
       contentType: body.type || "application/octet-stream",
-      addRandomSuffix: false, // We're already adding our own suffix
+      addRandomSuffix: false,
     });
 
     return NextResponse.json(blob);

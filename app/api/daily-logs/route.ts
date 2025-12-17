@@ -6,6 +6,7 @@ import { TravelLog } from "@/app/models/DailyLog";
 import { WorkTimeLog } from "@/app/models/DailyLog";
 import { AccommodationLog } from "@/app/models/DailyLog";
 import { AdditionalLog } from "@/app/models/DailyLog";
+import { requireAuth } from "@/lib/auth-utils";
 
 interface DailyLogFilterContext {
   tripId: string;
@@ -14,6 +15,11 @@ interface DailyLogFilterContext {
 }
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     await connectToDB();
     const body = await req.json();
@@ -44,6 +50,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     await connectToDB();
 
@@ -76,6 +87,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     await connectToDB();
     const body = await req.json();
@@ -128,8 +144,10 @@ export async function PUT(req: NextRequest) {
     });
   } catch (error) {
     console.error("PUT DailyLog Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to update logs", details: (error as any).message },
+      { error: "Failed to update logs", details: errorMessage },
       { status: 500 },
     );
   }

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import User from "@/app/models/User";
+import { requireAuth } from "@/lib/auth-utils";
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     await connectToDB();
     const { userIds, detailed } = await req.json();

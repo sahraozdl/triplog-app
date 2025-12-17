@@ -34,7 +34,7 @@ export default function LogFilters({
       .then((data) => setNames(data.users || {}));
   }, [attendants]);
 
-  const handleChange = (key: keyof FilterState, value: any) => {
+  const handleChange = (key: keyof FilterState, value: string | boolean) => {
     onFilterChange({ ...filters, [key]: value });
   };
 

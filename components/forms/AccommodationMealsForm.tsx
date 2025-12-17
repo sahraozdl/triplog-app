@@ -10,22 +10,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MealSelector } from "@/components/form-elements/MealSelector";
 import LocationInput from "@/components/form-elements/LocationInput";
-import { AccommodationLog } from "@/app/types/DailyLog";
-
-type AccommodationFormState = Omit<
-  AccommodationLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
+import { AccommodationFormState } from "@/app/types/FormStates";
 
 interface Props {
   value: AccommodationFormState;

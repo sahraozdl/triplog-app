@@ -14,8 +14,10 @@ import {
   UploadedFile,
 } from "@/app/types/DailyLog";
 import { Trip } from "@/app/types/Trip";
+import { PDFTableRow } from "@/app/types/PDFTable";
 import { robotoBase64 } from "@/lib/fonts";
 import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
+import { fetchImage, fetchAttendantDetails } from "@/lib/utils/pdfHelpers";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 
 interface Props {
@@ -23,51 +25,9 @@ interface Props {
   logs: DailyLogFormState[];
 }
 
-async function fetchImage(
-  url: string,
-): Promise<{ base64: string; width: number; height: number } | null> {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const img = new Image();
-        img.src = reader.result as string;
-        img.onload = () => {
-          resolve({
-            base64: reader.result as string,
-            width: img.width,
-            height: img.height,
-          });
-        };
-      };
-      reader.readAsDataURL(blob);
-    });
-  } catch (e) {
-    console.error("Image fetch error:", e);
-    return null;
-  }
-}
-
 export function DownloadReportButton({ trip, logs }: Props) {
   const [generating, setGenerating] = useState(false);
   const user = useAppUser();
-
-  const fetchAttendantDetails = async (userIds: string[]) => {
-    try {
-      const res = await fetch("/api/users/lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userIds, detailed: true }),
-      });
-      const data = await res.json();
-      return data.users || {};
-    } catch (e) {
-      console.error("Failed to fetch user details", e);
-      return {};
-    }
-  };
 
   const generatePDF = async () => {
     setGenerating(true);
@@ -119,10 +79,10 @@ export function DownloadReportButton({ trip, logs }: Props) {
     const locationDetails = [trip.basicInfo.country, trip.basicInfo.resort]
       .filter(Boolean)
       .join(" / ");
-    if (locationDetails) {
-      doc.text(`Destination: ${locationDetails}`, 14, headerY);
-      headerY += lineHeight;
-    }
+    const destinationText =
+      locationDetails || trip.basicInfo.arrivalLocation || "Not specified";
+    doc.text(`Destination: ${destinationText}`, 14, headerY);
+    headerY += lineHeight;
 
     if (trip.basicInfo.description) {
       const descLines = doc.splitTextToSize(
@@ -135,7 +95,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
 
     headerY += 5;
 
-    // Calculate summary statistics
     const accommodationLogs = logs.filter(
       (l) => l.itemType === "accommodation",
     ) as AccommodationLog[];
@@ -155,7 +114,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
       return sum + distance;
     }, 0);
 
-    // Calculate total attendants
     const attendantsList = trip.attendants || [];
     const isUserInAttendantsList = attendantsList.some(
       (attendant) => attendant.userId === user?.userId,
@@ -164,7 +122,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
       ? attendantsList.length
       : attendantsList.length + 1;
 
-    // Add summary statistics
     doc.setFontSize(10);
     doc.setTextColor(80);
     doc.text(`Total Nights: ${totalNights}`, 14, headerY);
@@ -215,12 +172,23 @@ export function DownloadReportButton({ trip, logs }: Props) {
         cellPadding: 2,
         font: robotoBase64 ? "MyCustomFont" : "helvetica",
       },
-      headStyles: { fillColor: [40, 40, 40], fontSize: 9, textColor: 255 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 30 } },
+      headStyles: {
+        fillColor: [40, 40, 40],
+        fontSize: 9,
+        textColor: 255,
+        fontStyle: "normal",
+        font: robotoBase64 ? "MyCustomFont" : "helvetica",
+      },
+      columnStyles: {
+        0: {
+          fontStyle: "normal",
+          cellWidth: 30,
+          font: robotoBase64 ? "MyCustomFont" : "helvetica",
+        },
+      },
     });
 
-    // @ts-ignore
-    let currentY = doc.lastAutoTable.finalY + 15;
+    let currentY = (doc as any).lastAutoTable.finalY + 15;
 
     const drawModuleTable = async (
       typeFilter: string,
@@ -257,7 +225,7 @@ export function DownloadReportButton({ trip, logs }: Props) {
       });
 
       const sortedDates = Array.from(dates).sort();
-      const bodyRows: any[] = [];
+      const bodyRows: PDFTableRow[] = [];
       const cellImagesMap: Record<
         string,
         { base64: string; w: number; h: number }[]
@@ -266,10 +234,14 @@ export function DownloadReportButton({ trip, logs }: Props) {
       for (let rIndex = 0; rIndex < sortedDates.length; rIndex++) {
         const date = sortedDates[rIndex];
         const dateStr = new Date(date).toLocaleDateString();
-        const rowData: any[] = [
+        const rowData: PDFTableRow = [
           {
             content: dateStr,
-            styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
+            styles: {
+              fontStyle: "normal",
+              fillColor: [240, 240, 240],
+              font: robotoBase64 ? "MyCustomFont" : "helvetica",
+            },
           },
         ];
 
@@ -277,7 +249,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
           const user = users[uIndex];
           let userLogs = logsByDateUser[date]?.[user.id];
 
-          // For worktime, use effective log computation
           if (typeFilter === "worktime") {
             const allWorktimeLogs = filteredLogs.filter(
               (l) => l.itemType === "worktime",
@@ -351,7 +322,7 @@ export function DownloadReportButton({ trip, logs }: Props) {
       autoTable(doc, {
         startY: currentY,
         head: [["Date", ...users.map((u) => u.name)]],
-        body: bodyRows,
+        body: bodyRows as any,
         theme: "grid",
         pageBreak: "auto",
         rowPageBreak: "avoid",
@@ -363,7 +334,13 @@ export function DownloadReportButton({ trip, logs }: Props) {
           font: robotoBase64 ? "MyCustomFont" : "helvetica",
         },
         columnStyles: { 0: { cellWidth: 25 } },
-        headStyles: { fillColor: [70, 58, 128], fontSize: 9, textColor: 255 },
+        headStyles: {
+          fillColor: [70, 58, 128],
+          fontSize: 9,
+          textColor: 255,
+          fontStyle: "normal",
+          font: robotoBase64 ? "MyCustomFont" : "helvetica",
+        },
         didDrawCell: (data) => {
           if (data.section === "body" && data.column.index > 0) {
             const cellKey = `${data.row.index}-${data.column.index}`;
@@ -424,7 +401,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
       },
     );
 
-    // 5. Additional Files (Trip-level)
     if (
       trip.additionalFiles &&
       Array.isArray(trip.additionalFiles) &&
@@ -445,7 +421,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
         doc.text("5. Additional Files", 14, currentY);
         currentY += 6;
 
-        // Prepare image data using same scaling as Additional Notes & Files table
         const imageDataMap: Record<
           number,
           { base64: string; w: number; h: number }
@@ -462,7 +437,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
           if (isImage) {
             const imgData = await fetchImage(file.url);
             if (imgData) {
-              // Use same scaling as Additional Notes & Files table
               const targetWidth = 50;
               const targetHeight =
                 (imgData.height / imgData.width) * targetWidth;
@@ -475,20 +449,23 @@ export function DownloadReportButton({ trip, logs }: Props) {
           }
         }
 
-        // Create table with one image per cell
-        // Use same cell padding and styling as other tables
         const cellPadding = 3;
-        const imagesPerRow = 2; // 2 images per row
+        const imagesPerRow = 2;
         const pageWidth = doc.internal.pageSize.getWidth();
-        const cellWidth = (pageWidth - 28 - cellPadding * 4) / 2; // Account for margins and padding
-        const minCellHeight = 60; // Minimum height per cell (enough for small images with padding)
+        const margins = 14 * 2;
+        const borderWidth = 4;
+        const totalPadding = cellPadding * 4;
+        const buffer = 2;
+        const availableWidth =
+          pageWidth - margins - totalPadding - borderWidth - buffer;
+        const cellWidth = Math.max(Math.floor(availableWidth / 2), 50);
+        const minCellHeight = 60;
 
-        const tableRows: any[] = [];
+        const tableRows: PDFTableRow[] = [];
         for (let i = 0; i < additionalFiles.length; i += imagesPerRow) {
-          const row: any[] = [];
+          const row: PDFTableRow = [];
           let maxHeightInRow = minCellHeight;
 
-          // Calculate max height needed for this row
           for (let j = 0; j < imagesPerRow; j++) {
             const fileIndex = i + j;
             if (fileIndex < additionalFiles.length) {
@@ -502,11 +479,9 @@ export function DownloadReportButton({ trip, logs }: Props) {
             }
           }
 
-          // Create row with proper height using newlines (same approach as Additional Notes table)
           for (let j = 0; j < imagesPerRow; j++) {
             const fileIndex = i + j;
             if (fileIndex < additionalFiles.length) {
-              // Add newlines to create cell height (3.5 is approximate line height in points)
               const imgData = imageDataMap[fileIndex];
               const linesNeeded = imgData
                 ? Math.ceil(maxHeightInRow / 3.5)
@@ -515,7 +490,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
                 content: "\n".repeat(Math.max(linesNeeded, 5)),
               });
             } else {
-              // Empty cell in last row
               row.push({
                 content: "\n".repeat(Math.ceil(minCellHeight / 3.5)),
               });
@@ -526,11 +500,12 @@ export function DownloadReportButton({ trip, logs }: Props) {
 
         autoTable(doc, {
           startY: currentY,
-          head: [["", ""]], // Empty headers
-          body: tableRows,
+          head: [["", ""]],
+          body: tableRows as any,
           theme: "grid",
           pageBreak: "auto",
           rowPageBreak: "avoid",
+          margin: { left: 14, right: 14 },
           styles: {
             fontSize: 8,
             cellPadding: cellPadding,
@@ -546,6 +521,8 @@ export function DownloadReportButton({ trip, logs }: Props) {
             fillColor: [70, 58, 128],
             fontSize: 9,
             textColor: 255,
+            fontStyle: "normal",
+            font: robotoBase64 ? "MyCustomFont" : "helvetica",
           },
           didDrawCell: (data) => {
             if (
@@ -561,12 +538,10 @@ export function DownloadReportButton({ trip, logs }: Props) {
                 const imgData = imageDataMap[fileIndex];
 
                 if (file && imgData) {
-                  // Use same positioning logic as Additional Notes & Files table
                   const cellX = data.cell.x + 4;
                   const cellY = data.cell.y + data.cell.height - 4;
-                  const imgY = cellY - imgData.h; // Position from bottom
+                  const imgY = cellY - imgData.h;
 
-                  // Ensure image fits within cell bounds
                   if (
                     cellX + imgData.w <=
                       data.cell.x + data.cell.width - cellPadding &&
@@ -575,7 +550,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
                       data.cell.y + data.cell.height - cellPadding
                   ) {
                     try {
-                      // Determine image format from base64 or URL
                       let format: "JPEG" | "PNG" = "JPEG";
                       if (
                         imgData.base64.startsWith("data:image/png") ||
@@ -584,7 +558,6 @@ export function DownloadReportButton({ trip, logs }: Props) {
                         format = "PNG";
                       }
 
-                      // Add the image using same size as Additional Notes & Files
                       doc.addImage(
                         imgData.base64,
                         format,

@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import { DailyLog } from "@/app/models/DailyLog";
 import mongoose from "mongoose";
+import { requireAuth } from "@/lib/auth-utils";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
 
@@ -22,9 +28,14 @@ export async function GET(
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
     }
 
+    const logWithId = log as {
+      _id: mongoose.Types.ObjectId;
+      [key: string]: unknown;
+    };
+
     const serializedLog = {
-      ...log,
-      _id: (log as any)._id.toString(),
+      ...logWithId,
+      _id: logWithId._id.toString(),
     };
 
     return NextResponse.json(serializedLog);
@@ -41,6 +52,11 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
 
@@ -62,8 +78,10 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("DELETE Log Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to delete log", details: (error as any).message },
+      { error: "Failed to delete log", details: errorMessage },
       { status: 500 },
     );
   }

@@ -4,6 +4,7 @@ import Trip from "@/app/models/Trip";
 import User from "@/app/models/User";
 import { generateInviteCode } from "@/lib/codeGenerator";
 import mongoose from "mongoose";
+import { requireAuth, requireAuthAndMatchUser } from "@/lib/auth-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,10 @@ export async function POST(req: NextRequest) {
     }
 
     const creatorId = body.userId;
+    const authResult = await requireAuthAndMatchUser(creatorId);
+    if (!authResult.success) {
+      return authResult.response;
+    }
     const inviteCode = generateInviteCode();
 
     const trip = await Trip.create({
@@ -56,6 +61,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAuth();
+  if (!authResult.success) {
+    return authResult.response;
+  }
+
   try {
     await connectToDB();
 

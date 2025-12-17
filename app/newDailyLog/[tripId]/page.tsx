@@ -15,77 +15,21 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 import { useAppUser } from "@/components/providers/AppUserProvider";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/toast";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
+import { UploadedFile } from "@/app/types/DailyLog";
 import {
-  TravelLog,
-  AccommodationLog,
-  AdditionalLog,
-  WorkTimeLog,
-  UploadedFile,
-} from "@/app/types/DailyLog";
+  TravelFormState,
+  WorkTimeFormState,
+  AccommodationFormState,
+  AdditionalFormState,
+} from "@/app/types/FormStates";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
 import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
-
-type TravelFormState = Omit<
-  TravelLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type WorkTimeFormState = Omit<
-  WorkTimeLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type AccommodationFormState = Omit<
-  AccommodationLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
-type AdditionalFormState = Omit<
-  AdditionalLog,
-  | "_id"
-  | "userId"
-  | "tripId"
-  | "createdAt"
-  | "updatedAt"
-  | "files"
-  | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
-  | "dateTime"
-  | "itemType"
->;
 
 export default function DailyLogPage() {
   const router = useRouter();
@@ -168,7 +112,11 @@ export default function DailyLogPage() {
 
   const createLogRequest = (
     itemType: string,
-    data: any,
+    data:
+      | TravelFormState
+      | WorkTimeFormState
+      | AccommodationFormState
+      | AdditionalFormState,
     isoDate: string,
     files: UploadedFile[] = [],
   ) => {
@@ -328,126 +276,131 @@ export default function DailyLogPage() {
 
   if (loadingTrip)
     return (
-      <div className="p-6 text-center text-muted-foreground">
-        Loading trip data...
-      </div>
+      <AuthGuard>
+        <div className="p-6 text-center text-muted-foreground">
+          Loading trip data...
+        </div>
+      </AuthGuard>
     );
 
   return (
-    <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
-      <div className="w-full max-w-4xl space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground py-4">
-              Daily Log Entry
-            </h1>
-            <p className="text-muted-foreground">
-              Record your activities, expenses, and meals.
-            </p>
-          </div>
+    <AuthGuard>
+      <div className="w-full flex justify-center px-4 py-8 bg-background min-h-screen">
+        <div className="w-full max-w-4xl space-y-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground py-4">
+                Daily Log Entry
+              </h1>
+              <p className="text-muted-foreground">
+                Record your activities, expenses, and meals.
+              </p>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={cancel} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button onClick={saveDailyLog} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                  </>
-                ) : (
-                  "Save Entry"
-                )}
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={cancel} disabled={isSaving}>
+                  Cancel
+                </Button>
+                <Button onClick={saveDailyLog} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Entry"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Global Date */}
-        <div
-          className="bg-sidebar p-6 rounded-xl border border-border shadow-sm space-y-2 dark:border-gray-800 
+          {/* Global Date */}
+          <div
+            className="bg-sidebar p-6 rounded-xl border border-border shadow-sm space-y-2 dark:border-gray-800 
         rounded-b-md max-w-full md:max-w-3/4 mx-auto
         px-4 md:px-8 py-4"
-        >
-          <div className="w-full flex flex-row items-center justify-between gap-2">
-            <Label
-              htmlFor="logDate"
-              className="font-semibold text-foreground w-1/2"
-            >
-              Date
-            </Label>
-            <div className="group w-1/2">
-              <Input
-                id="logDate"
-                type="date"
-                onClick={(e) => e.currentTarget.showPicker()}
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors 
+          >
+            <div className="w-full flex flex-row items-center justify-between gap-2">
+              <Label
+                htmlFor="logDate"
+                className="font-semibold text-foreground w-1/2"
+              >
+                Date
+              </Label>
+              <div className="group w-1/2">
+                <Input
+                  id="logDate"
+                  type="date"
+                  onClick={(e) => e.currentTarget.showPicker()}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors 
                 [&::-webkit-calendar-picker-indicator]:invert 
                 [&::-webkit-calendar-picker-indicator]:opacity-80
               "
-              />
+                />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-2 pl-1">
+              Select the date for these activities.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 pl-1">
-            Select the date for these activities.
-          </p>
+
+          {/* Forms Container */}
+          <form
+            id="dailyLogForm"
+            onSubmit={saveDailyLog}
+            className="flex flex-col gap-6"
+          >
+            <InviteColleaguesDialog
+              mode="select"
+              attendants={attendants.map((a) => a.userId)}
+              open={inviteOpen}
+              onOpenChange={setInviteOpen}
+              selected={appliedTo}
+              onSelect={setAppliedTo}
+            />
+            <TravelForm
+              value={travel}
+              onChange={setTravel}
+              onAddMapImage={(file) => {
+                setAdditional((prev) => {
+                  // Check if file already exists to avoid duplicates
+                  if (prev.uploadedFiles.find((f) => f.url === file.url)) {
+                    return prev;
+                  }
+                  return {
+                    ...prev,
+                    uploadedFiles: [...prev.uploadedFiles, file],
+                  };
+                });
+              }}
+            />
+
+            {/* UPDATED WORK TIME FORM CALL */}
+            <WorkTimeForm
+              value={workTime}
+              onChange={setWorkTime}
+              appliedTo={appliedTo}
+              attendants={attendants}
+              onOverridesChange={setWorkTimeOverrides}
+              overrides={workTimeOverrides}
+            />
+
+            <AccommodationMealsForm
+              value={accommodationMeals}
+              onChange={setAccommodationMeals}
+            />
+            <AdditionalForm value={additional} onChange={setAdditional} />
+          </form>
+
+          {/* Toast Container */}
+          <ToastContainer toasts={toasts} onClose={removeToast} />
         </div>
-
-        {/* Forms Container */}
-        <form
-          id="dailyLogForm"
-          onSubmit={saveDailyLog}
-          className="flex flex-col gap-6"
-        >
-          <InviteColleaguesDialog
-            mode="select"
-            attendants={attendants.map((a) => a.userId)}
-            open={inviteOpen}
-            onOpenChange={setInviteOpen}
-            selected={appliedTo}
-            onSelect={setAppliedTo}
-          />
-          <TravelForm
-            value={travel}
-            onChange={setTravel}
-            onAddMapImage={(file) => {
-              setAdditional((prev) => {
-                // Check if file already exists to avoid duplicates
-                if (prev.uploadedFiles.find((f) => f.url === file.url)) {
-                  return prev;
-                }
-                return {
-                  ...prev,
-                  uploadedFiles: [...prev.uploadedFiles, file],
-                };
-              });
-            }}
-          />
-
-          {/* UPDATED WORK TIME FORM CALL */}
-          <WorkTimeForm
-            value={workTime}
-            onChange={setWorkTime}
-            appliedTo={appliedTo}
-            attendants={attendants}
-            onOverridesChange={setWorkTimeOverrides}
-            overrides={workTimeOverrides}
-          />
-
-          <AccommodationMealsForm
-            value={accommodationMeals}
-            onChange={setAccommodationMeals}
-          />
-          <AdditionalForm value={additional} onChange={setAdditional} />
-        </form>
-
-        {/* Toast Container */}
-        <ToastContainer toasts={toasts} onClose={removeToast} />
       </div>
-    </div>
+    </AuthGuard>
   );
 }

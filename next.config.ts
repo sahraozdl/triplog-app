@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
         ? `https://${process.env.VERCEL_BRANCH_URL}`
         : process.env.APP_BASE_URL,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "maps.googleapis.com",
+        pathname: "/maps/api/staticmap/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

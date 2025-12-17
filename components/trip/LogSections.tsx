@@ -3,6 +3,7 @@ import {
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
+  MealFields,
 } from "@/app/types/DailyLog";
 import { Plane, Briefcase, Hotel, FileText, MapPin, Clock } from "lucide-react";
 
@@ -21,7 +22,7 @@ function SectionHeader({
   );
 }
 
-function MealBadge({ label, meal }: { label: string; meal: any }) {
+function MealBadge({ label, meal }: { label: string; meal: MealFields }) {
   if (!meal?.eaten) return null;
 
   let variantClass = "bg-muted text-muted-foreground border-border";

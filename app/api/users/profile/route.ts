@@ -1,26 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import User from "@/app/models/User";
+import { requireAuthAndMatchUser } from "@/lib/auth-utils";
 
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, employeeDetail } = body;
+    const { userId, name, employeeDetail } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "User ID missing" }, { status: 400 });
     }
 
+    const authResult = await requireAuthAndMatchUser(userId);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     await connectToDB();
+
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+
+    if (employeeDetail !== undefined) {
+      updateData.employeeDetail = employeeDetail;
+    }
 
     const updatedUser = await User.findOneAndUpdate(
       { userId: userId },
-      {
-        $set: {
-          employeeDetail: employeeDetail,
-          updatedAt: new Date().toISOString(),
-        },
-      },
+      { $set: updateData },
       { new: true },
     );
 

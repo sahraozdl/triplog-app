@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import Trip from "@/app/models/Trip";
 import { getUserDB } from "@/lib/getUserDB";
-import { Trip as TripType } from "@/app/types/Trip";
+import { Trip as TripType, TripAttendant } from "@/app/types/Trip";
 
-// Type definitions for route parameters
 interface RouteParams {
   params: Promise<{ tripId: string; index: string }>;
 }
@@ -33,7 +32,6 @@ export async function DELETE(
       );
     }
 
-    // Get current user
     const user = await getUserDB();
     if (!user) {
       return NextResponse.json(
@@ -42,7 +40,6 @@ export async function DELETE(
       );
     }
 
-    // Get trip and verify permissions
     const trip = await Trip.findById(tripId).lean();
     if (!trip) {
       return NextResponse.json(
@@ -51,15 +48,14 @@ export async function DELETE(
       );
     }
 
-    // Type assertion needed because lean() returns a generic type
     const tripData = trip as unknown as TripType;
 
-    // Check permissions: only creator or moderator can delete
     const isCreator = tripData.creatorId === user.userId;
     const isModerator =
       Array.isArray(tripData.attendants) &&
       tripData.attendants.some(
-        (a: any) => a?.userId === user.userId && a?.role === "moderator",
+        (a: TripAttendant) =>
+          a?.userId === user.userId && a?.role === "moderator",
       );
 
     if (!isCreator && !isModerator) {
@@ -72,7 +68,6 @@ export async function DELETE(
       );
     }
 
-    // Verify file exists at index
     if (
       !tripData.additionalFiles ||
       !Array.isArray(tripData.additionalFiles) ||
@@ -84,7 +79,6 @@ export async function DELETE(
       );
     }
 
-    // Get the trip document (not lean) to modify it
     const tripDoc = await Trip.findById(tripId);
     if (!tripDoc) {
       return NextResponse.json(
@@ -93,7 +87,6 @@ export async function DELETE(
       );
     }
 
-    // Remove the file at the specified index
     if (
       tripDoc.additionalFiles &&
       Array.isArray(tripDoc.additionalFiles) &&
@@ -109,7 +102,7 @@ export async function DELETE(
         { status: 404 },
       );
     }
-
+    //dont forget to delete from blob storage later examine the notes below
     // Note: We're not deleting from Vercel Blob storage here to avoid breaking
     // references if the file is used elsewhere. If you want to delete from blob,
     // you would need to use the Vercel Blob SDK's delete method here.
