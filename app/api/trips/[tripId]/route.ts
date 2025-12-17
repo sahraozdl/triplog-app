@@ -42,7 +42,10 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse>> {
   const authResult = await requireAuth();
   if (!authResult.success) {
-    return authResult.response;
+    return NextResponse.json<ErrorResponse>(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
