@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuickTags } from "@/components/form-elements/QuickTags";
-import { Wand2, Loader2, User } from "lucide-react";
+import { Wand2, Loader2, User, Undo2 } from "lucide-react";
 import { TripAttendant } from "@/app/types/Trip";
 import { Textarea } from "../ui/textarea";
 import { WorkTimeFormState } from "@/app/types/FormStates";
@@ -45,6 +45,9 @@ export default function WorkTimeForm({
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("me");
   const [nameMap, setNameMap] = useState<Record<string, string>>({});
+  const [descriptionHistory, setDescriptionHistory] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     try {
@@ -135,6 +138,13 @@ export default function WorkTimeForm({
       return;
     }
 
+    // Save current description to history before generating
+    const historyKey = activeTab === "me" ? "me" : activeTab;
+    setDescriptionHistory((prev) => ({
+      ...prev,
+      [historyKey]: currentDesc || "",
+    }));
+
     setGenerating(true);
     try {
       const res = await fetch("/api/ai/generate", {
@@ -177,6 +187,25 @@ export default function WorkTimeForm({
       alert("Failed to generate description. Please try again.");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  function handleUndo() {
+    const historyKey = activeTab === "me" ? "me" : activeTab;
+    const previousDescription = descriptionHistory[historyKey];
+
+    if (previousDescription !== undefined) {
+      if (activeTab === "me") {
+        updateMain({ description: previousDescription });
+      } else {
+        updateOverride(activeTab, { description: previousDescription });
+      }
+      // Clear history after undo
+      setDescriptionHistory((prev) => {
+        const next = { ...prev };
+        delete next[historyKey];
+        return next;
+      });
     }
   }
 
@@ -279,21 +308,34 @@ export default function WorkTimeForm({
                       >
                         Work Description
                       </Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleAiGenerate}
-                        disabled={generating}
-                        className="text-xs text-primary hover:bg-primary/10 h-7"
-                      >
-                        {generating ? (
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        ) : (
-                          <Wand2 className="mr-1 h-3 w-3" />
-                        )}
-                        AI Auto-Write
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleUndo}
+                          disabled={!descriptionHistory["me"]}
+                          className="text-xs text-muted-foreground hover:bg-muted h-7"
+                        >
+                          <Undo2 className="mr-1 h-3 w-3" />
+                          Undo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleAiGenerate}
+                          disabled={generating}
+                          className="text-xs text-primary hover:bg-primary/10 h-7"
+                        >
+                          {generating ? (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          ) : (
+                            <Wand2 className="mr-1 h-3 w-3" />
+                          )}
+                          AI Auto-Write
+                        </Button>
+                      </div>
                     </div>
                     <textarea
                       id="work-description-me"
@@ -375,28 +417,41 @@ export default function WorkTimeForm({
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 w-full">
-                        <div className="flex items-center justify_between mb-1">
+                        <div className="flex items-center justify-between mb-1">
                           <Label
                             htmlFor={`work-desc-${uid}`}
                             className="text-foreground"
                           >
                             Description (Optional)
                           </Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleAiGenerate}
-                            disabled={generating}
-                            className="text-xs text-primary hover:bg-primary/10 h-7"
-                          >
-                            {generating ? (
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                            ) : (
-                              <Wand2 className="mr-1 h-3 w-3" />
-                            )}
-                            AI Auto-Write
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleUndo}
+                              disabled={!descriptionHistory[uid]}
+                              className="text-xs text-muted-foreground hover:bg-muted h-7"
+                            >
+                              <Undo2 className="mr-1 h-3 w-3" />
+                              Undo
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleAiGenerate}
+                              disabled={generating}
+                              className="text-xs text-primary hover:bg-primary/10 h-7"
+                            >
+                              {generating ? (
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              ) : (
+                                <Wand2 className="mr-1 h-3 w-3" />
+                              )}
+                              AI Auto-Write
+                            </Button>
+                          </div>
                         </div>
                         <textarea
                           id={`work-desc-${uid}`}
@@ -461,21 +516,34 @@ export default function WorkTimeForm({
                     >
                       Work Description
                     </Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleAiGenerate}
-                      disabled={generating}
-                      className="text-xs text-primary hover:bg-primary/10 h-7"
-                    >
-                      {generating ? (
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      ) : (
-                        <Wand2 className="mr-1 h-3 w-3" />
-                      )}
-                      AI Auto-Write
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleUndo}
+                        disabled={!descriptionHistory["me"]}
+                        className="text-xs text-muted-foreground hover:bg-muted h-7"
+                      >
+                        <Undo2 className="mr-1 h-3 w-3" />
+                        Undo
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleAiGenerate}
+                        disabled={generating}
+                        className="text-xs text-primary hover:bg-primary/10 h-7"
+                      >
+                        {generating ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Wand2 className="mr-1 h-3 w-3" />
+                        )}
+                        AI Auto-Write
+                      </Button>
+                    </div>
                   </div>
                   <Textarea
                     id="work-description"
