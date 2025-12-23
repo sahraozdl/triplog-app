@@ -21,6 +21,7 @@ import {
 import { Map, Loader2 } from "lucide-react";
 
 import LocationInput from "@/components/form-elements/LocationInput";
+import { ShareFieldToggle } from "@/components/form-elements/ShareFieldToggle";
 import { UploadedFile } from "@/app/types/DailyLog";
 import { TravelFormState } from "@/app/types/FormStates";
 
@@ -31,9 +32,19 @@ interface Props {
   tripId?: string;
   onUploadSuccess?: () => void;
   onUploadError?: (error: string) => void;
+  shareEnabled?: boolean;
+  onShareChange?: (enabled: boolean) => void;
+  appliedTo?: string[];
 }
 
-export default function TravelForm({ value, onChange, onAddMapImage }: Props) {
+export default function TravelForm({
+  value,
+  onChange,
+  onAddMapImage,
+  shareEnabled = false,
+  onShareChange,
+  appliedTo = [],
+}: Props) {
   const [calculating, setCalculating] = useState(false);
   const [mapUrl, setMapUrl] = useState<string>("");
 
@@ -138,6 +149,13 @@ export default function TravelForm({ value, onChange, onAddMapImage }: Props) {
 
           <AccordionContent className="pt-4 pb-6">
             <div className="flex flex-col gap-6 w-full">
+              {onShareChange && (
+                <ShareFieldToggle
+                  checked={shareEnabled}
+                  onCheckedChange={onShareChange}
+                  appliedTo={appliedTo}
+                />
+              )}
               {/* Row 1: Reason & Vehicle */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 <div className="flex flex-col gap-2 w-full">

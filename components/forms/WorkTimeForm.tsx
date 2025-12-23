@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuickTags } from "@/components/form-elements/QuickTags";
+import { ShareFieldToggle } from "@/components/form-elements/ShareFieldToggle";
 import { Wand2, Loader2, User, Undo2 } from "lucide-react";
 import { TripAttendant } from "@/app/types/Trip";
 import { Textarea } from "../ui/textarea";
@@ -32,6 +33,8 @@ interface Props {
   overrides?: Record<string, WorkTimeOverride>;
 
   onOverridesChange?: (overrides: Record<string, WorkTimeOverride>) => void;
+  shareEnabled?: boolean;
+  onShareChange?: (enabled: boolean) => void;
 }
 
 export default function WorkTimeForm({
@@ -41,6 +44,8 @@ export default function WorkTimeForm({
   attendants = [],
   overrides = {},
   onOverridesChange,
+  shareEnabled = false,
+  onShareChange,
 }: Props) {
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("me");
@@ -229,7 +234,16 @@ export default function WorkTimeForm({
           </AccordionTrigger>
 
           <AccordionContent className="pt-4 pb-6">
-            {appliedTo.length > 0 ? (
+            {onShareChange && (
+              <div className="mb-4">
+                <ShareFieldToggle
+                  checked={shareEnabled}
+                  onCheckedChange={onShareChange}
+                  appliedTo={appliedTo}
+                />
+              </div>
+            )}
+            {appliedTo.length > 0 && shareEnabled ? (
               <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}

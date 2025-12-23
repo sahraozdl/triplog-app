@@ -23,6 +23,8 @@ type Props =
       mode: "select";
       selected: string[];
       onSelect: (v: string[]) => void;
+      excludedUserIds?: Set<string>;
+      ownerUserId?: string;
     });
 
 export default function InviteColleaguesDialog(props: Props) {
@@ -31,10 +33,10 @@ export default function InviteColleaguesDialog(props: Props) {
   const setOpen = props.onOpenChange ?? (() => {});
 
   return (
-    <div className="w-3/4 py-2 px-4 flex flex-row gap-10 mx-auto">
+    <div className="">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full md:w-auto">
+          <Button variant="outline" className="w-full h-12">
             {isInvite ? "Invite Colleagues" : "Select Colleagues"}
           </Button>
         </DialogTrigger>
@@ -47,26 +49,20 @@ export default function InviteColleaguesDialog(props: Props) {
           </DialogHeader>
 
           {isInvite ? (
-            <InviteView tripId={(props as any).tripId} />
+            <InviteView tripId={props.tripId} />
           ) : (
             <SelectView
               attendants={props.attendants}
-              selected={(props as any).selected}
-              onSelect={(props as any).onSelect}
+              selected={props.selected}
+              onSelect={props.onSelect}
               onClose={() => setOpen(false)}
               isOpen={open}
+              excludedUserIds={props.excludedUserIds}
+              ownerUserId={props.ownerUserId}
             />
           )}
         </DialogContent>
       </Dialog>
-
-      {!isInvite && (
-        <p className="text-xs text-muted-foreground mt-2 max-w-md">
-          When you select colleagues, every report you fill out and submit will
-          be created for them as well. If you only want to share certain forms
-          for a specific day, fill out and save only those records.
-        </p>
-      )}
     </div>
   );
 }

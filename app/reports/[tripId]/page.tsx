@@ -15,7 +15,7 @@ import { IAddress } from "@/app/types/user";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
 import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
-import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
+import { formatMeals } from "@/lib/utils/dailyLogHelpers";
 
 interface UserDetail {
   id: string;
@@ -123,11 +123,12 @@ export default function ReportPage() {
       dates.add(dateKey);
       if (!logsByDateUser[dateKey]) logsByDateUser[dateKey] = {};
 
-      const involvedUsers = new Set([log.userId, ...(log.appliedTo || [])]);
-      involvedUsers.forEach((uid) => {
-        if (!logsByDateUser[dateKey][uid]) logsByDateUser[dateKey][uid] = [];
-        logsByDateUser[dateKey][uid].push(log);
-      });
+      // Each log belongs to one user (log.userId) since colleagues now have their own real logs
+      const userId = log.userId;
+      if (userId) {
+        if (!logsByDateUser[dateKey][userId]) logsByDateUser[dateKey][userId] = [];
+        logsByDateUser[dateKey][userId].push(log);
+      }
     });
 
     const sortedDates = Array.from(dates).sort();
@@ -159,20 +160,8 @@ export default function ReportPage() {
                     {new Date(date).toLocaleDateString()}
                   </td>
                   {users.map((user) => {
-                    let userLogs = logsByDateUser[date]?.[user.id];
-
-                    // For worktime, use effective log computation
-                    if (type === "worktime" && userLogs) {
-                      const allWorktimeLogs = filteredLogs.filter(
-                        (l) => l.itemType === "worktime",
-                      ) as WorkTimeLog[];
-                      const effectiveLog = effectiveLogForUser(
-                        date,
-                        user.id,
-                        allWorktimeLogs,
-                      );
-                      userLogs = effectiveLog ? [effectiveLog] : [];
-                    }
+                    // Get user's logs directly from database (each user has their own real logs)
+                    const userLogs = logsByDateUser[date]?.[user.id];
 
                     return (
                       <td

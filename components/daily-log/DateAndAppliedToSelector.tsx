@@ -14,6 +14,8 @@ interface DateAndAppliedToSelectorProps {
   inviteOpen: boolean;
   onInviteOpenChange: (open: boolean) => void;
   attendants: TripAttendant[];
+  excludedUserIds?: Set<string>; // Users with existing logs for this date
+  ownerUserId?: string; // Owner of the log being edited
 }
 
 function toInputDateValue(isoString: string): string {
@@ -33,9 +35,12 @@ export function DateAndAppliedToSelector({
   inviteOpen,
   onInviteOpenChange,
   attendants,
+  excludedUserIds = new Set(),
+  ownerUserId,
 }: DateAndAppliedToSelectorProps) {
   return (
-    <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-4">
+    <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-4 flex flex-col gap-2">
+      <div className="flex flex-row justify-between w-full">
       <div className="max-w-sm w-full relative">
         <Label
           htmlFor="logDate"
@@ -66,9 +71,9 @@ export function DateAndAppliedToSelector({
       </div>
 
       {attendants.length > 0 && (
-        <div className="max-w-sm w-full">
+        <div className="max-w-sm w-full flex flex-col">
           <Label className="mb-2 block font-semibold text-foreground">
-            Applied To
+            Apply To
           </Label>
 
           <InviteColleaguesDialog
@@ -78,13 +83,12 @@ export function DateAndAppliedToSelector({
             onOpenChange={onInviteOpenChange}
             selected={appliedTo}
             onSelect={onAppliedToChange}
+            excludedUserIds={excludedUserIds}
+            ownerUserId={ownerUserId}
           />
-
-          <p className="text-xs text-muted-foreground mt-1">
-            {appliedTo.length} selected.
-          </p>
         </div>
-      )}
+      )}</div>
+      <p className="text-xs text-muted-foreground mt-2 max-w-md ">{appliedTo.length} colleagues selected.</p>
     </div>
   );
 }

@@ -10,15 +10,25 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import FileDropzone from "@/components/form-elements/FileDropzone";
+import { ShareFieldToggle } from "@/components/form-elements/ShareFieldToggle";
 import { UploadedFile } from "@/app/types/DailyLog";
 import { AdditionalFormState } from "@/app/types/FormStates";
 
 interface Props {
   value: AdditionalFormState;
   onChange: (data: AdditionalFormState) => void;
+  shareEnabled?: boolean;
+  onShareChange?: (enabled: boolean) => void;
+  appliedTo?: string[];
 }
 
-export default function AdditionalForm({ value, onChange }: Props) {
+export default function AdditionalForm({
+  value,
+  onChange,
+  shareEnabled = false,
+  onShareChange,
+  appliedTo = [],
+}: Props) {
   const valueRef = useRef<AdditionalFormState>(value);
   useEffect(() => {
     valueRef.current = value;
@@ -49,6 +59,13 @@ export default function AdditionalForm({ value, onChange }: Props) {
 
           <AccordionContent className="pt-4 pb-6">
             <div className="flex flex-col gap-8 w-full">
+              {onShareChange && (
+                <ShareFieldToggle
+                  checked={shareEnabled}
+                  onCheckedChange={onShareChange}
+                  appliedTo={appliedTo}
+                />
+              )}
               <div className="flex flex-col gap-2 w-full">
                 <Label htmlFor="additional-information">
                   Notes & Attachments

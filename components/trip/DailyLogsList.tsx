@@ -144,9 +144,7 @@ export default function DailyLogsList({
       if (filters.showGroupOnly && !log.isGroupSource) return false;
 
       if (filters.userId !== "all") {
-        const isCreator = log.userId === filters.userId;
-        const isIncluded = log.appliedTo?.includes(filters.userId);
-        if (!isCreator && !isIncluded) return false;
+        if (log.userId !== filters.userId) return false;
       }
 
       return true;
@@ -176,7 +174,6 @@ export default function DailyLogsList({
     const allIds = new Set<string>();
     logs.forEach((l) => {
       if (l.userId) allIds.add(l.userId);
-      if (l.appliedTo) l.appliedTo.forEach((id) => allIds.add(id));
     });
 
     fetch("/api/users/lookup", {

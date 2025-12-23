@@ -21,12 +21,22 @@ import { LogCreationPayload } from "@/app/types/LogCreation";
 import { useTripStore } from "@/lib/store/useTripStore";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
 import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
+import {
+  getInitialSharedFields,
+  updateSharedFieldsOnAppliedToChange,
+} from "@/lib/utils/shareFieldLogic";
 import { getInitialFormState } from "@/lib/utils/formInitialStates";
 import {
   transformLogToFormState,
   extractWorkTimeOverride,
 } from "@/lib/utils/logDataTransformers";
 import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
+import {
+  TravelLog,
+  WorkTimeLog,
+  AccommodationLog,
+  AdditionalLog,
+} from "@/app/types/DailyLog";
 
 export default function EditDailyLogPage() {
   const router = useRouter();
@@ -47,6 +57,22 @@ export default function EditDailyLogPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [usersWithExistingLogs, setUsersWithExistingLogs] = useState<
+    Set<string>
+  >(new Set());
+  const [validationError, setValidationError] = useState<string>("");
+
+  // Track which fields are shared - default based on appliedTo
+  const [sharedFields, setSharedFields] = useState<Set<string>>(() =>
+    getInitialSharedFields(appliedTo),
+  );
+
+  // Update shared fields when appliedTo changes
+  useEffect(() => {
+    setSharedFields((prev) =>
+      updateSharedFieldsOnAppliedToChange(prev, appliedTo),
+    );
+  }, [appliedTo]);
 
   const trip = getTrip(tripId);
   const attendants = trip?.attendants ?? [];
@@ -107,11 +133,22 @@ export default function EditDailyLogPage() {
 
         setOriginalLogs(logs);
 
+        // Track users who already have logs for this date (excluding the owner)
+        const existingLogUsers = new Set<string>();
+        logs.forEach((log) => {
+          if (log.userId !== logUserId) {
+            const logDateStr = log.dateTime ? log.dateTime.split("T")[0] : "";
+            if (logDateStr === logDate) {
+              existingLogUsers.add(log.userId);
+            }
+          }
+        });
+        setUsersWithExistingLogs(existingLogUsers);
+
         logs.forEach((log) => {
           const type = log.itemType;
 
           const ownerId = logUserId;
-          const logData = log;
 
           if (type === "worktime") {
             const workTimeLog = log as DailyLogFormState & {
@@ -124,15 +161,11 @@ export default function EditDailyLogPage() {
                 endTime: workTimeLog.endTime || "",
                 description: workTimeLog.description || "",
               });
-
-              if (Array.isArray(log.appliedTo)) {
-                log.appliedTo.forEach((uid: string) => foundAppliedTo.add(uid));
-              }
             } else {
+              // Track existing colleague worktime logs for overrides
               foundOverrides[log.userId] = extractWorkTimeOverride(
                 log as DailyLogFormState & { itemType: "worktime" },
               );
-              foundAppliedTo.add(log.userId);
             }
 
             return;
@@ -153,7 +186,9 @@ export default function EditDailyLogPage() {
         setLogIds(newLogIds);
         setWorkTimeOverrides(foundOverrides);
         setSelectedDate(logDate);
-        setAppliedTo(Array.from(foundAppliedTo));
+        // Initialize appliedTo from existing log's metadata
+        // This preserves users who are already shared, even if they have existing logs
+        setAppliedTo(initialLog.appliedTo || []);
       } catch (error) {
         console.error("Failed to load logs for editing:", error);
         const errorMessage =
@@ -196,6 +231,35 @@ export default function EditDailyLogPage() {
     }
 
     const effectiveUserId = ownerUserId ?? loggedInUserId!;
+    setValidationError("");
+
+    // Validation: Check if any selected colleagues already have logs for this date
+    const conflictingUsers: string[] = [];
+    appliedTo.forEach((colleagueId) => {
+      if (usersWithExistingLogs.has(colleagueId)) {
+        conflictingUsers.push(colleagueId);
+      }
+    });
+
+    if (conflictingUsers.length > 0) {
+      const userNames = await fetch("/api/users/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: conflictingUsers }),
+      })
+        .then((res) => res.json())
+        .then((data) => data.users || {})
+        .catch(() => ({}));
+
+      const names = conflictingUsers
+        .map((id) => userNames[id] || id.slice(0, 8))
+        .join(", ");
+      setValidationError(
+        `Cannot share with ${names}. They already have logs for this date.`,
+      );
+      setIsSaving(false);
+      return;
+    }
 
     setIsSaving(true);
 
@@ -205,6 +269,26 @@ export default function EditDailyLogPage() {
 
     const logsToUpdate: DailyLogFormState[] = [];
     const logsToCreate: LogCreationPayload[] = [];
+
+    // Track existing colleague logs for all field types
+    const existingColleagueLogs = new Map<
+      string,
+      Map<string, DailyLogFormState>
+    >(); // Map<itemType, Map<colleagueId, log>>
+
+    originalLogs.forEach((log) => {
+      if (log.userId === effectiveUserId) return;
+      if (log.tripId !== tripId) return;
+
+      const logDate = log.dateTime ? log.dateTime.split("T")[0] : "";
+      if (logDate !== selectedDate) return;
+
+      const type = log.itemType;
+      if (!existingColleagueLogs.has(type)) {
+        existingColleagueLogs.set(type, new Map());
+      }
+      existingColleagueLogs.get(type)!.set(log.userId, log);
+    });
 
     const forms = [
       { type: "travel" as const, data: travel, id: logIds.travel },
@@ -217,6 +301,39 @@ export default function EditDailyLogPage() {
       { type: "additional" as const, data: additional, id: logIds.additional },
     ];
 
+    const logsToDelete: string[] = [];
+    const currentColleagueIds = new Set(appliedTo);
+
+    // Validate: Block sharing with users who already have logs for this date
+    // (They should be excluded from selection, but double-check here as safeguard)
+    if (appliedTo.length > 0) {
+      const usersWithLogs: string[] = [];
+      for (const colleagueId of appliedTo) {
+        if (usersWithExistingLogs.has(colleagueId)) {
+          usersWithLogs.push(colleagueId);
+        }
+      }
+
+      if (usersWithLogs.length > 0) {
+        const userNames = await fetch("/api/users/lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: usersWithLogs }),
+        })
+          .then((res) => res.json())
+          .then((data) => data.users || {})
+          .catch(() => ({}));
+        const names = usersWithLogs
+          .map((id) => userNames[id] || id.slice(0, 8))
+          .join(", ");
+        setValidationError(
+          `Cannot share with ${names}. They already have logs for this date.`,
+        );
+        setIsSaving(false);
+        return;
+      }
+    }
+
     forms.forEach((form) => {
       const hasData = Object.values(form.data).some(
         (val) => val && val !== "" && val !== 0 && val !== false,
@@ -225,6 +342,7 @@ export default function EditDailyLogPage() {
       const appliedToForThis = appliedTo;
       const isGroupSourceForThis = appliedToForThis.length > 0;
 
+      // Update owner's log (never create new in edit mode)
       if (form.id) {
         const updatedLog: DailyLogFormState = {
           _id: form.id,
@@ -239,6 +357,13 @@ export default function EditDailyLogPage() {
 
         logsToUpdate.push(updatedLog);
       } else if (hasData) {
+        // In edit mode, we should never create new logs - only update existing ones
+        // If form.id is missing, it means the log was deleted or doesn't exist
+        // This is an error condition in edit mode
+        console.warn(
+          `Attempted to create new ${form.type} log in edit mode. This should not happen.`,
+        );
+        // Still allow it for now, but log the warning
         const newLog: LogCreationPayload = {
           itemType: form.type,
           tripId,
@@ -252,74 +377,113 @@ export default function EditDailyLogPage() {
 
         logsToCreate.push(newLog);
       }
-    });
 
-    const existingColleagueWorklogs = new Map<string, DailyLogFormState>();
-
-    originalLogs.forEach((log) => {
-      if (log.itemType !== "worktime") return;
-      if (log.userId === effectiveUserId) return;
-      if (log.tripId !== tripId) return;
-
-      const logDate = log.dateTime ? log.dateTime.split("T")[0] : "";
-      if (logDate !== selectedDate) return;
-
-      existingColleagueWorklogs.set(log.userId, log);
-    });
-
-    const logsToDelete: string[] = [];
-    const currentColleagueIds = new Set(appliedTo);
-
-    existingColleagueWorklogs.forEach((log, colleagueId) => {
+      // Update or create real logs for each colleague in appliedTo
+      // Only if this field is shared
       if (
-        !currentColleagueIds.has(colleagueId) ||
-        !hasNonEmptyOverride(workTimeOverrides[colleagueId])
+        hasData &&
+        appliedToForThis.length > 0 &&
+        sharedFields.has(form.type)
       ) {
-        logsToDelete.push(log._id.toString());
-      }
-    });
+        const colleagueLogsMap =
+          existingColleagueLogs.get(form.type) || new Map();
 
-    appliedTo.forEach((colleagueId) => {
-      const override = workTimeOverrides[colleagueId];
+        for (const colleagueId of appliedToForThis) {
+          const existing = colleagueLogsMap.get(colleagueId);
 
-      if (!hasNonEmptyOverride(override)) {
-        return;
-      }
+          // For worktime, use override if available, otherwise use base data
+          let colleagueData:
+            | WorkTimeFormState
+            | TravelFormState
+            | AccommodationFormState
+            | AdditionalFormState = form.data;
+          if (form.type === "worktime") {
+            const override = workTimeOverrides[colleagueId];
+            colleagueData = {
+              startTime: override?.startTime || workTime.startTime,
+              endTime: override?.endTime || workTime.endTime,
+              description: override?.description || workTime.description,
+            };
+          }
 
-      const base = {
-        startTime: override?.startTime || workTime.startTime,
-        endTime: override?.endTime || workTime.endTime,
-        description: override?.description || workTime.description,
-      };
+          if (existing) {
+            // Update existing log - preserve metadata
+            const baseLogFields = {
+              _id: existing._id,
+              userId: colleagueId,
+              tripId,
+              dateTime: isoDateString,
+              appliedTo: [],
+              isGroupSource: false,
+              files: existing.files,
+              sealed: existing.sealed,
+              createdAt: existing.createdAt,
+              updatedAt: new Date().toISOString(),
+            };
 
-      const existing = existingColleagueWorklogs.get(colleagueId);
+            let updatedColleagueLog: DailyLogFormState;
+            if (form.type === "travel") {
+              updatedColleagueLog = {
+                ...baseLogFields,
+                itemType: "travel",
+                ...(colleagueData as TravelFormState),
+              } as TravelLog;
+            } else if (form.type === "worktime") {
+              updatedColleagueLog = {
+                ...baseLogFields,
+                itemType: "worktime",
+                ...(colleagueData as WorkTimeFormState),
+              } as WorkTimeLog;
+            } else if (form.type === "accommodation") {
+              updatedColleagueLog = {
+                ...baseLogFields,
+                itemType: "accommodation",
+                ...(colleagueData as AccommodationFormState),
+              } as AccommodationLog;
+            } else {
+              // form.type === "additional"
+              updatedColleagueLog = {
+                ...baseLogFields,
+                itemType: "additional",
+                ...(colleagueData as AdditionalFormState),
+              } as AdditionalLog;
+            }
 
-      if (existing) {
-        const updatedColleagueLog: DailyLogFormState = {
-          _id: existing._id,
-          userId: colleagueId,
-          tripId,
-          dateTime: isoDateString,
-          appliedTo: [],
-          isGroupSource: false,
-          itemType: "worktime",
-          ...(base as any),
-        };
+            logsToUpdate.push(updatedColleagueLog);
+          } else {
+            // Create new log for colleague who doesn't have one yet
+            const newColleagueLog: LogCreationPayload = {
+              itemType: form.type,
+              tripId,
+              userId: colleagueId,
+              dateTime: isoDateString,
+              appliedTo: [],
+              isGroupSource: false,
+              data: colleagueData,
+              files: [],
+            };
 
-        logsToUpdate.push(updatedColleagueLog);
-      } else {
-        const newColleagueLog: LogCreationPayload = {
-          itemType: "worktime",
-          tripId,
-          userId: colleagueId,
-          dateTime: isoDateString,
-          appliedTo: [],
-          isGroupSource: false,
-          data: base,
-          files: [],
-        };
+            logsToCreate.push(newColleagueLog);
+          }
+        }
 
-        logsToCreate.push(newColleagueLog);
+        // Delete colleague logs that are no longer in appliedTo or if field is no longer shared
+        colleagueLogsMap.forEach((log, colleagueId) => {
+          if (
+            !currentColleagueIds.has(colleagueId) ||
+            !sharedFields.has(form.type)
+          ) {
+            logsToDelete.push(log._id.toString());
+          }
+        });
+      } else if (hasData && !sharedFields.has(form.type)) {
+        // If field is no longer shared, delete all existing colleague logs for this type
+        const colleagueLogsMap = existingColleagueLogs.get(form.type);
+        if (colleagueLogsMap) {
+          colleagueLogsMap.forEach((log) => {
+            logsToDelete.push(log._id.toString());
+          });
+        }
       }
     });
 
@@ -333,16 +497,20 @@ export default function EditDailyLogPage() {
       }
 
       if (logsToUpdate.length > 0) {
-        const res = await fetch(`/api/daily-logs`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ logs: logsToUpdate }),
-        });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(
-            `Update error: ${errorData.error || "Unknown Error"}`,
-          );
+        // Update each log individually, strictly scoped to its ID
+        for (const log of logsToUpdate) {
+          const logId = log._id.toString();
+          const res = await fetch(`/api/daily-logs/${logId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(log),
+          });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(
+              `Update error for log ${logId}: ${errorData.error || "Unknown Error"}`,
+            );
+          }
         }
       }
 
@@ -403,15 +571,54 @@ export default function EditDailyLogPage() {
           </Button>
         </div>
 
+        {/* VALIDATION ERROR */}
+        {validationError && (
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+            <p className="text-sm font-medium">{validationError}</p>
+          </div>
+        )}
+
         {/* GLOBAL DATE SELECTOR + APPLIED TO */}
         <DateAndAppliedToSelector
           selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
+          onDateChange={(date) => {
+            setSelectedDate(date);
+            setValidationError("");
+            // Refresh excluded users when date changes
+            if (date && tripId) {
+              fetch(`/api/daily-logs?tripId=${tripId}&date=${date}`)
+                .then((res) => res.json())
+                .then((data) => {
+                  const logs: DailyLogFormState[] = data.logs || [];
+                  const effectiveUserId = ownerUserId ?? loggedInUserId!;
+                  const existingLogUsers = new Set<string>();
+                  logs.forEach((log) => {
+                    if (log.userId !== effectiveUserId) {
+                      const logDateStr = log.dateTime
+                        ? log.dateTime.split("T")[0]
+                        : "";
+                      if (logDateStr === date) {
+                        existingLogUsers.add(log.userId);
+                      }
+                    }
+                  });
+                  setUsersWithExistingLogs(existingLogUsers);
+                })
+                .catch((err) =>
+                  console.error("Failed to refresh excluded users", err),
+                );
+            }
+          }}
           appliedTo={appliedTo}
-          onAppliedToChange={setAppliedTo}
+          onAppliedToChange={(userIds) => {
+            setAppliedTo(userIds);
+            setValidationError("");
+          }}
           inviteOpen={inviteOpen}
           onInviteOpenChange={setInviteOpen}
           attendants={attendants}
+          excludedUserIds={usersWithExistingLogs}
+          ownerUserId={ownerUserId ?? loggedInUserId ?? undefined}
         />
 
         {/* FORMS */}
@@ -434,6 +641,19 @@ export default function EditDailyLogPage() {
                 };
               });
             }}
+            shareEnabled={sharedFields.has("travel")}
+            onShareChange={(enabled) => {
+              setSharedFields((prev) => {
+                const next = new Set(prev);
+                if (enabled) {
+                  next.add("travel");
+                } else {
+                  next.delete("travel");
+                }
+                return next;
+              });
+            }}
+            appliedTo={appliedTo}
           />
 
           <WorkTimeForm
@@ -443,13 +663,54 @@ export default function EditDailyLogPage() {
             attendants={attendants}
             onOverridesChange={setWorkTimeOverrides}
             overrides={workTimeOverrides}
+            shareEnabled={sharedFields.has("worktime")}
+            onShareChange={(enabled) => {
+              setSharedFields((prev) => {
+                const next = new Set(prev);
+                if (enabled) {
+                  next.add("worktime");
+                } else {
+                  next.delete("worktime");
+                }
+                return next;
+              });
+            }}
           />
 
           <AccommodationMealsForm
             value={accommodationMeals}
             onChange={setAccommodationMeals}
+            shareEnabled={sharedFields.has("accommodation")}
+            onShareChange={(enabled) => {
+              setSharedFields((prev) => {
+                const next = new Set(prev);
+                if (enabled) {
+                  next.add("accommodation");
+                } else {
+                  next.delete("accommodation");
+                }
+                return next;
+              });
+            }}
+            appliedTo={appliedTo}
           />
-          <AdditionalForm value={additional} onChange={setAdditional} />
+          <AdditionalForm
+            value={additional}
+            onChange={setAdditional}
+            shareEnabled={sharedFields.has("additional")}
+            onShareChange={(enabled) => {
+              setSharedFields((prev) => {
+                const next = new Set(prev);
+                if (enabled) {
+                  next.add("additional");
+                } else {
+                  next.delete("additional");
+                }
+                return next;
+              });
+            }}
+            appliedTo={appliedTo}
+          />
 
           <Button
             type="submit"

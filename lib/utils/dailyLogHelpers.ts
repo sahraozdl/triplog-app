@@ -7,7 +7,8 @@ import {
 
 /**
  * Computes the effective worktime log for a given user and date.
- * Priority: 1) User-specific log (log.userId === userId), 2) Owner shared log (isGroupSource && appliedTo includes userId)
+ * Returns the user-specific log (log.userId === userId) since each colleague
+ * now has their own real database log.
  *
  * @param date - Date string in YYYY-MM-DD format
  * @param userId - User ID to get effective log for
@@ -26,21 +27,9 @@ export function effectiveLogForUser(
     return logDate === date;
   }) as WorkTimeLog[];
 
-  // Priority 1: User-specific log (colleague override)
+  // Return user-specific log (each colleague has their own real database log)
   const userSpecificLog = dateLogs.find((log) => log.userId === userId);
-  if (userSpecificLog) {
-    return userSpecificLog;
-  }
-
-  // Priority 2: Owner shared log (isGroupSource && appliedTo includes userId)
-  const sharedLog = dateLogs.find(
-    (log) => log.isGroupSource && log.appliedTo?.includes(userId),
-  );
-  if (sharedLog) {
-    return sharedLog;
-  }
-
-  return null;
+  return userSpecificLog || null;
 }
 
 /**

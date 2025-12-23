@@ -10,14 +10,24 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MealSelector } from "@/components/form-elements/MealSelector";
 import LocationInput from "@/components/form-elements/LocationInput";
+import { ShareFieldToggle } from "@/components/form-elements/ShareFieldToggle";
 import { AccommodationFormState } from "@/app/types/FormStates";
 
 interface Props {
   value: AccommodationFormState;
   onChange: (updated: AccommodationFormState) => void;
+  shareEnabled?: boolean;
+  onShareChange?: (enabled: boolean) => void;
+  appliedTo?: string[];
 }
 
-export default function AccommodationMealsForm({ value, onChange }: Props) {
+export default function AccommodationMealsForm({
+  value,
+  onChange,
+  shareEnabled = false,
+  onShareChange,
+  appliedTo = [],
+}: Props) {
   const update = (field: Partial<AccommodationFormState>) =>
     onChange({ ...value, ...field });
 
@@ -39,6 +49,13 @@ export default function AccommodationMealsForm({ value, onChange }: Props) {
 
           <AccordionContent className="pt-4 pb-6">
             <div className="flex flex-col w-full gap-8">
+              {onShareChange && (
+                <ShareFieldToggle
+                  checked={shareEnabled}
+                  onCheckedChange={onShareChange}
+                  appliedTo={appliedTo}
+                />
+              )}
               {/* --- ACCOMMODATION TYPE & PAYMENT --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-end">
                 {/* 1. Accommodation Type (Location Input) */}

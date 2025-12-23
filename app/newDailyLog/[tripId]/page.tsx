@@ -10,10 +10,8 @@ import WorkTimeForm, {
 import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
 import AdditionalForm from "@/components/forms/AdditionalForm";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
+import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
@@ -30,6 +28,10 @@ import {
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
 import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
+import {
+  getInitialSharedFields,
+  updateSharedFieldsOnAppliedToChange,
+} from "@/lib/utils/shareFieldLogic";
 
 export default function DailyLogPage() {
   const router = useRouter();
@@ -106,6 +108,18 @@ export default function DailyLogPage() {
     uploadedFiles: [],
   });
 
+  // Track which fields are shared - default based on appliedTo
+  const [sharedFields, setSharedFields] = useState<Set<string>>(() =>
+    getInitialSharedFields(appliedTo),
+  );
+
+  // Update shared fields when appliedTo changes
+  useEffect(() => {
+    setSharedFields((prev) =>
+      updateSharedFieldsOnAppliedToChange(prev, appliedTo),
+    );
+  }, [appliedTo]);
+
   function cancel() {
     router.push(`/trips/${tripId}`);
   }
@@ -155,63 +169,62 @@ export default function DailyLogPage() {
 
     const requests: Promise<Response>[] = [];
 
-    const isTravelFilled =
-      travel.travelReason ||
-      travel.vehicleType ||
-      travel.destination ||
-      travel.departureLocation ||
-      (travel.distance && travel.distance > 0) ||
-      travel.startTime ||
-      travel.endTime;
-
-    if (isTravelFilled) {
-      requests.push(createLogRequest("travel", travel, isoDateString, []));
-    }
-
-    const isWorkFilled =
-      workTime.description || workTime.startTime || workTime.endTime;
-
-    if (isWorkFilled) {
-      const myLogBody = {
-        itemType: "worktime",
-        tripId,
-        userId: loggedInUserId,
-        dateTime: isoDateString,
-        appliedTo,
-        isGroupSource: appliedTo.length > 0,
+    const forms = [
+      {
+        type: "travel" as const,
+        data: travel,
+        isFilled:
+          travel.travelReason ||
+          travel.vehicleType ||
+          travel.destination ||
+          travel.departureLocation ||
+          (travel.distance && travel.distance > 0) ||
+          travel.startTime ||
+          travel.endTime,
+      },
+      {
+        type: "worktime" as const,
         data: workTime,
-        files: [],
-      };
+        isFilled:
+          workTime.description || workTime.startTime || workTime.endTime,
+      },
+      {
+        type: "accommodation" as const,
+        data: accommodationMeals,
+        isFilled:
+          accommodationMeals.accommodationType ||
+          accommodationMeals.overnightStay !== "" ||
+          accommodationMeals.meals.breakfast.eaten,
+      },
+      {
+        type: "additional" as const,
+        data: additional,
+        isFilled: additional.notes || additional.uploadedFiles.length > 0,
+      },
+    ];
 
-      requests.push(
-        fetch("/api/daily-logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(myLogBody),
-        }),
-      );
+    forms.forEach((form) => {
+      if (!form.isFilled) return;
 
-      if (appliedTo.length > 0) {
+      // Create owner's log
+      requests.push(createLogRequest(form.type, form.data, isoDateString, []));
+
+      // Create real logs for each colleague in appliedTo only if this field is shared
+      if (appliedTo.length > 0 && sharedFields.has(form.type)) {
         appliedTo.forEach((colleagueId) => {
-          const override = workTimeOverrides[colleagueId];
-
-          // Only create colleague log if override has at least one non-empty field
-          if (!hasNonEmptyOverride(override)) {
-            return;
+          // For worktime, use override if available, otherwise use base data
+          let colleagueData = form.data;
+          if (form.type === "worktime") {
+            const override = workTimeOverrides[colleagueId];
+            colleagueData = {
+              startTime: override?.startTime || workTime.startTime,
+              endTime: override?.endTime || workTime.endTime,
+              description: override?.description || workTime.description,
+            } as WorkTimeFormState;
           }
 
-          const description = override?.description || workTime.description;
-          const startTime = override?.startTime || workTime.startTime;
-          const endTime = override?.endTime || workTime.endTime;
-
-          const colleagueData = {
-            description,
-            startTime,
-            endTime,
-          };
-
           const colleagueBody = {
-            itemType: "worktime",
+            itemType: form.type,
             tripId,
             userId: colleagueId,
             dateTime: isoDateString,
@@ -230,25 +243,7 @@ export default function DailyLogPage() {
           );
         });
       }
-    }
-
-    const isAccFilled =
-      accommodationMeals.accommodationType ||
-      accommodationMeals.overnightStay !== "" ||
-      accommodationMeals.meals.breakfast.eaten;
-
-    if (isAccFilled) {
-      requests.push(
-        createLogRequest("accommodation", accommodationMeals, isoDateString),
-      );
-    }
-
-    const isAdditionalFilled =
-      additional.notes || additional.uploadedFiles.length > 0;
-
-    if (isAdditionalFilled) {
-      requests.push(createLogRequest("additional", additional, isoDateString));
-    }
+    });
 
     if (requests.length === 0) {
       alert("Please fill in at least one section to save.");
@@ -317,37 +312,16 @@ export default function DailyLogPage() {
             </div>
           </div>
 
-          {/* Global Date */}
-          <div
-            className="bg-sidebar p-6 rounded-xl border border-border shadow-sm space-y-2 dark:border-gray-800 
-        rounded-b-md max-w-full md:max-w-3/4 mx-auto
-        px-4 md:px-8 py-4"
-          >
-            <div className="w-full flex flex-row items-center justify-between gap-2">
-              <Label
-                htmlFor="logDate"
-                className="font-semibold text-foreground w-1/2"
-              >
-                Date
-              </Label>
-              <div className="group w-1/2">
-                <Input
-                  id="logDate"
-                  type="date"
-                  onClick={(e) => e.currentTarget.showPicker()}
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors 
-                [&::-webkit-calendar-picker-indicator]:invert 
-                [&::-webkit-calendar-picker-indicator]:opacity-80
-              "
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2 pl-1">
-              Select the date for these activities.
-            </p>
-          </div>
+          {/* Date and Applied To Selector */}
+          <DateAndAppliedToSelector
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            appliedTo={appliedTo}
+            onAppliedToChange={setAppliedTo}
+            inviteOpen={inviteOpen}
+            onInviteOpenChange={setInviteOpen}
+            attendants={attendants}
+          />
 
           {/* Forms Container */}
           <form
@@ -355,14 +329,6 @@ export default function DailyLogPage() {
             onSubmit={saveDailyLog}
             className="flex flex-col gap-6"
           >
-            <InviteColleaguesDialog
-              mode="select"
-              attendants={attendants.map((a) => a.userId)}
-              open={inviteOpen}
-              onOpenChange={setInviteOpen}
-              selected={appliedTo}
-              onSelect={setAppliedTo}
-            />
             <TravelForm
               value={travel}
               onChange={setTravel}
@@ -378,6 +344,19 @@ export default function DailyLogPage() {
                   };
                 });
               }}
+              shareEnabled={sharedFields.has("travel")}
+              onShareChange={(enabled) => {
+                setSharedFields((prev) => {
+                  const next = new Set(prev);
+                  if (enabled) {
+                    next.add("travel");
+                  } else {
+                    next.delete("travel");
+                  }
+                  return next;
+                });
+              }}
+              appliedTo={appliedTo}
             />
 
             {/* UPDATED WORK TIME FORM CALL */}
@@ -388,13 +367,54 @@ export default function DailyLogPage() {
               attendants={attendants}
               onOverridesChange={setWorkTimeOverrides}
               overrides={workTimeOverrides}
+              shareEnabled={sharedFields.has("worktime")}
+              onShareChange={(enabled) => {
+                setSharedFields((prev) => {
+                  const next = new Set(prev);
+                  if (enabled) {
+                    next.add("worktime");
+                  } else {
+                    next.delete("worktime");
+                  }
+                  return next;
+                });
+              }}
             />
 
             <AccommodationMealsForm
               value={accommodationMeals}
               onChange={setAccommodationMeals}
+              shareEnabled={sharedFields.has("accommodation")}
+              onShareChange={(enabled) => {
+                setSharedFields((prev) => {
+                  const next = new Set(prev);
+                  if (enabled) {
+                    next.add("accommodation");
+                  } else {
+                    next.delete("accommodation");
+                  }
+                  return next;
+                });
+              }}
+              appliedTo={appliedTo}
             />
-            <AdditionalForm value={additional} onChange={setAdditional} />
+            <AdditionalForm
+              value={additional}
+              onChange={setAdditional}
+              shareEnabled={sharedFields.has("additional")}
+              onShareChange={(enabled) => {
+                setSharedFields((prev) => {
+                  const next = new Set(prev);
+                  if (enabled) {
+                    next.add("additional");
+                  } else {
+                    next.delete("additional");
+                  }
+                  return next;
+                });
+              }}
+              appliedTo={appliedTo}
+            />
           </form>
 
           {/* Toast Container */}

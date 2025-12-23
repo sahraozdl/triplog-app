@@ -16,7 +16,7 @@ import {
 import { Trip } from "@/app/types/Trip";
 import { PDFTableRow } from "@/app/types/PDFTable";
 import { robotoBase64 } from "@/lib/fonts";
-import { effectiveLogForUser, formatMeals } from "@/lib/utils/dailyLogHelpers";
+import { formatMeals } from "@/lib/utils/dailyLogHelpers";
 import { fetchImage, fetchAttendantDetails } from "@/lib/utils/pdfHelpers";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 
@@ -217,11 +217,12 @@ export function DownloadReportButton({ trip, logs }: Props) {
         const dateKey = rawDate.split("T")[0];
         dates.add(dateKey);
         if (!logsByDateUser[dateKey]) logsByDateUser[dateKey] = {};
-        const involvedUsers = new Set([log.userId, ...(log.appliedTo || [])]);
-        involvedUsers.forEach((uid) => {
-          if (!logsByDateUser[dateKey][uid]) logsByDateUser[dateKey][uid] = [];
-          logsByDateUser[dateKey][uid].push(log);
-        });
+        // Each log belongs to one user (log.userId) since colleagues now have their own real logs
+        const userId = log.userId;
+        if (userId) {
+          if (!logsByDateUser[dateKey][userId]) logsByDateUser[dateKey][userId] = [];
+          logsByDateUser[dateKey][userId].push(log);
+        }
       });
 
       const sortedDates = Array.from(dates).sort();
@@ -247,19 +248,8 @@ export function DownloadReportButton({ trip, logs }: Props) {
 
         for (let uIndex = 0; uIndex < users.length; uIndex++) {
           const user = users[uIndex];
-          let userLogs = logsByDateUser[date]?.[user.id];
-
-          if (typeFilter === "worktime") {
-            const allWorktimeLogs = filteredLogs.filter(
-              (l) => l.itemType === "worktime",
-            ) as WorkTimeLog[];
-            const effectiveLog = effectiveLogForUser(
-              date,
-              user.id,
-              allWorktimeLogs,
-            );
-            userLogs = effectiveLog ? [effectiveLog] : [];
-          }
+          // Get user's logs directly from database (each user has their own real logs)
+          const userLogs = logsByDateUser[date]?.[user.id];
 
           if (!userLogs || userLogs.length === 0) {
             rowData.push({

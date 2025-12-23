@@ -107,7 +107,6 @@ export default function DailyLogCard({
         {/* ACTION BUTTONS */}
         {firstLogId && (
           <div className="absolute top-2 right-2 z-10 flex gap-1">
-            {canEdit && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -117,7 +116,7 @@ export default function DailyLogCard({
               >
                 <Edit className="h-4 w-4" />
               </Button>
-            )}
+        
             <Button
               variant="ghost"
               size="sm"
