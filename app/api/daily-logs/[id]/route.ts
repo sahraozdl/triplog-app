@@ -3,7 +3,6 @@ import { connectToDB } from "@/lib/mongodb";
 import { DailyLog } from "@/app/models/DailyLog";
 import mongoose from "mongoose";
 import { requireAuth } from "@/lib/auth-utils";
-import { TravelLog } from "@/app/models/DailyLog";
 import { WorkTimeLog } from "@/app/models/DailyLog";
 import { AccommodationLog } from "@/app/models/DailyLog";
 import { AdditionalLog } from "@/app/models/DailyLog";
@@ -121,10 +120,7 @@ export async function PUT(
 
     // Ensure the ID in the body matches the URL parameter (strict scoping)
     if (_id && _id.toString() !== id) {
-      return NextResponse.json(
-        { error: "Log ID mismatch" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Log ID mismatch" }, { status: 400 });
     }
 
     const updateData = {
@@ -138,8 +134,7 @@ export async function PUT(
     let TargetModel = DailyLog;
     const logItemType = itemType || existingLog.itemType;
 
-    if (logItemType === "travel") TargetModel = TravelLog;
-    else if (logItemType === "worktime") TargetModel = WorkTimeLog;
+    if (logItemType === "worktime") TargetModel = WorkTimeLog;
     else if (logItemType === "accommodation") TargetModel = AccommodationLog;
     else if (logItemType === "additional") TargetModel = AdditionalLog;
 

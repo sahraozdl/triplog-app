@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import TravelForm from "@/components/forms/TravelForm";
 import WorkTimeForm, {
   WorkTimeOverride,
 } from "@/components/forms/WorkTimeForm";
@@ -12,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { DailyLogFormState } from "@/app/types/DailyLog";
 import {
-  TravelFormState,
   WorkTimeFormState,
   AccommodationFormState,
   AdditionalFormState,
@@ -32,7 +30,6 @@ import {
 } from "@/lib/utils/logDataTransformers";
 import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
 import {
-  TravelLog,
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
@@ -77,9 +74,6 @@ export default function EditDailyLogPage() {
   const trip = getTrip(tripId);
   const attendants = trip?.attendants ?? [];
 
-  const [travel, setTravel] = useState<TravelFormState>(
-    getInitialFormState("travel"),
-  );
   const [workTime, setWorkTime] = useState<WorkTimeFormState>(
     getInitialFormState("worktime"),
   );
@@ -95,7 +89,6 @@ export default function EditDailyLogPage() {
   );
 
   const [logIds, setLogIds] = useState<{
-    travel?: string;
     worktime?: string;
     accommodation?: string;
     additional?: string;
@@ -175,8 +168,7 @@ export default function EditDailyLogPage() {
 
             const formPayload = transformLogToFormState(log);
 
-            if (type === "travel") setTravel(formPayload as TravelFormState);
-            else if (type === "accommodation")
+            if (type === "accommodation")
               setAccommodationMeals(formPayload as AccommodationFormState);
             else if (type === "additional")
               setAdditional(formPayload as AdditionalFormState);
@@ -291,7 +283,6 @@ export default function EditDailyLogPage() {
     });
 
     const forms = [
-      { type: "travel" as const, data: travel, id: logIds.travel },
       { type: "worktime" as const, data: workTime, id: logIds.worktime },
       {
         type: "accommodation" as const,
@@ -394,7 +385,6 @@ export default function EditDailyLogPage() {
           // For worktime, use override if available, otherwise use base data
           let colleagueData:
             | WorkTimeFormState
-            | TravelFormState
             | AccommodationFormState
             | AdditionalFormState = form.data;
           if (form.type === "worktime") {
@@ -422,13 +412,7 @@ export default function EditDailyLogPage() {
             };
 
             let updatedColleagueLog: DailyLogFormState;
-            if (form.type === "travel") {
-              updatedColleagueLog = {
-                ...baseLogFields,
-                itemType: "travel",
-                ...(colleagueData as TravelFormState),
-              } as TravelLog;
-            } else if (form.type === "worktime") {
+            if (form.type === "worktime") {
               updatedColleagueLog = {
                 ...baseLogFields,
                 itemType: "worktime",
@@ -627,35 +611,6 @@ export default function EditDailyLogPage() {
           onSubmit={handleUpdateLog}
           className="flex flex-col gap-6"
         >
-          <TravelForm
-            value={travel}
-            onChange={setTravel}
-            onAddMapImage={(file) => {
-              setAdditional((prev) => {
-                if (prev.uploadedFiles.find((f) => f.url === file.url)) {
-                  return prev;
-                }
-                return {
-                  ...prev,
-                  uploadedFiles: [...prev.uploadedFiles, file],
-                };
-              });
-            }}
-            shareEnabled={sharedFields.has("travel")}
-            onShareChange={(enabled) => {
-              setSharedFields((prev) => {
-                const next = new Set(prev);
-                if (enabled) {
-                  next.add("travel");
-                } else {
-                  next.delete("travel");
-                }
-                return next;
-              });
-            }}
-            appliedTo={appliedTo}
-          />
-
           <WorkTimeForm
             value={workTime}
             onChange={setWorkTime}

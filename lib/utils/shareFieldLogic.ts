@@ -19,7 +19,12 @@ export function shouldShareByDefault(appliedTo: string[]): boolean {
  */
 export function getInitialSharedFields(
   appliedTo: string[],
-  allFieldTypes: string[] = ["travel", "worktime", "accommodation", "additional"],
+  allFieldTypes: string[] = [
+    "travel",
+    "worktime",
+    "accommodation",
+    "additional",
+  ],
 ): Set<string> {
   if (appliedTo.length === 0) {
     return new Set();
@@ -37,7 +42,12 @@ export function getInitialSharedFields(
 export function updateSharedFieldsOnAppliedToChange(
   currentSharedFields: Set<string>,
   appliedTo: string[],
-  allFieldTypes: string[] = ["travel", "worktime", "accommodation", "additional"],
+  allFieldTypes: string[] = [
+    "travel",
+    "worktime",
+    "accommodation",
+    "additional",
+  ],
 ): Set<string> {
   if (appliedTo.length === 0) {
     // If no colleagues selected, unshare all fields
@@ -52,4 +62,3 @@ export function updateSharedFieldsOnAppliedToChange(
   });
   return newSet;
 }
-

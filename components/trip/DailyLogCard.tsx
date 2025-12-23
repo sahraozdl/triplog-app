@@ -1,6 +1,5 @@
 import { User, Users, Edit, Trash2 } from "lucide-react";
 import {
-  TravelSection,
   WorkSection,
   AccommodationSection,
   AdditionalSection,
@@ -16,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  TravelLog,
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
@@ -30,7 +28,6 @@ interface GroupedLog {
   userId: string;
   isGroup: boolean;
   appliedTo: string[];
-  travels: TravelLog[];
   works: WorkTimeLog[];
   accommodations: AccommodationLog[];
   additionals: AdditionalLog[];
@@ -61,7 +58,6 @@ export default function DailyLogCard({
     loadingNames ? "..." : userNames[id] || "Unknown";
 
   const firstLogId =
-    group.travels[0]?._id ||
     group.works[0]?._id ||
     group.accommodations[0]?._id ||
     group.additionals[0]?._id;
@@ -107,16 +103,16 @@ export default function DailyLogCard({
         {/* ACTION BUTTONS */}
         {firstLogId && (
           <div className="absolute top-2 right-2 z-10 flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2 h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
-                onClick={handleEdit}
-                title="Edit Log Group"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-        
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2 h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
+              onClick={handleEdit}
+              title="Edit Log Group"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -184,7 +180,6 @@ export default function DailyLogCard({
 
         {/* RIGHT: CONTENT SECTIONS */}
         <div className="flex-1 p-6 space-y-8 bg-card">
-          <TravelSection logs={group.travels} />
           <WorkSection logs={group.works} />
           <AccommodationSection logs={group.accommodations} />
           <AdditionalSection logs={group.additionals} />

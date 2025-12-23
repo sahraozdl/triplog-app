@@ -11,7 +11,7 @@ import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
 import { TripInfoCard } from "@/components/trip/TripInfoCard";
 import { TripEditInline } from "@/components/trip/TripEditInline";
 import { formDataToPayload } from "@/components/trip/TripEditForm";
-import { Edit } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { TripFileUpload } from "@/components/trip/TripFileUpload";
 import { TripFilesList } from "@/components/trip/TripFilesList";
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown, FileText } from "lucide-react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { Travel } from "@/app/types/Travel";
+import { TravelCard } from "@/components/travel/TravelCard";
 
 type EditMode = "display" | "inline";
 
@@ -39,7 +41,10 @@ export default function TripDetailPage() {
 
   const trip = useTripStore((state) => state.getTrip(tripId as string));
   const [logs, setLogs] = useState<DailyLogFormState[]>([]);
+  const [travels, setTravels] = useState<Travel[]>([]);
   const [filesOpen, setFilesOpen] = useState(false);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [loadingNames, setLoadingNames] = useState(false);
 
   // Check if user can edit (creator or moderator)
   const canEdit =
@@ -69,11 +74,75 @@ export default function TripDetailPage() {
     }
   };
 
+  const fetchTravels = async () => {
+    try {
+      const res = await fetch(`/api/travels?tripId=${tripId}`);
+
+      if (!res.ok) {
+        console.error("Travels could not be fetched, Status:", res.status);
+        setTravels([]);
+        return;
+      }
+
+      const data = await res.json();
+      setTravels((data.travels || []) as Travel[]);
+    } catch (error) {
+      console.error("Failed to fetch travels:", error);
+      setTravels([]);
+    }
+  };
+
+  const fetchUserNames = async () => {
+    if (!trip?.attendants) return;
+
+    setLoadingNames(true);
+    try {
+      const userIds = new Set<string>();
+      logs.forEach((log) => {
+        userIds.add(log.userId);
+        log.appliedTo?.forEach((id) => userIds.add(id));
+      });
+      travels.forEach((travel) => {
+        userIds.add(travel.userId);
+        travel.appliedTo?.forEach((id) => userIds.add(id));
+      });
+
+      const names: Record<string, string> = {};
+      await Promise.all(
+        Array.from(userIds).map(async (userId) => {
+          try {
+            const res = await fetch(`/api/users/${userId}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.user) {
+                names[userId] = data.user.name || "Unknown";
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch user ${userId}:`, error);
+          }
+        }),
+      );
+      setUserNames(names);
+    } catch (error) {
+      console.error("Failed to fetch user names:", error);
+    } finally {
+      setLoadingNames(false);
+    }
+  };
+
   useEffect(() => {
     if (tripId) {
       fetchLogs();
+      fetchTravels();
     }
   }, [tripId]);
+
+  useEffect(() => {
+    if (logs.length > 0 || travels.length > 0) {
+      fetchUserNames();
+    }
+  }, [logs, travels]);
 
   async function handleEndTrip() {
     try {
@@ -305,12 +374,53 @@ export default function TripDetailPage() {
                 </Button>
               </div>
 
-              <Button
-                className="w-full sm:w-auto"
-                onClick={() => router.push(`/newDailyLog/${tripId}`)}
-              >
-                New Daily Log
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="flex-1 sm:flex-none"
+                  onClick={() => router.push(`/newTravel/${tripId}`)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Travel
+                </Button>
+                <Button
+                  className="flex-1 sm:flex-none"
+                  onClick={() => router.push(`/newDailyLog/${tripId}`)}
+                >
+                  New Daily Log
+                </Button>
+              </div>
+            </div>
+
+            {/* Travel Entries */}
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Travel Entries
+              </h2>
+
+              {travels.length === 0 ? (
+                <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
+                  <p className="text-muted-foreground text-sm">
+                    No travel entries recorded yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {travels.map((travel) => (
+                    <TravelCard
+                      key={travel._id.toString()}
+                      travel={travel}
+                      userNames={userNames}
+                      loadingNames={loadingNames}
+                      tripId={tripId as string}
+                      onDelete={fetchTravels}
+                      onEdit={(travel) => {
+                        router.push(`/editTravel/${travel._id}`);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Daily Logs */}

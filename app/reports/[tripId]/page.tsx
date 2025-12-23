@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   DailyLogFormState,
-  TravelLog,
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
   UploadedFile,
 } from "@/app/types/DailyLog";
+import { Travel } from "@/app/types/Travel";
 import { Trip } from "@/app/types/Trip";
 import { IAddress } from "@/app/types/user";
 import { Button } from "@/components/ui/button";
@@ -33,24 +33,28 @@ export default function ReportPage() {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [logs, setLogs] = useState<DailyLogFormState[]>([]);
+  const [travels, setTravels] = useState<Travel[]>([]);
   const [users, setUsers] = useState<UserDetail[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [tripRes, logsRes] = await Promise.all([
+        const [tripRes, logsRes, travelsRes] = await Promise.all([
           fetch(`/api/trips/${tripId}`),
           fetch(`/api/daily-logs?tripId=${tripId}`),
+          fetch(`/api/travels?tripId=${tripId}`),
         ]);
 
         const tripData = await tripRes.json();
         const logsData = await logsRes.json();
+        const travelsData = await travelsRes.json();
 
         if (!tripData.success) throw new Error("Trip not found");
 
         setTrip(tripData.trip);
         setLogs(logsData.logs || []);
+        setTravels(travelsData.travels || []);
 
         const attendantIds =
           tripData.trip.attendants?.map((a: { userId: string }) => a.userId) ||
@@ -126,7 +130,8 @@ export default function ReportPage() {
       // Each log belongs to one user (log.userId) since colleagues now have their own real logs
       const userId = log.userId;
       if (userId) {
-        if (!logsByDateUser[dateKey][userId]) logsByDateUser[dateKey][userId] = [];
+        if (!logsByDateUser[dateKey][userId])
+          logsByDateUser[dateKey][userId] = [];
         logsByDateUser[dateKey][userId].push(log);
       }
     });
@@ -252,7 +257,7 @@ export default function ReportPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Trip
         </Button>
         <div className="flex flex-wrap gap-2">
-          <DownloadReportButton trip={trip} logs={logs} />
+          <DownloadReportButton trip={trip} logs={logs} travels={travels} />
         </div>
       </div>
       <div className="max-w-[210mm] mx-auto bg-card border border-border shadow-lg rounded-xl p-8 md:p-12 print:shadow-none print:border-none print:p-0 print:max-w-none print:rounded-none">
@@ -390,28 +395,113 @@ export default function ReportPage() {
         </div>
 
         <div className="space-y-2">
-          <ModuleTable
-            title="1. Travel Records"
-            type="travel"
-            renderContent={(log) => {
-              const t = log as TravelLog;
-              return (
-                <div className="text-sm">
-                  <div className="font-semibold text-foreground mb-1">
-                    {t.travelReason || "Travel"}
-                  </div>
-                  <div className="text-muted-foreground">
-                    {t.departureLocation} ➝ {t.destination}
-                  </div>
-                  {t.distance && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Distance: {t.distance} km
-                    </div>
-                  )}
-                </div>
-              );
-            }}
-          />
+          {/* Travel Entries - Separate from DailyLog */}
+          {travels.length > 0 && (
+            <div className="mb-8 break-inside-avoid">
+              <h3 className="text-lg font-bold mb-3 text-primary flex items-center gap-2">
+                1. Travel Records
+              </h3>
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted text-muted-foreground uppercase text-xs">
+                    <tr>
+                      <th className="px-4 py-3 w-32 border-r border-border">
+                        Date
+                      </th>
+                      {users.map((u) => (
+                        <th
+                          key={u.id}
+                          className="px-4 py-3 border-r border-border last:border-none min-w-[200px]"
+                        >
+                          {u.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {Array.from(
+                      new Set(travels.map((t) => t.dateTime.split("T")[0])),
+                    )
+                      .sort()
+                      .map((date) => (
+                        <tr
+                          key={date}
+                          className="hover:bg-muted/50 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-medium bg-muted/20 border-r border-border align-top">
+                            {new Date(date).toLocaleDateString()}
+                          </td>
+                          {users.map((user) => {
+                            const userTravels = travels.filter(
+                              (t) =>
+                                t.dateTime.split("T")[0] === date &&
+                                (t.userId === user.id ||
+                                  (t.appliedTo &&
+                                    t.appliedTo.includes(user.id))),
+                            );
+
+                            return (
+                              <td
+                                key={user.id}
+                                className="px-4 py-3 border-r border-border last:border-none align-top"
+                              >
+                                {userTravels.length > 0 ? (
+                                  <div className="space-y-4">
+                                    {userTravels.map((travel, idx) => (
+                                      <div key={idx} className="space-y-1">
+                                        <div className="text-sm">
+                                          <div className="font-semibold text-foreground mb-1">
+                                            {travel.travelReason || "Travel"}
+                                          </div>
+                                          <div className="text-muted-foreground">
+                                            {travel.departureLocation || "?"} ➝{" "}
+                                            {travel.destination || "?"}
+                                          </div>
+                                          {travel.distance && (
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              Distance: {travel.distance} km
+                                            </div>
+                                          )}
+                                        </div>
+                                        {travel.files &&
+                                          travel.files.length > 0 && (
+                                            <div className="mt-2">
+                                              {travel.files.map(
+                                                (file, fileIdx) => (
+                                                  <a
+                                                    key={fileIdx}
+                                                    href={file.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-primary hover:underline block"
+                                                  >
+                                                    {file.name}
+                                                  </a>
+                                                ),
+                                              )}
+                                            </div>
+                                          )}
+                                        {idx !== userTravels.length - 1 && (
+                                          <hr className="my-2 border-dashed border-border" />
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground/30">
+                                    -
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <ModuleTable
             title="2. Work Time Records"

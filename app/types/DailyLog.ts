@@ -23,18 +23,7 @@ export interface BaseLog {
   createdAt: string;
   updatedAt: string;
 
-  itemType: "travel" | "worktime" | "accommodation" | "additional";
-}
-export interface TravelLog extends BaseLog {
-  itemType: "travel";
-  travelReason: string;
-  vehicleType: string;
-  departureLocation: string;
-  destination: string;
-  distance: number | null;
-  isRoundTrip: boolean;
-  startTime: string;
-  endTime: string;
+  itemType: "worktime" | "accommodation" | "additional";
 }
 export interface WorkTimeLog extends BaseLog {
   itemType: "worktime";
@@ -72,8 +61,4 @@ export interface AdditionalLog extends BaseLog {
   notes: string;
   uploadedFiles: UploadedFile[];
 }
-export type DailyLogFormState =
-  | TravelLog
-  | WorkTimeLog
-  | AccommodationLog
-  | AdditionalLog;
+export type DailyLogFormState = WorkTimeLog | AccommodationLog | AdditionalLog;

@@ -1,9 +1,4 @@
-import {
-  TravelLog,
-  WorkTimeLog,
-  AccommodationLog,
-  AdditionalLog,
-} from "./DailyLog";
+import { WorkTimeLog, AccommodationLog, AdditionalLog } from "./DailyLog";
 
 type FormState<T> = Omit<
   T,
@@ -19,8 +14,6 @@ type FormState<T> = Omit<
   | "dateTime"
   | "itemType"
 >;
-
-export type TravelFormState = FormState<TravelLog>;
 
 export type WorkTimeFormState = FormState<WorkTimeLog>;
 

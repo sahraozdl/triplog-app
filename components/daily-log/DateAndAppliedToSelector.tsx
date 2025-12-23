@@ -41,54 +41,57 @@ export function DateAndAppliedToSelector({
   return (
     <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-4 flex flex-col gap-2">
       <div className="flex flex-row justify-between w-full">
-      <div className="max-w-sm w-full relative">
-        <Label
-          htmlFor="logDate"
-          className="mb-2 block font-semibold text-foreground"
-        >
-          Date
-        </Label>
-        <div className="relative group">
-          <Input
-            id="logDate"
-            type="date"
-            onClick={(e) => e.currentTarget.showPicker()}
-            value={toInputDateValue(selectedDate)}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (!val) {
-                onDateChange("");
-                return;
-              }
-              const [year, month, day] = val.split("-").map(Number);
-              const safeDate = new Date(year, month - 1, day, 12, 0, 0);
-              onDateChange(safeDate.toISOString().split("T")[0]);
-            }}
-            className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
-          />
-          <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
-        </div>
-      </div>
-
-      {attendants.length > 0 && (
-        <div className="max-w-sm w-full flex flex-col">
-          <Label className="mb-2 block font-semibold text-foreground">
-            Apply To
+        <div className="max-w-sm w-full relative">
+          <Label
+            htmlFor="logDate"
+            className="mb-2 block font-semibold text-foreground"
+          >
+            Date
           </Label>
-
-          <InviteColleaguesDialog
-            mode="select"
-            attendants={attendants.map((a) => a.userId)}
-            open={inviteOpen}
-            onOpenChange={onInviteOpenChange}
-            selected={appliedTo}
-            onSelect={onAppliedToChange}
-            excludedUserIds={excludedUserIds}
-            ownerUserId={ownerUserId}
-          />
+          <div className="relative group">
+            <Input
+              id="logDate"
+              type="date"
+              onClick={(e) => e.currentTarget.showPicker()}
+              value={toInputDateValue(selectedDate)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) {
+                  onDateChange("");
+                  return;
+                }
+                const [year, month, day] = val.split("-").map(Number);
+                const safeDate = new Date(year, month - 1, day, 12, 0, 0);
+                onDateChange(safeDate.toISOString().split("T")[0]);
+              }}
+              className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
+            />
+            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
+          </div>
         </div>
-      )}</div>
-      <p className="text-xs text-muted-foreground mt-2 max-w-md ">{appliedTo.length} colleagues selected.</p>
+
+        {attendants.length > 0 && (
+          <div className="max-w-sm w-full flex flex-col">
+            <Label className="mb-2 block font-semibold text-foreground">
+              Apply To
+            </Label>
+
+            <InviteColleaguesDialog
+              mode="select"
+              attendants={attendants.map((a) => a.userId)}
+              open={inviteOpen}
+              onOpenChange={onInviteOpenChange}
+              selected={appliedTo}
+              onSelect={onAppliedToChange}
+              excludedUserIds={excludedUserIds}
+              ownerUserId={ownerUserId}
+            />
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mt-2 max-w-md ">
+        {appliedTo.length} colleagues selected.
+      </p>
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   DailyLogFormState,
-  TravelLog,
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
@@ -21,7 +20,6 @@ export interface GroupedLog {
   userId: string;
   isGroup: boolean;
   appliedTo: string[];
-  travels: TravelLog[];
   works: WorkTimeLog[];
   accommodations: AccommodationLog[];
   additionals: AdditionalLog[];
@@ -56,7 +54,6 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
         userId: userId,
         isGroup: log.isGroupSource || false,
         appliedTo: log.appliedTo || [],
-        travels: [],
         works: [],
         accommodations: [],
         additionals: [],
@@ -66,8 +63,7 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
     const group = groups[groupKey];
     const type = (log.itemType || "additional").toLowerCase();
 
-    if (type === "travel") group.travels.push(log as TravelLog);
-    else if (type === "accommodation")
+    if (type === "accommodation")
       group.accommodations.push(log as AccommodationLog);
     else group.additionals.push(log as AdditionalLog);
   });
@@ -95,7 +91,6 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
         userId: userId,
         isGroup: log.isGroupSource || false,
         appliedTo: log.appliedTo || [],
-        travels: [],
         works: [],
         accommodations: [],
         additionals: [],

@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import {
   DailyLogFormState,
-  TravelLog,
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
   UploadedFile,
 } from "@/app/types/DailyLog";
+import { Travel } from "@/app/types/Travel";
 import { Trip } from "@/app/types/Trip";
 import { PDFTableRow } from "@/app/types/PDFTable";
 import { robotoBase64 } from "@/lib/fonts";
@@ -23,9 +23,10 @@ import { useAppUser } from "@/components/providers/AppUserProvider";
 interface Props {
   trip: Trip;
   logs: DailyLogFormState[];
+  travels?: Travel[];
 }
 
-export function DownloadReportButton({ trip, logs }: Props) {
+export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
   const [generating, setGenerating] = useState(false);
   const user = useAppUser();
 
@@ -106,10 +107,8 @@ export function DownloadReportButton({ trip, logs }: Props) {
         a.overnightStay === "yes" && a.accommodationCoveredBy === "private",
     ).length;
 
-    const travelLogs = logs.filter(
-      (l) => l.itemType === "travel",
-    ) as TravelLog[];
-    const totalKm = travelLogs.reduce((sum, t) => {
+    // Use Travel entries instead of travel logs from DailyLog
+    const totalKm = travels.reduce((sum, t) => {
       const distance = typeof t.distance === "number" ? t.distance : 0;
       return sum + distance;
     }, 0);
@@ -220,7 +219,8 @@ export function DownloadReportButton({ trip, logs }: Props) {
         // Each log belongs to one user (log.userId) since colleagues now have their own real logs
         const userId = log.userId;
         if (userId) {
-          if (!logsByDateUser[dateKey][userId]) logsByDateUser[dateKey][userId] = [];
+          if (!logsByDateUser[dateKey][userId])
+            logsByDateUser[dateKey][userId] = [];
           logsByDateUser[dateKey][userId].push(log);
         }
       });
@@ -358,10 +358,70 @@ export function DownloadReportButton({ trip, logs }: Props) {
       currentY = (doc as any).lastAutoTable.finalY + 15;
     };
 
-    await drawModuleTable("travel", "1. Travel Records", (log) => {
-      const t = log as TravelLog;
-      return `Reason: ${t.travelReason || "-"}\nRoute: ${t.departureLocation || "?"} -> ${t.destination || "?"}\nDistance: ${t.distance} km`;
-    });
+    // Draw Travel entries separately (not from DailyLog)
+    if (travels.length > 0) {
+      const travelRows: PDFTableRow[] = [];
+      const travelDates = Array.from(
+        new Set(travels.map((t) => t.dateTime.split("T")[0])),
+      ).sort();
+
+      for (const date of travelDates) {
+        const dateTravels = travels.filter(
+          (t) => t.dateTime.split("T")[0] === date,
+        );
+        const rowData: (string | number)[] = [
+          new Date(date).toLocaleDateString(),
+        ];
+
+        for (const user of users) {
+          const userTravels = dateTravels.filter(
+            (t) =>
+              t.userId === user.id ||
+              (t.appliedTo && t.appliedTo.includes(user.id)),
+          );
+          if (userTravels.length > 0) {
+            const travelText = userTravels
+              .map(
+                (t) =>
+                  `Reason: ${t.travelReason || "-"}\nRoute: ${t.departureLocation || "?"} -> ${t.destination || "?"}\nDistance: ${t.distance || 0} km`,
+              )
+              .join("\n\n");
+            rowData.push(travelText);
+          } else {
+            rowData.push("");
+          }
+        }
+        travelRows.push(rowData);
+      }
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Date", ...users.map((u) => u.name)]],
+        body: travelRows,
+        theme: "grid",
+        pageBreak: "auto",
+        rowPageBreak: "avoid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+          valign: "top",
+          overflow: "linebreak",
+          font: robotoBase64 ? "MyCustomFont" : "helvetica",
+        },
+        columnStyles: { 0: { cellWidth: 25 } },
+        headStyles: {
+          fillColor: [70, 58, 128],
+          fontSize: 9,
+          textColor: 255,
+          fontStyle: "normal",
+          font: robotoBase64 ? "MyCustomFont" : "helvetica",
+        },
+      });
+
+      currentY =
+        (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+          .finalY + 15;
+    }
 
     await drawModuleTable("worktime", "2. Work Time Records", (log) => {
       const w = log as WorkTimeLog;

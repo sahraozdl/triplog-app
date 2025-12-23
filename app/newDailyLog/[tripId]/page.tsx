@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import TravelForm from "@/components/forms/TravelForm";
 import WorkTimeForm, {
   WorkTimeOverride,
 } from "@/components/forms/WorkTimeForm";
@@ -20,7 +19,6 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { UploadedFile } from "@/app/types/DailyLog";
 import {
-  TravelFormState,
   WorkTimeFormState,
   AccommodationFormState,
   AdditionalFormState,
@@ -70,17 +68,6 @@ export default function DailyLogPage() {
   const [isSaving, setIsSaving] = useState(false);
   const { toasts, showToast, removeToast } = useToast();
 
-  const [travel, setTravel] = useState<TravelFormState>({
-    travelReason: "",
-    vehicleType: "",
-    departureLocation: "",
-    destination: "",
-    distance: null,
-    isRoundTrip: false,
-    startTime: "",
-    endTime: "",
-  });
-
   const [workTime, setWorkTime] = useState<WorkTimeFormState>({
     startTime: "",
     endTime: "",
@@ -126,11 +113,7 @@ export default function DailyLogPage() {
 
   const createLogRequest = (
     itemType: string,
-    data:
-      | TravelFormState
-      | WorkTimeFormState
-      | AccommodationFormState
-      | AdditionalFormState,
+    data: WorkTimeFormState | AccommodationFormState | AdditionalFormState,
     isoDate: string,
     files: UploadedFile[] = [],
   ) => {
@@ -170,18 +153,6 @@ export default function DailyLogPage() {
     const requests: Promise<Response>[] = [];
 
     const forms = [
-      {
-        type: "travel" as const,
-        data: travel,
-        isFilled:
-          travel.travelReason ||
-          travel.vehicleType ||
-          travel.destination ||
-          travel.departureLocation ||
-          (travel.distance && travel.distance > 0) ||
-          travel.startTime ||
-          travel.endTime,
-      },
       {
         type: "worktime" as const,
         data: workTime,
@@ -329,37 +300,7 @@ export default function DailyLogPage() {
             onSubmit={saveDailyLog}
             className="flex flex-col gap-6"
           >
-            <TravelForm
-              value={travel}
-              onChange={setTravel}
-              onAddMapImage={(file) => {
-                setAdditional((prev) => {
-                  // Check if file already exists to avoid duplicates
-                  if (prev.uploadedFiles.find((f) => f.url === file.url)) {
-                    return prev;
-                  }
-                  return {
-                    ...prev,
-                    uploadedFiles: [...prev.uploadedFiles, file],
-                  };
-                });
-              }}
-              shareEnabled={sharedFields.has("travel")}
-              onShareChange={(enabled) => {
-                setSharedFields((prev) => {
-                  const next = new Set(prev);
-                  if (enabled) {
-                    next.add("travel");
-                  } else {
-                    next.delete("travel");
-                  }
-                  return next;
-                });
-              }}
-              appliedTo={appliedTo}
-            />
-
-            {/* UPDATED WORK TIME FORM CALL */}
+            {/* WORK TIME FORM */}
             <WorkTimeForm
               value={workTime}
               onChange={setWorkTime}

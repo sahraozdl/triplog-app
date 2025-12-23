@@ -35,9 +35,7 @@ export default function SelectView({
   const filteredAttendants = useMemo(() => {
     return attendants.filter(
       (id) =>
-        id !== user?.userId &&
-        id !== ownerUserId &&
-        !excludedUserIds.has(id),
+        id !== user?.userId && id !== ownerUserId && !excludedUserIds.has(id),
     );
   }, [attendants, user?.userId, ownerUserId, excludedUserIds]);
 
@@ -47,9 +45,7 @@ export default function SelectView({
     () =>
       attendants.filter(
         (id) =>
-          id !== user?.userId &&
-          id !== ownerUserId &&
-          excludedUserIds.has(id),
+          id !== user?.userId && id !== ownerUserId && excludedUserIds.has(id),
       ),
     [attendants, user?.userId, ownerUserId, excludedUserIds],
   );
@@ -65,7 +61,7 @@ export default function SelectView({
 
     // Fetch names for both selectable and excluded users
     const allUserIds = [...filteredAttendants, ...excludedUsers];
-    
+
     if (!allUserIds.length) {
       setLoading(false);
       return;
@@ -204,9 +200,7 @@ export default function SelectView({
                           </span>
                         </div>
                       </div>
-                      {isSelected && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
+                      {isSelected && <Check className="h-4 w-4 text-primary" />}
                     </div>
                   );
                 })}

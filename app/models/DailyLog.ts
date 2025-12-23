@@ -41,17 +41,6 @@ dailyLogBaseSchema.pre("save", function (next) {
   next();
 });
 
-const travelSchema = new Schema({
-  travelReason: String,
-  vehicleType: String,
-  departureLocation: String,
-  destination: String,
-  distance: Number,
-  isRoundTrip: Boolean,
-  startTime: String,
-  endTime: String,
-});
-
 const workTimeSchema = new Schema({
   startTime: String,
   endTime: String,
@@ -81,15 +70,12 @@ if (mongoose.models.DailyLog) {
 } else {
   DailyLog = mongoose.model("DailyLog", dailyLogBaseSchema);
 
-  DailyLog.discriminator("travel", travelSchema);
   DailyLog.discriminator("worktime", workTimeSchema);
   DailyLog.discriminator("accommodation", accommodationSchema);
   DailyLog.discriminator("additional", additionalSchema);
 }
 
 export { DailyLog };
-export const TravelLog =
-  mongoose.models.Travel || DailyLog.discriminators?.travel;
 export const WorkTimeLog =
   mongoose.models.WorkTime || DailyLog.discriminators?.worktime;
 export const AccommodationLog =
