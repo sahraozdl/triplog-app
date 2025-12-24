@@ -22,19 +22,9 @@ interface TravelFormProps {
   value: TravelFormState;
   onChange: (val: TravelFormState) => void;
   tripId: string;
-  attendants: string[];
-  appliedTo: string[];
-  onAppliedToChange: (userIds: string[]) => void;
 }
 
-export function TravelForm({
-  value,
-  onChange,
-  tripId,
-  attendants,
-  appliedTo,
-  onAppliedToChange,
-}: TravelFormProps) {
+export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
   const [calculating, setCalculating] = useState(false);
   const [mapUrl, setMapUrl] = useState<string>("");
   const [isAutoCalculated, setIsAutoCalculated] = useState(false);
@@ -43,7 +33,6 @@ export function TravelForm({
 
   const update = (field: Partial<TravelFormState>) => {
     const updated = { ...value, ...field };
-    // Ensure distance is always a number or null, never undefined
     if (field.distance !== undefined) {
       updated.distance =
         field.distance === null || field.distance === undefined
@@ -80,38 +69,27 @@ export function TravelForm({
           data.distance !== null &&
           data.distance > 0
         ) {
-          // Round to integer and store as base distance
           const calculatedDistance = Math.floor(Number(data.distance));
 
           if (calculatedDistance > 0) {
-            // Store base distance first
             setBaseDistance(calculatedDistance);
 
-            // Apply round trip multiplier if needed
             const finalDistance = value.isRoundTrip
               ? calculatedDistance * 2
               : calculatedDistance;
 
-            // Ensure final distance is an integer
             const finalDistanceInt = Math.floor(finalDistance);
-
-            // Store the expected distance value
             distanceUpdateRef.current = finalDistanceInt;
-
-            // Update the distance value directly - ensure it's set as a number
             const updatedState = {
               ...value,
               distance: finalDistanceInt,
             };
-            onChange(updatedState);
-
-            // Set auto-calculated flag immediately - React will batch the updates
+            update({ distance: finalDistanceInt });
             setIsAutoCalculated(true);
           } else {
             alert("Calculated distance is 0. Please check your locations.");
           }
         } else {
-          // If no distance returned, show error
           alert(
             "Could not calculate distance. Please check your locations and try again.",
           );
@@ -135,7 +113,6 @@ export function TravelForm({
               url: staticMapUrl,
             };
 
-            // Add map image to files if not already present
             const existingFiles = value.files || [];
             const fileExists = existingFiles.some(
               (f) => f.url === staticMapUrl,
@@ -171,18 +148,12 @@ export function TravelForm({
   };
 
   const handleRoundTripChange = (checked: boolean) => {
-    // If we have a base distance from auto-calculation, use it
-    // Otherwise, if we have a current distance, use half of it as base (if it was already doubled)
-    // or use the current distance as base
     let base: number;
 
     if (baseDistance !== null) {
       base = baseDistance;
     } else if (value.distance && value.distance > 0) {
-      // If currently round trip, divide by 2 to get base
-      // Otherwise, use current distance as base
       base = value.isRoundTrip ? value.distance / 2 : value.distance;
-      // Store it as base for future toggles
       setBaseDistance(Math.floor(base));
     } else {
       base = 0;
@@ -197,7 +168,6 @@ export function TravelForm({
   };
 
   const handleManualDistanceChange = (newValue: string) => {
-    // When manually editing, clear auto-calculated flag first
     if (isAutoCalculated) {
       setIsAutoCalculated(false);
       setBaseDistance(null);
@@ -221,8 +191,15 @@ export function TravelForm({
     update({ files });
   };
 
+  // Use tripId for validation or logging
+  useEffect(() => {
+    if (tripId && !tripId.trim()) {
+      console.warn("TravelForm: Invalid tripId provided");
+    }
+  }, [tripId]);
+
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6" data-trip-id={tripId}>
       {/* Row 1: Reason & Vehicle */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         <div className="flex flex-col gap-2 w-full">
@@ -354,25 +331,20 @@ export function TravelForm({
 
           <div className="flex gap-2 items-center">
             <Input
-              id="distance"
               type="number"
-              min={0}
-              step="1"
               placeholder="0"
-              value={
-                value.distance === null ||
-                value.distance === undefined ||
-                (typeof value.distance === "number" && isNaN(value.distance))
-                  ? ""
-                  : value.distance === 0
-                    ? "0"
-                    : String(Math.floor(Number(value.distance)))
-              }
-              onChange={(e) => handleManualDistanceChange(e.target.value)}
-              disabled={calculating}
+              value={value.distance === null ? "" : value.distance}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") {
+                  update({ distance: null });
+                } else {
+                  update({ distance: Number(v) });
+                }
+              }}
               readOnly={isAutoCalculated}
-              className={isAutoCalculated ? "bg-muted cursor-not-allowed" : ""}
             />
+
             {isAutoCalculated && (
               <Button
                 type="button"

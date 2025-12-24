@@ -8,7 +8,7 @@ interface ShareFieldToggleProps {
   onCheckedChange: (checked: boolean) => void;
   label?: string;
   disabled?: boolean;
-  appliedTo?: string[]; // Selected colleagues
+  appliedTo?: string[];
 }
 
 export function ShareFieldToggle({
@@ -18,7 +18,6 @@ export function ShareFieldToggle({
   disabled = false,
   appliedTo = [],
 }: ShareFieldToggleProps) {
-  // Disable toggle if no colleagues are selected
   const isDisabled = disabled || appliedTo.length === 0;
 
   return (
@@ -29,12 +28,7 @@ export function ShareFieldToggle({
           : "bg-muted/30 border-border"
       }`}
     >
-      <Label
-        htmlFor="share-field-toggle"
-        className={`text-sm font-semibold cursor-pointer transition-colors ${
-          checked ? "text-primary" : "text-foreground"
-        }`}
-      >
+      <Label htmlFor="share-field-toggle" variant="form">
         {label}
       </Label>
       <Switch

@@ -27,6 +27,7 @@ const buttonVariants = cva(
         icon: "size-9",
         "icon-sm": "size-8",
         "icon-lg": "size-10",
+        "action-sm": "h-7 text-xs",
       },
     },
     defaultVariants: {
@@ -36,22 +37,44 @@ const buttonVariants = cva(
   },
 );
 
+const actionButtonVariants = cva("", {
+  variants: {
+    actionType: {
+      default: "",
+      undo: "text-muted-foreground hover:bg-muted",
+      ai: "text-primary hover:bg-primary/10",
+    },
+  },
+  defaultVariants: {
+    actionType: "default",
+  },
+});
+
+interface ButtonProps
+  extends React.ComponentProps<"button">,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+  actionType?: "default" | "undo" | "ai";
+}
+
 function Button({
   className,
   variant,
   size,
+  actionType = "default",
   asChild = false,
   ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
+}: ButtonProps) {
   const Comp = asChild ? Slot : "button";
 
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(
+        buttonVariants({ variant, size }),
+        actionType !== "default" && actionButtonVariants({ actionType }),
+        className,
+      )}
       {...props}
     />
   );

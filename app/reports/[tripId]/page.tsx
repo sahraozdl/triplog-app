@@ -395,97 +395,172 @@ export default function ReportPage() {
         </div>
 
         <div className="space-y-2">
-          {/* Travel Entries - Separate from DailyLog */}
+          {/* Travel Entries - Grouped by Date */}
           {travels.length > 0 && (
             <div className="mb-8 break-inside-avoid">
               <h3 className="text-lg font-bold mb-3 text-primary flex items-center gap-2">
                 1. Travel Records
               </h3>
-              <div className="overflow-x-auto rounded-md border border-border">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-muted text-muted-foreground uppercase text-xs">
-                    <tr>
-                      <th className="px-4 py-3 w-32 border-r border-border">
-                        Date
-                      </th>
-                      {users.map((u) => (
-                        <th
-                          key={u.id}
-                          className="px-4 py-3 border-r border-border last:border-none min-w-[200px]"
-                        >
-                          {u.name}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {Array.from(
-                      new Set(travels.map((t) => t.dateTime.split("T")[0])),
-                    )
-                      .sort()
-                      .map((date) => (
-                        <tr
-                          key={date}
-                          className="hover:bg-muted/50 transition-colors"
-                        >
-                          <td className="px-4 py-3 font-medium bg-muted/20 border-r border-border align-top">
-                            {new Date(date).toLocaleDateString()}
-                          </td>
-                          {users.map((user) => {
-                            const userTravels = travels.filter(
-                              (t) =>
-                                t.dateTime.split("T")[0] === date &&
-                                (t.userId === user.id ||
-                                  (t.appliedTo &&
-                                    t.appliedTo.includes(user.id))),
-                            );
+              {(() => {
+                // Check if we need creator column globally
+                const allUserIds = new Set(travels.map((t) => t.userId));
+                const needsUserSeparation = allUserIds.size > 1;
 
-                            return (
-                              <td
-                                key={user.id}
-                                className="px-4 py-3 border-r border-border last:border-none align-top"
-                              >
-                                {userTravels.length > 0 ? (
-                                  <div className="space-y-4">
-                                    {userTravels.map((travel, idx) => (
-                                      <div key={idx} className="space-y-1">
-                                        <div className="text-sm">
-                                          <div className="font-semibold text-foreground mb-1">
-                                            {travel.travelReason || "Travel"}
-                                          </div>
-                                          <div className="text-muted-foreground">
-                                            {travel.departureLocation || "?"} ➝{" "}
-                                            {travel.destination || "?"}
-                                          </div>
-                                          {travel.distance && (
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              Distance: {travel.distance} km
-                                            </div>
-                                          )}
-                                        </div>
-                                        {travel.files &&
-                                          travel.files.length > 0 && (
-                                            <div className="mt-2">
-                                              {travel.files.map(
-                                                (file, fileIdx) => (
-                                                  <a
-                                                    key={fileIdx}
-                                                    href={file.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-xs text-primary hover:underline block"
-                                                  >
-                                                    {file.name}
-                                                  </a>
-                                                ),
-                                              )}
-                                            </div>
-                                          )}
-                                        {idx !== userTravels.length - 1 && (
-                                          <hr className="my-2 border-dashed border-border" />
-                                        )}
+                // Get user names map
+                const userNamesMap: Record<string, string> = {};
+                users.forEach((u) => {
+                  userNamesMap[u.id] = u.name;
+                });
+
+                const dates = Array.from(
+                  new Set(travels.map((t) => t.dateTime.split("T")[0])),
+                ).sort();
+
+                return (
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-muted text-muted-foreground uppercase text-xs">
+                        <tr>
+                          <th className="px-4 py-3 w-32 border-r border-border">
+                            Date
+                          </th>
+                          <th className="px-4 py-3 border-r border-border min-w-[300px]">
+                            Travel Details
+                          </th>
+                          {needsUserSeparation && (
+                            <th className="px-4 py-3 border-r border-border min-w-[200px]">
+                              Creator
+                            </th>
+                          )}
+                          <th className="px-4 py-3 last:border-none min-w-[250px]">
+                            Images
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {dates.map((date) => {
+                          const dateTravels = travels.filter(
+                            (t) => t.dateTime.split("T")[0] === date,
+                          );
+
+                          return dateTravels.map((travel, travelIdx) => (
+                            <tr
+                              key={`${date}-${travelIdx}`}
+                              className="hover:bg-muted/50 transition-colors"
+                            >
+                              {travelIdx === 0 && (
+                                <td
+                                  rowSpan={dateTravels.length}
+                                  className="px-4 py-3 font-medium bg-muted/20 border-r border-border align-top"
+                                >
+                                  {new Date(date).toLocaleDateString()}
+                                </td>
+                              )}
+                              <td className="px-4 py-3 border-r border-border align-top">
+                                <div className="space-y-2">
+                                  <div className="font-semibold text-foreground">
+                                    {travel.travelReason || "Travel"}
+                                  </div>
+                                  <div className="text-muted-foreground text-sm">
+                                    <div>
+                                      {travel.departureLocation || "?"} ➝{" "}
+                                      {travel.destination || "?"}
+                                    </div>
+                                    {travel.distance && (
+                                      <div className="mt-1">
+                                        Distance: {travel.distance} km
+                                        {travel.isRoundTrip && " (Round Trip)"}
                                       </div>
-                                    ))}
+                                    )}
+                                    {(travel.startTime || travel.endTime) && (
+                                      <div className="mt-1 text-xs">
+                                        {travel.startTime && travel.endTime
+                                          ? `${travel.startTime} - ${travel.endTime}`
+                                          : travel.startTime || travel.endTime}
+                                      </div>
+                                    )}
+                                    {travel.vehicleType && (
+                                      <div className="mt-1 text-xs capitalize">
+                                        Vehicle:{" "}
+                                        {travel.vehicleType.replace("-", " ")}
+                                      </div>
+                                    )}
+                                    {(() => {
+                                      const allAttendants = [
+                                        travel.userId,
+                                        ...(travel.appliedTo || []),
+                                      ];
+                                      const uniqueAttendants = Array.from(
+                                        new Set(allAttendants),
+                                      );
+                                      if (uniqueAttendants.length > 0) {
+                                        return (
+                                          <div className="mt-1 text-xs">
+                                            Attendants:{" "}
+                                            {uniqueAttendants
+                                              .map(
+                                                (id) =>
+                                                  userNamesMap[id] || "Unknown",
+                                              )
+                                              .join(", ")}
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                  </div>
+                                </div>
+                              </td>
+                              {needsUserSeparation && (
+                                <td className="px-4 py-3 border-r border-border align-top">
+                                  <div className="text-sm">
+                                    {userNamesMap[travel.userId] ||
+                                      "Unknown User"}
+                                  </div>
+                                </td>
+                              )}
+                              <td className="px-4 py-3 align-top">
+                                {travel.files && travel.files.length > 0 ? (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {travel.files.map((file, fileIdx) => {
+                                      const isImage =
+                                        file.type.startsWith("image/") ||
+                                        file.url.match(
+                                          /\.(jpeg|jpg|gif|png|webp)$/i,
+                                        );
+                                      if (isImage) {
+                                        return (
+                                          <div
+                                            key={fileIdx}
+                                            className="relative rounded-lg overflow-hidden border border-border bg-background"
+                                          >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                              src={file.url}
+                                              alt={file.name}
+                                              className="w-full h-auto max-h-32 object-contain"
+                                            />
+                                            <div className="absolute bottom-0 w-full bg-black/60 text-white text-[10px] p-1 truncate px-2">
+                                              {file.name}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                      return (
+                                        <a
+                                          key={fileIdx}
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 p-2 border border-border rounded hover:bg-accent transition-colors bg-card"
+                                        >
+                                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                                          <span className="truncate text-xs text-foreground underline decoration-dotted">
+                                            {file.name}
+                                          </span>
+                                        </a>
+                                      );
+                                    })}
                                   </div>
                                 ) : (
                                   <span className="text-muted-foreground/30">
@@ -493,13 +568,14 @@ export default function ReportPage() {
                                   </span>
                                 )}
                               </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
+                            </tr>
+                          ));
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

@@ -1,205 +1,147 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import { Travel } from "@/app/models/Travel";
-import mongoose, { FilterQuery } from "mongoose";
+import mongoose from "mongoose";
 import { requireAuth } from "@/lib/auth-utils";
 
-interface TravelFilterContext {
-  tripId: string;
-  userId?: string;
-  date?: string;
-}
-
 export async function POST(req: NextRequest) {
+  console.log("🟡 POST /api/travels called");
+
   const authResult = await requireAuth();
+  console.log("🟡 Auth result:", authResult);
+
   if (!authResult.success) {
+    console.error("🔴 Auth failed");
     return authResult.response;
   }
 
   try {
+    console.log("🟡 Connecting to DB...");
     await connectToDB();
-    const body = await req.json();
+    console.log("🟢 DB connected");
 
-    // Debug logging
-    console.log("Received body.files type:", typeof body.files);
-    console.log("Received body.files isArray:", Array.isArray(body.files));
-    if (typeof body.files === "string") {
-      console.log(
-        "Files is a string, first 200 chars:",
-        body.files.substring(0, 200),
-      );
-    }
+    console.log("🟡 Reading request body...");
+    const body = await req.json();
+    console.log("🟢 Raw body received:", body);
 
     if (!body.tripId) {
-      return NextResponse.json({ error: "tripId required" }, { status: 400 });
-    }
-
-    // Ensure files is always an array of objects
-    let files: Array<{
-      url: string;
-      name: string;
-      type: string;
-      size: number;
-    }> = [];
-
-    if (body.files !== undefined && body.files !== null) {
-      // Handle different input types
-      let filesToProcess: unknown = body.files;
-
-      // If it's a string, try to parse it first
-      if (typeof body.files === "string") {
-        try {
-          // Try to parse as JSON
-          const parsed = JSON.parse(body.files);
-          filesToProcess = parsed;
-          console.log(
-            "Successfully parsed files string, isArray:",
-            Array.isArray(parsed),
-          );
-        } catch (parseError) {
-          console.error("Failed to parse files string:", parseError);
-          // If JSON.parse fails, try to handle it as a string representation
-          // Sometimes the string might be a stringified array representation
-          try {
-            // Try eval as last resort (only in this specific case)
-            // Actually, let's not use eval - instead, try to manually parse
-            filesToProcess = [];
-          } catch {
-            filesToProcess = [];
-          }
-        }
-      }
-
-      // Now process as array
-      if (Array.isArray(filesToProcess)) {
-        files = filesToProcess
-          .filter((file: unknown) => {
-            const isValid =
-              typeof file === "object" &&
-              file !== null &&
-              "url" in file &&
-              "name" in file &&
-              "type" in file &&
-              "size" in file;
-            if (!isValid) {
-              console.log("Filtered out invalid file:", file);
-            }
-            return isValid;
-          })
-          .map(
-            (file: {
-              url: unknown;
-              name: unknown;
-              type: unknown;
-              size: unknown;
-            }) => ({
-              url: String(file.url || ""),
-              name: String(file.name || ""),
-              type: String(file.type || ""),
-              size: Number(file.size || 0),
-            }),
-          );
-        console.log("Processed files array length:", files.length);
-      } else {
-        console.log(
-          "filesToProcess is not an array, type:",
-          typeof filesToProcess,
-        );
-      }
-    } else {
-      console.log("body.files is undefined or null");
-    }
-
-    // Validate and prepare the travel data
-    // Ensure files is definitely an array before creating
-    if (!Array.isArray(files)) {
-      console.error(
-        "Files is not an array after processing, type:",
-        typeof files,
-        "value:",
-        files,
+      console.error("🔴 Validation failed: tripId missing", body);
+      return NextResponse.json(
+        { error: "tripId required", receivedBody: body },
+        { status: 400 },
       );
-      files = [];
     }
+
+    console.log("🟡 Normalizing travel data...");
 
     const travelData = {
       tripId: String(body.tripId),
       userId: String(body.userId),
       dateTime: String(body.dateTime),
-      appliedTo: Array.isArray(body.appliedTo)
-        ? body.appliedTo.map(String)
-        : [],
+
+      appliedTo: Array.isArray(body.appliedTo) ? body.appliedTo : [],
       isGroupSource: Boolean(body.isGroupSource),
+
       travelReason: String(body.travelReason || ""),
       vehicleType: String(body.vehicleType || ""),
       departureLocation: String(body.departureLocation || ""),
       destination: String(body.destination || ""),
+
       distance:
         body.distance !== undefined && body.distance !== null
           ? Number(body.distance)
           : null,
+
       isRoundTrip: Boolean(body.isRoundTrip),
       startTime: String(body.startTime || ""),
       endTime: String(body.endTime || ""),
-      files: files, // This must be an array of objects
+
+      files: Array.isArray(body.files) ? body.files : [],
       sealed: false,
     };
 
-    // Final validation before creating
-    console.log(
-      "About to create travel with files type:",
-      typeof travelData.files,
-      "isArray:",
-      Array.isArray(travelData.files),
-      "length:",
-      Array.isArray(travelData.files) ? travelData.files.length : "N/A",
-    );
+    console.log("🟢 travelData prepared:", travelData);
 
+    console.log("🟡 Creating Travel document...");
     const travel = await Travel.create(travelData);
 
+    console.log("🟢 Travel created successfully:", travel);
+
     return NextResponse.json({ success: true, travel });
-  } catch (error) {
-    console.error("POST Travel Error:", error);
+  } catch (error: any) {
+    console.error("🔴 POST Travel Error CAUGHT");
+
+    // 🔥 Mongoose validation error detayları
+    if (error?.name === "ValidationError") {
+      console.error("❌ Mongoose ValidationError");
+      console.error(
+        Object.values(error.errors).map((e: any) => ({
+          path: e.path,
+          message: e.message,
+          value: e.value,
+        })),
+      );
+
+      return NextResponse.json(
+        {
+          error: "ValidationError",
+          details: Object.values(error.errors).map((e: any) => ({
+            path: e.path,
+            message: e.message,
+            value: e.value,
+          })),
+        },
+        { status: 400 },
+      );
+    }
+
+    // 🔥 Cast error (files vs schema mismatch gibi)
+    if (error?.name === "CastError") {
+      console.error("❌ Mongoose CastError:", {
+        path: error.path,
+        value: error.value,
+        kind: error.kind,
+      });
+
+      return NextResponse.json(
+        {
+          error: "CastError",
+          path: error.path,
+          value: error.value,
+        },
+        { status: 400 },
+      );
+    }
+
+    // 🔥 Genel hata
+    console.error("❌ Unknown error:", error);
+
     return NextResponse.json(
-      { error: "Failed to create travel" },
+      {
+        error: "Failed to create travel",
+        rawError: error?.message,
+      },
       { status: 500 },
     );
   }
 }
 
 export async function GET(req: NextRequest) {
+  console.log("🟡 GET /api/travels called");
+
   const authResult = await requireAuth();
+  console.log("🟡 Auth result:", authResult);
   if (!authResult.success) {
+    console.error("🔴 Auth failed");
     return authResult.response;
   }
+  const { searchParams } = new URL(req.url);
+  const tripId = searchParams.get("tripId");
 
-  try {
-    await connectToDB();
-
-    const tripId = req.nextUrl.searchParams.get("tripId");
-    const userId = req.nextUrl.searchParams.get("userId");
-    const date = req.nextUrl.searchParams.get("date");
-
-    const filter: FilterQuery<TravelFilterContext> = {};
-
-    if (tripId) filter.tripId = tripId;
-
-    if (date) {
-      filter.dateTime = { $regex: new RegExp(`^${date}`) };
-    }
-
-    if (userId) {
-      filter.userId = userId;
-    }
-
-    const travels = await Travel.find(filter).sort({ dateTime: -1 }).lean();
-
-    return NextResponse.json({ success: true, travels });
-  } catch (error) {
-    console.error("GET Travel Error:", error);
-    return NextResponse.json(
-      { success: false, travels: [], error: "Failed to fetch travels" },
-      { status: 500 },
-    );
+  if (!tripId) {
+    return NextResponse.json({ error: "tripId is required" }, { status: 400 });
   }
+
+  const travels = await Travel.find({ tripId });
+  return NextResponse.json({ success: true, travels });
 }

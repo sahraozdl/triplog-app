@@ -2,56 +2,50 @@
 
 import { Trip } from "@/app/types/Trip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { isoToDateString } from "@/lib/utils/dateConversion";
-import { TripAttendant } from "@/app/types/Trip";
-import { useEffect, useState } from "react";
-import { User } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Users, Key, Info } from "lucide-react";
+import { fetchUserNamesData } from "@/lib/utils/fetchers";
+import { TripInfoCompactGrid } from "./TripInfoCompactGrid";
+import { TripLocationInfo } from "./TripLocationInfo";
+import { CollapsibleSection } from "./CollapsibleSection";
+import { TripAttendantsList } from "./TripAttendantsList";
+import { TripInvitesList } from "./TripInvitesList";
+import { TripMetadata } from "./TripMetadata";
 
 export function TripInfoCard({ trip }: { trip: Trip }) {
   const [attendantNames, setAttendantNames] = useState<Record<string, string>>(
     {},
   );
   const [loadingNames, setLoadingNames] = useState(true);
+  const userIds = useMemo(
+    () => trip.attendants?.map((a) => a.userId) || [],
+    [trip.attendants],
+  );
 
   useEffect(() => {
-    if (!trip.attendants || trip.attendants.length === 0) {
+    if (userIds.length === 0) {
       setLoadingNames(false);
+      setAttendantNames({});
       return;
     }
 
-    const fetchNames = async () => {
-      const ids = trip.attendants.map((a) => a.userId);
-      try {
-        const res = await fetch("/api/users/lookup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userIds: ids }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setAttendantNames(data.users || {});
+    setLoadingNames(true);
+    fetchUserNamesData(userIds)
+      .then((result) => {
+        if (result.success && result.users) {
+          setAttendantNames(result.users);
+        } else {
+          setAttendantNames({});
         }
-      } catch (err) {
-        console.error("Failed to load attendant names", err);
-      } finally {
+      })
+      .catch((error) => {
+        console.error("Failed to load attendant names", error);
+        setAttendantNames({});
+      })
+      .finally(() => {
         setLoadingNames(false);
-      }
-    };
-
-    fetchNames();
-  }, [trip.attendants]);
-
-  const formatDate = (isoString: string | undefined) => {
-    if (!isoString) return "—";
-    const dateStr = isoToDateString(isoString);
-    if (!dateStr) return "—";
-    const date = new Date(dateStr + "T12:00:00Z");
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+      });
+  }, [userIds]);
 
   const formatDateTime = (isoString: string | undefined) => {
     if (!isoString) return "—";
@@ -65,156 +59,62 @@ export function TripInfoCard({ trip }: { trip: Trip }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">{trip.basicInfo.title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Description */}
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl sm:text-2xl" id="trip-title">
+          {trip.basicInfo.title}
+        </CardTitle>
         {trip.basicInfo.description && (
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-              Description
-            </h3>
-            <p className="text-foreground">{trip.basicInfo.description}</p>
-          </div>
+          <p
+            className="text-sm text-muted-foreground mt-1"
+            aria-describedby="trip-title"
+          >
+            {trip.basicInfo.description}
+          </p>
         )}
+      </CardHeader>
+      <CardContent className="space-y-3 sm:space-y-4">
+        <TripInfoCompactGrid trip={trip} />
+        <TripLocationInfo trip={trip} />
 
-        {/* Dates */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-              Start Date
-            </h3>
-            <p className="text-foreground">
-              {formatDate(trip.basicInfo.startDate)}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-              End Date
-            </h3>
-            <p className="text-foreground">
-              {trip.basicInfo.endDate
-                ? formatDate(trip.basicInfo.endDate)
-                : "Ongoing"}
-            </p>
-          </div>
-        </div>
+        {/* Collapsible Sections */}
+        <div className="space-y-2 pt-2 border-t">
+          <CollapsibleSection
+            title="Attendants"
+            count={trip.attendants?.length || 0}
+            icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            id="attendants"
+          >
+            <TripAttendantsList
+              attendants={trip.attendants || []}
+              attendantNames={attendantNames}
+              loadingNames={loadingNames}
+            />
+          </CollapsibleSection>
 
-        {/* Location Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-              Departure Location
-            </h3>
-            <p className="text-foreground">
-              {trip.basicInfo.departureLocation || "—"}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-              Arrival Location
-            </h3>
-            <p className="text-foreground">
-              {trip.basicInfo.arrivalLocation || "—"}
-            </p>
-          </div>
-        </div>
+          <CollapsibleSection
+            title="Invites"
+            count={trip.invites?.length || 0}
+            icon={<Key className="h-4 w-4 text-muted-foreground" />}
+            id="invites"
+          >
+            <TripInvitesList
+              invites={trip.invites || []}
+              formatDateTime={formatDateTime}
+            />
+          </CollapsibleSection>
 
-        {/* Country & Resort */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-              Country
-            </h3>
-            <p className="text-foreground">{trip.basicInfo.country || "—"}</p>
-          </div>
-          {trip.basicInfo.resort && (
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-                Resort
-              </h3>
-              <p className="text-foreground">{trip.basicInfo.resort}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Status */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-            Status
-          </h3>
-          <p className="text-foreground capitalize">{trip.status}</p>
-        </div>
-
-        {/* Attendants */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Attendants ({trip.attendants?.length || 0})
-          </h3>
-          {!trip.attendants || trip.attendants.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No attendants</p>
-          ) : (
-            <div className="space-y-2">
-              {trip.attendants.map((attendant, index) => (
-                <div
-                  key={index}
-                  className="p-3 border rounded-lg bg-muted/30 flex items-center justify-between"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-foreground font-medium">
-                      {loadingNames
-                        ? "Loading..."
-                        : attendantNames[attendant.userId] || "Unknown User"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {attendant.role} • {attendant.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Invites */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-            Invites ({trip.invites?.length || 0})
-          </h3>
-          {!trip.invites || trip.invites.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No invites</p>
-          ) : (
-            <div className="space-y-2">
-              {trip.invites.map((invite, index) => (
-                <div
-                  key={index}
-                  className="p-3 border rounded-lg bg-muted/30 font-mono text-sm"
-                >
-                  <div className="text-foreground font-bold">{invite.code}</div>
-                  {invite.expiresAt && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Expires: {formatDateTime(invite.expiresAt)}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Metadata */}
-        <div className="pt-4 border-t space-y-1 text-sm text-muted-foreground">
-          <p>
-            <span className="font-medium text-foreground">Created:</span>{" "}
-            {formatDateTime(trip.createdAt)}
-          </p>
-          <p>
-            <span className="font-medium text-foreground">Updated:</span>{" "}
-            {formatDateTime(trip.updatedAt)}
-          </p>
+          <CollapsibleSection
+            title="Details"
+            icon={<Info className="h-4 w-4 text-muted-foreground" />}
+            id="metadata"
+          >
+            <TripMetadata
+              createdAt={trip.createdAt}
+              updatedAt={trip.updatedAt}
+              formatDateTime={formatDateTime}
+            />
+          </CollapsibleSection>
         </div>
       </CardContent>
     </Card>

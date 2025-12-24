@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import WorkTimeForm, {
   WorkTimeOverride,
-} from "@/components/forms/WorkTimeForm";
-import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
-import AdditionalForm from "@/components/forms/AdditionalForm";
+} from "@/components/workTime/WorkTimeForm";
+import AccommodationMealsForm from "@/components/accommodationMeal/AccommodationMealsForm";
+import AdditionalForm from "@/components/additional/AdditionalForm";
 import { Button } from "@/components/ui/button";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { DailyLogFormState } from "@/app/types/DailyLog";
@@ -28,7 +28,7 @@ import {
   transformLogToFormState,
   extractWorkTimeOverride,
 } from "@/lib/utils/logDataTransformers";
-import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
+import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
 import {
   WorkTimeLog,
   AccommodationLog,

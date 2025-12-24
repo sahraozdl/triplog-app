@@ -1,5 +1,4 @@
 import {
-  TravelLog,
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
@@ -47,65 +46,6 @@ function MealBadge({ label, meal }: { label: string; meal: MealFields }) {
       <span className="text-[10px] opacity-80 capitalize mt-0.5">
         {meal.coveredBy}
       </span>
-    </div>
-  );
-}
-
-export function TravelSection({ logs }: { logs: TravelLog[] }) {
-  if (logs.length === 0) return null;
-  return (
-    <div>
-      <SectionHeader title="Travel" icon={<Plane className="h-4 w-4" />} />
-      {logs.map((t) => (
-        <div
-          key={t._id.toString()}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4 last:mb-0 border-l-2 border-blue-500/20 pl-4 py-1"
-        >
-          <div className="col-span-1 sm:col-span-2 font-semibold text-foreground text-base">
-            {t.travelReason || "Travel"}
-          </div>
-
-          <div className="space-y-1">
-            <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
-              Route
-            </div>
-            <div className="flex items-center gap-1.5 text-foreground font-medium">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              {t.departureLocation}{" "}
-              <span className="text-muted-foreground">→</span> {t.destination}
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
-              Details
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="bg-muted px-2 py-0.5 rounded text-xs capitalize font-medium">
-                {t.vehicleType}
-              </span>
-              {t.distance && <span className="text-xs">{t.distance} km</span>}
-              {t.isRoundTrip && (
-                <span className="text-xs italic text-muted-foreground">
-                  (Round Trip)
-                </span>
-              )}
-            </div>
-          </div>
-
-          {(t.startTime || t.endTime) && (
-            <div className="space-y-1 col-span-1 sm:col-span-2">
-              <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
-                Time
-              </div>
-              <div className="flex items-center gap-1.5 font-medium">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                {t.startTime || "?"} - {t.endTime || "?"}
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
     </div>
   );
 }

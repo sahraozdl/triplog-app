@@ -5,12 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 
 import WorkTimeForm, {
   WorkTimeOverride,
-} from "@/components/forms/WorkTimeForm";
-import AccommodationMealsForm from "@/components/forms/AccommodationMealsForm";
-import AdditionalForm from "@/components/forms/AdditionalForm";
+} from "@/components/workTime/WorkTimeForm";
+import AccommodationMealsForm from "@/components/accommodationMeal/AccommodationMealsForm";
+import AdditionalForm from "@/components/additional/AdditionalForm";
 
 import { Button } from "@/components/ui/button";
-import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
+import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
@@ -25,7 +25,6 @@ import {
 } from "@/app/types/FormStates";
 import { Trip, TripAttendant } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
-import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
 import {
   getInitialSharedFields,
   updateSharedFieldsOnAppliedToChange,

@@ -11,12 +11,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TravelForm } from "./TravelForm";
-import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
+import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
 import { Travel, TravelFormState } from "@/app/types/Travel";
 import { TripAttendant } from "@/app/types/Trip";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Loader2 } from "lucide-react";
-import InviteColleaguesDialog from "@/components/form-elements/InviteColleaguesDialog";
 
 interface TravelDialogProps {
   open: boolean;
@@ -50,8 +49,6 @@ export function TravelDialog({
     isRoundTrip: false,
     startTime: "",
     endTime: "",
-    appliedTo: [],
-    isGroupSource: false,
     files: [],
   });
 
@@ -69,8 +66,6 @@ export function TravelDialog({
         isRoundTrip: travel.isRoundTrip || false,
         startTime: travel.startTime || "",
         endTime: travel.endTime || "",
-        appliedTo: travel.appliedTo || [],
-        isGroupSource: travel.isGroupSource || false,
         files: travel.files || [],
       });
     } else {
@@ -86,8 +81,6 @@ export function TravelDialog({
         isRoundTrip: false,
         startTime: "",
         endTime: "",
-        appliedTo: [],
-        isGroupSource: false,
         files: [],
       });
     }
@@ -110,9 +103,11 @@ export function TravelDialog({
         tripId,
         userId: user?.userId,
         dateTime: isoDateString,
+
+        ...formState,
+
         appliedTo,
         isGroupSource: appliedTo.length > 0,
-        ...formState,
         files: formState.files || [],
       };
 
@@ -181,9 +176,6 @@ export function TravelDialog({
             value={formState}
             onChange={setFormState}
             tripId={tripId}
-            attendants={attendantUserIds}
-            appliedTo={appliedTo}
-            onAppliedToChange={setAppliedTo}
           />
         </div>
 

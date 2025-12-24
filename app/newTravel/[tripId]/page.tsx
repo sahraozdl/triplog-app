@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
+import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
@@ -68,13 +68,6 @@ export default function NewTravelPage() {
 
   async function saveTravel(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!selectedDate) {
-      alert("Please select a date for this travel entry.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-
     setIsSaving(true);
 
     try {
@@ -82,72 +75,29 @@ export default function NewTravelPage() {
       const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       const isoDateString = utcDate.toISOString();
 
-      // Ensure files is properly formatted as an array
-      const files: Array<{
-        url: string;
-        name: string;
-        type: string;
-        size: number;
-      }> = [];
-      if (Array.isArray(formState.files)) {
-        formState.files.forEach((file) => {
-          if (file && typeof file === "object" && "url" in file) {
-            files.push({
-              url: String(file.url || ""),
-              name: String(file.name || ""),
-              type: String(file.type || ""),
-              size: Number(file.size || 0),
-            });
-          }
-        });
-      }
-
-      // Ensure files is a proper array before sending
-      const filesArray = Array.isArray(files) ? files : [];
-
-      // Validate each file object
-      const validatedFiles = filesArray.map((file) => ({
-        url: String(file?.url || ""),
-        name: String(file?.name || ""),
-        type: String(file?.type || ""),
-        size: Number(file?.size || 0),
-      }));
-
       const payload = {
         tripId,
         userId: loggedInUserId,
         dateTime: isoDateString,
-        appliedTo: Array.isArray(appliedTo) ? appliedTo : [],
+        appliedTo: appliedTo || [],
         isGroupSource: appliedTo.length > 0,
         travelReason: formState.travelReason || "",
         vehicleType: formState.vehicleType || "",
         departureLocation: formState.departureLocation || "",
         destination: formState.destination || "",
-        distance:
-          formState.distance !== null && formState.distance !== undefined
-            ? Number(formState.distance)
-            : null,
-        isRoundTrip: Boolean(formState.isRoundTrip),
+        distance: formState.distance || null,
+        isRoundTrip: formState.isRoundTrip || false,
         startTime: formState.startTime || "",
         endTime: formState.endTime || "",
-        files: validatedFiles, // Use validated files array
+        files: Array.isArray(formState.files)
+          ? formState.files.map((f) => ({
+              name: f.name,
+              type: f.type,
+              url: f.url,
+              size: f.size,
+            }))
+          : [],
       };
-
-      // Debug: Log before sending
-      console.log(
-        "Sending payload - files type:",
-        typeof payload.files,
-        "isArray:",
-        Array.isArray(payload.files),
-        "length:",
-        payload.files.length,
-      );
-      if (payload.files.length > 0) {
-        console.log(
-          "First file:",
-          JSON.stringify(payload.files[0]).substring(0, 100),
-        );
-      }
 
       const response = await fetch("/api/travels", {
         method: "POST",
@@ -156,7 +106,9 @@ export default function NewTravelPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create travel");
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData?.error || "Failed to create travel");
       }
 
       router.push(`/trips/${tripId}`);
@@ -234,9 +186,6 @@ export default function NewTravelPage() {
               value={formState}
               onChange={setFormState}
               tripId={tripId as string}
-              attendants={attendantUserIds}
-              appliedTo={appliedTo}
-              onAppliedToChange={setAppliedTo}
             />
           </form>
 

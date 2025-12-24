@@ -48,7 +48,6 @@ export function TripFilesList({
 
       const data = await response.json();
       if (data.success) {
-        // Notify parent to refresh
         if (onDelete) {
           onDelete();
         }

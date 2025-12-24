@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DateAndAppliedToSelector } from "@/components/daily-log/DateAndAppliedToSelector";
+import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -50,7 +50,6 @@ export default function EditTravelPage() {
         const travelData = (await res.json()) as Travel;
         setTravel(travelData);
 
-        // Load trip data
         const tripRes = await fetch(`/api/trips/${travelData.tripId}`, {
           cache: "no-store",
         });
@@ -65,7 +64,6 @@ export default function EditTravelPage() {
           }
         }
 
-        // Initialize form state
         setSelectedDate(travelData.dateTime.split("T")[0]);
         setAppliedTo(travelData.appliedTo || []);
         setFormState({
@@ -100,8 +98,6 @@ export default function EditTravelPage() {
       const [year, month, day] = selectedDate.split("-").map(Number);
       const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       const isoDateString = utcDate.toISOString();
-
-      // Ensure files is properly formatted as an array
       const files: Array<{
         url: string;
         name: string;
@@ -250,9 +246,6 @@ export default function EditTravelPage() {
               value={formState}
               onChange={setFormState}
               tripId={travel.tripId}
-              attendants={attendantUserIds}
-              appliedTo={appliedTo}
-              onAppliedToChange={setAppliedTo}
             />
           </form>
         </div>

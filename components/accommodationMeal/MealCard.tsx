@@ -3,16 +3,9 @@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { CroissantIcon, Utensils, PizzaIcon } from "lucide-react";
 import { MealFields, MealCoveredBy } from "@/app/types/DailyLog";
 
-type MealsMap = {
-  breakfast: MealFields;
-  lunch: MealFields;
-  dinner: MealFields;
-};
-// I will move it later to a separate file
-function MealCard({
+export function MealCard({
   label,
   icon,
   data,
@@ -83,48 +76,30 @@ function MealCard({
             className="grid grid-cols-1 sm:grid-cols-2 gap-3"
           >
             {/* Option 1: Company */}
-            <label
-              className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                data.coveredBy === "company"
-                  ? "bg-muted border-input"
-                  : "bg-background hover:bg-border border-border"
-              }`}
-            >
+            <Label variant="meal-radio" selected={data.coveredBy === "company"}>
               <RadioGroupItem value="company" id={`${label}-company`} />
               <span className="text-sm font-medium">Company</span>
-            </label>
+            </Label>
 
             {/* Option 2: Employee */}
-            <label
-              className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                data.coveredBy === "employee"
-                  ? "bg-muted border-input"
-                  : "bg-background hover:bg-border border-border"
-              }`}
+            <Label
+              variant="meal-radio"
+              selected={data.coveredBy === "employee"}
             >
               <RadioGroupItem value="employee" id={`${label}-employee`} />
               <span className="text-sm font-medium">Employee</span>
-            </label>
+            </Label>
 
             {/* Option 3: Partner */}
-            <label
-              className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                data.coveredBy === "partner"
-                  ? "bg-muted border-input"
-                  : "bg-background hover:bg-border border-border"
-              }`}
-            >
+            <Label variant="meal-radio" selected={data.coveredBy === "partner"}>
               <RadioGroupItem value="partner" id={`${label}-partner`} />
               <span className="text-sm font-medium">Partner</span>
-            </label>
+            </Label>
 
             {/* Option 4: Included in Accommodation */}
-            <label
-              className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                data.coveredBy === "included in accommodation"
-                  ? "bg-muted border-input"
-                  : "bg-background hover:bg-border border-border"
-              }`}
+            <Label
+              variant="meal-radio"
+              selected={data.coveredBy === "included in accommodation"}
             >
               <RadioGroupItem
                 value="included in accommodation"
@@ -133,53 +108,10 @@ function MealCard({
               <span className="text-sm font-medium leading-tight">
                 Included in accommodation
               </span>
-            </label>
+            </Label>
           </RadioGroup>
         </div>
       )}
-    </div>
-  );
-}
-
-export function MealSelector({
-  meals,
-  onChange,
-}: {
-  meals: MealsMap;
-  onChange: (updatedMeals: MealsMap) => void;
-}) {
-  const handleUpdate = (key: keyof MealsMap, updates: Partial<MealFields>) => {
-    onChange({
-      ...meals,
-      [key]: { ...meals[key], ...updates },
-    });
-  };
-
-  return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* BREAKFAST */}
-      <MealCard
-        label="Breakfast"
-        icon={<CroissantIcon className="h-6 w-6 text-orange-500" />}
-        data={meals.breakfast}
-        onUpdate={(updates) => handleUpdate("breakfast", updates)}
-      />
-
-      {/* LUNCH */}
-      <MealCard
-        label="Lunch"
-        icon={<Utensils className="h-6 w-6 text-blue-500" />}
-        data={meals.lunch}
-        onUpdate={(updates) => handleUpdate("lunch", updates)}
-      />
-
-      {/* DINNER */}
-      <MealCard
-        label="Dinner"
-        icon={<PizzaIcon className="h-6 w-6 text-red-500" />}
-        data={meals.dinner}
-        onUpdate={(updates) => handleUpdate("dinner", updates)}
-      />
     </div>
   );
 }

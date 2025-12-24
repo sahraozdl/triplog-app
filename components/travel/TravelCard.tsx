@@ -215,6 +215,27 @@ export function TravelCard({
               </div>
             )}
 
+            {(() => {
+              const allAttendants = [
+                travel.userId,
+                ...(travel.appliedTo || []),
+              ];
+              const uniqueAttendants = Array.from(new Set(allAttendants));
+              if (uniqueAttendants.length > 0) {
+                return (
+                  <div className="space-y-1">
+                    <div className="text-muted-foreground text-[9px] uppercase font-bold tracking-wider">
+                      Attendants
+                    </div>
+                    <div className="text-xs text-foreground">
+                      {uniqueAttendants.map((id) => getName(id)).join(", ")}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {travel.files && travel.files.length > 0 && (
               <div className="space-y-1 mt-2">
                 <div className="text-muted-foreground text-[9px] uppercase font-bold tracking-wider">

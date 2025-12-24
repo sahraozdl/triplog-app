@@ -1,119 +1,115 @@
 "use client";
 
-import { useState, DragEvent, ChangeEvent, useRef, useEffect } from "react";
+import {
+  useState,
+  DragEvent,
+  ChangeEvent,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import { Loader2, UploadCloud, FileIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UploadedFile } from "@/app/types/DailyLog";
 import { Button } from "@/components/ui/button";
+import { uploadFile, createHandleUploadError } from "@/lib/utils/tripHelpers";
+import { Label } from "@/components/ui/label";
+import { Input } from "../ui/input";
+
+interface FileDropzoneProps {
+  id?: string;
+  value?: UploadedFile[];
+  onChange?: (uploadedFiles: UploadedFile[]) => void;
+  onUploadSuccess?: () => void;
+  onUploadError?: (error: string) => void;
+  showToast?: (message: string, type?: "success" | "error") => void;
+  // dont forget custom upload function - if provided, uses this instead of default uploadFile
+  customUpload?: (
+    file: File,
+  ) => Promise<{ success: boolean; error?: string; file?: UploadedFile }>;
+  hideFileList?: boolean;
+  className?: string;
+  uploadText?: string;
+  uploadSubtext?: string;
+  disabled?: boolean;
+}
 
 export default function FileDropzone({
   value = [],
   onChange,
-}: {
-  value: UploadedFile[];
-  onChange: (uploadedFiles: UploadedFile[]) => void;
-}) {
+  onUploadSuccess,
+  onUploadError,
+  showToast,
+  customUpload,
+  hideFileList = false,
+  className,
+  uploadText,
+  uploadSubtext,
+  disabled = false,
+}: FileDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  // Use ref to always have the latest value for async operations
   const valueRef = useRef<UploadedFile[]>(value);
 
-  // Update ref whenever value prop changes
   useEffect(() => {
     valueRef.current = value;
   }, [value]);
 
-  const validateFile = (file: File): string | null => {
-    const validImageTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-    ];
-    const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
-
-    const hasValidMime = validImageTypes.some((type) =>
-      file.type.toLowerCase().startsWith(type),
-    );
-    const hasValidExtension = validExtensions.some((ext) =>
-      file.name.toLowerCase().endsWith(ext),
-    );
-
-    if (!hasValidMime && !hasValidExtension) {
-      return "Invalid file type. Only images are allowed.";
+  const handleUploadError = useMemo(() => {
+    if (showToast) {
+      return createHandleUploadError(showToast);
     }
-
-    return null;
-  };
+    return onUploadError || ((error: string) => alert(error));
+  }, [showToast, onUploadError]);
 
   const handleUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || disabled || isUploading) return;
 
     setIsUploading(true);
     const newUploads: UploadedFile[] = [];
+    let hasSuccess = false;
 
     try {
       for (const file of Array.from(files)) {
-        // Validate file type
-        const validationError = validateFile(file);
-        if (validationError) {
-          alert(validationError);
+        const result = customUpload
+          ? await customUpload(file)
+          : await uploadFile(file);
+
+        if (!result.success) {
+          handleUploadError(result.error || "Failed to upload file");
           continue;
         }
 
-        const response = await fetch(
-          `/api/upload?filename=${encodeURIComponent(file.name)}`,
-          {
-            method: "POST",
-            body: file,
-            headers: {
-              // Don't set Content-Type, let the browser set it with boundary for multipart
-            },
-          },
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage =
-            errorData.error || `Upload failed with status ${response.status}`;
-          console.error("Upload error:", errorMessage, response.status);
-          throw new Error(errorMessage);
+        hasSuccess = true;
+        if (result.file) {
+          newUploads.push(result.file);
         }
-
-        const blob = await response.json();
-
-        if (!blob || !blob.url) {
-          throw new Error("Invalid response from upload endpoint");
-        }
-
-        newUploads.push({
-          url: blob.url,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        });
       }
 
-      // Use ref to get the latest value, avoiding stale closure issues
-      // This is important when uploading multiple files in quick succession
-      const currentFiles = valueRef.current;
-      // Check for duplicates by URL to avoid adding the same file twice
-      const existingUrls = new Set(currentFiles.map((f) => f.url));
-      const uniqueNewUploads = newUploads.filter(
-        (f) => !existingUrls.has(f.url),
-      );
-      onChange([...currentFiles, ...uniqueNewUploads]);
+      if (onChange && newUploads.length > 0) {
+        const currentFiles = valueRef.current;
+        const existingUrls = new Set(currentFiles.map((f) => f.url));
+        const uniqueNewUploads = newUploads.filter(
+          (f) => !existingUrls.has(f.url),
+        );
+        if (uniqueNewUploads.length > 0) {
+          onChange([...currentFiles, ...uniqueNewUploads]);
+        }
+      }
+
+      if (onUploadSuccess && hasSuccess) {
+        onUploadSuccess();
+      }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload file(s). Please try again.");
+      handleUploadError("Failed to upload file(s). Please try again.");
     } finally {
       setIsUploading(false);
     }
   };
 
   const removeFile = (indexToRemove: number) => {
+    if (!onChange) return;
     const updated = value.filter((_, index) => index !== indexToRemove);
     onChange(updated);
   };
@@ -140,59 +136,90 @@ export default function FileDropzone({
   }
 
   return (
-    <div className="w-full space-y-4">
-      <label
+    <div
+      className={cn("w-full", hideFileList ? "" : "space-y-4", className)}
+      id="fileDropzone"
+    >
+      <Label
         htmlFor="dropzone-file"
-        className={cn(
-          "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200",
-          "bg-muted/5 hover:bg-muted/10",
-          isDragging
-            ? "border-primary bg-primary/5 scale-[1.01]"
-            : "border-muted-foreground/20 hover:border-primary/50",
-          isUploading && "pointer-events-none opacity-60",
-        )}
+        variant="dropzone"
+        isDragging={isDragging}
+        isUploading={isUploading}
+        disabled={disabled}
+        hideFileList={hideFileList}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+        <div
+          className={cn(
+            "flex flex-col items-center justify-center text-center",
+            hideFileList ? "gap-4" : "pt-5 pb-6 px-4",
+          )}
+        >
           {isUploading ? (
             <>
-              <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
+              <Loader2
+                className={cn(
+                  "text-primary animate-spin mb-3",
+                  hideFileList ? "h-6 w-6" : "h-10 w-10",
+                )}
+              />
               <p className="text-sm font-medium text-muted-foreground">
-                Uploading files...
+                {uploadText || "Uploading files..."}
               </p>
             </>
           ) : (
             <>
-              <div className="bg-muted p-3 rounded-full mb-3">
-                <UploadCloud className="h-6 w-6 text-muted-foreground" />
+              <div
+                className={cn(
+                  "rounded-full mb-3",
+                  hideFileList ? "p-3 bg-muted" : "bg-muted p-3 rounded-full",
+                )}
+              >
+                <UploadCloud
+                  className={cn(
+                    "text-muted-foreground",
+                    hideFileList ? "h-6 w-6" : "h-6 w-6",
+                  )}
+                />
               </div>
-              <p className="mb-1 text-sm text-foreground font-medium">
-                <span className="text-primary hover:underline">
-                  Click to upload
-                </span>{" "}
-                or drag and drop
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Images only (JPG, PNG, GIF, WEBP, SVG)
-              </p>
+              <div className={hideFileList ? "space-y-1" : ""}>
+                <p
+                  className={cn(
+                    "text-foreground font-medium",
+                    hideFileList ? "text-sm" : "mb-1 text-sm",
+                  )}
+                >
+                  {uploadText || (
+                    <>
+                      <span className="text-primary hover:underline">
+                        Click to upload
+                      </span>{" "}
+                      or drag and drop
+                    </>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {uploadSubtext || "Images only (JPG, PNG, GIF, WEBP, SVG)"}
+                </p>
+              </div>
             </>
           )}
         </div>
 
-        <input
+        <Input
           id="dropzone-file"
           type="file"
           accept="image/*"
           multiple
           className="hidden"
           onChange={onFileSelect}
-          disabled={isUploading}
+          disabled={isUploading || disabled}
         />
-      </label>
+      </Label>
 
-      {value.length > 0 && (
+      {!hideFileList && value.length > 0 && (
         <div className="space-y-2">
           {value.map((file, index) => (
             <div

@@ -34,9 +34,9 @@ export type TravelFormState = Omit<
   | "createdAt"
   | "updatedAt"
   | "sealed"
-  | "isGroupSource"
-  | "appliedTo"
   | "dateTime"
+  | "appliedTo"
+  | "isGroupSource"
 > & {
   files?: UploadedFile[];
 };

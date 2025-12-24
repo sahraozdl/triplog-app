@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MealSelector } from "@/components/form-elements/MealSelector";
+import { MealSelector } from "@/components/accommodationMeal/MealSelector";
 import LocationInput from "@/components/form-elements/LocationInput";
 import { ShareFieldToggle } from "@/components/form-elements/ShareFieldToggle";
 import { AccommodationFormState } from "@/app/types/FormStates";
@@ -88,14 +88,8 @@ export default function AccommodationMealsForm({
                     {/* Option: Company */}
                     <Label
                       htmlFor="covered-company"
-                      className={`
-                          flex items-center justify-start gap-3 p-3 border rounded-lg cursor-pointer transition-all
-                        ${
-                          value.accommodationCoveredBy === "company"
-                            ? "bg-primary/10 border-input text-primary shadow-sm"
-                            : "bg-background hover:bg-muted/50 border-border text-muted-foreground"
-                        }
-                      `}
+                      variant="radio"
+                      selected={value.accommodationCoveredBy === "company"}
                     >
                       <RadioGroupItem
                         value="company"
@@ -108,14 +102,8 @@ export default function AccommodationMealsForm({
                     {/* Option: Private */}
                     <Label
                       htmlFor="covered-private"
-                      className={`
-                        flex items-center justify-start gap-3 p-3 border rounded-lg cursor-pointer transition-all
-                        ${
-                          value.accommodationCoveredBy === "private"
-                            ? "bg-primary/10 border-input text-primary shadow-sm"
-                            : "bg-background hover:bg-muted/50 border-border text-muted-foreground"
-                        }
-                      `}
+                      variant="radio"
+                      selected={value.accommodationCoveredBy === "private"}
                     >
                       <RadioGroupItem
                         value="private"
@@ -143,14 +131,8 @@ export default function AccommodationMealsForm({
                 >
                   <Label
                     htmlFor="overnight-yes"
-                    className={`
-                      flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all
-                      ${
-                        value.overnightStay === "yes"
-                          ? "bg-primary/5 border-input shadow-sm"
-                          : "bg-background hover:bg-muted/50 border-border"
-                      }
-                    `}
+                    variant="radio"
+                    selected={value.overnightStay === "yes"}
                   >
                     <RadioGroupItem
                       value="yes"
@@ -164,14 +146,8 @@ export default function AccommodationMealsForm({
 
                   <Label
                     htmlFor="overnight-no"
-                    className={`
-                      flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all
-                      ${
-                        value.overnightStay === "no"
-                          ? "bg-primary/5 border-input shadow-sm"
-                          : "bg-background hover:bg-muted/50 border-border"
-                      }
-                    `}
+                    variant="radio"
+                    selected={value.overnightStay === "no"}
                   >
                     <RadioGroupItem
                       value="no"

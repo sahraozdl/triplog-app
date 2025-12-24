@@ -73,7 +73,7 @@ export default function AdditionalForm({
 
                 <Textarea
                   id="additional-information"
-                  className="w-full h-40 resize-none border rounded-md p-3 bg-background focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent text-sm"
+                  textareaVariant="form"
                   placeholder="e.g. Additional information or context regarding the trip..."
                   value={value.notes}
                   onChange={(e) => update({ notes: e.target.value })}
@@ -81,7 +81,7 @@ export default function AdditionalForm({
               </div>
 
               <div className="w-full space-y-2">
-                <Label>Attachments</Label>
+                <Label htmlFor="fileDropzone">Attachments</Label>
                 <FileDropzone
                   value={value.uploadedFiles}
                   onChange={updateUploadedFiles}

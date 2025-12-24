@@ -1,12 +1,5 @@
 import { DailyLogFormState } from "@/app/types/DailyLog";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import {
-  TravelFormState,
-  AccommodationFormState,
-  AdditionalFormState,
-} from "@/app/types/FormStates";
-// take a look if this missing fields are the reason for not overriding the other forms for different user log update
-import { WorkTimeOverride } from "@/components/forms/WorkTimeForm";
+import { WorkTimeOverride } from "@/components/workTime/WorkTimeForm";
 
 export function transformLogToFormState(
   log: DailyLogFormState,

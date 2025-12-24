@@ -12,26 +12,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import LocationInput from "@/components/form-elements/LocationInput";
+import { validateDateRange } from "@/lib/utils/dateConversion";
+import { useEffect } from "react";
 import {
-  isoToDateString,
-  dateStringToISO,
-  validateDateRange,
-} from "@/lib/utils/dateConversion";
-import { useState, useEffect } from "react";
+  TripEditFormData,
+  initializeFormData,
+  validateFormData,
+  formDataToPayload,
+} from "@/lib/utils/tripFormHelpers";
 
-export interface TripEditFormData {
-  basicInfo: {
-    title: string;
-    description: string;
-    startDate: string; // YYYY-MM-DD
-    endDate: string; // YYYY-MM-DD
-    country: string;
-    resort: string;
-    departureLocation: string;
-    arrivalLocation: string;
-  };
-  status: string;
-}
+export type { TripEditFormData };
+export { initializeFormData, validateFormData, formDataToPayload };
 
 interface TripEditFormProps {
   trip: Trip;
@@ -69,33 +60,40 @@ export function TripEditForm({
     });
   };
 
-  // Validate date range on change
   useEffect(() => {
     if (value.basicInfo.startDate && value.basicInfo.endDate) {
       if (
         !validateDateRange(value.basicInfo.startDate, value.basicInfo.endDate)
       ) {
-        // This will be handled by parent validation
+        // dont forget to handle this error in the parent component
       }
     }
   }, [value.basicInfo.startDate, value.basicInfo.endDate]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Title */}
       <div className="flex flex-col gap-2">
         <Label htmlFor="title">
-          Title <span className="text-destructive">*</span>
+          Title{" "}
+          <span className="text-destructive" aria-label="required">
+            *
+          </span>
         </Label>
         <Input
           id="title"
           value={value.basicInfo.title}
           onChange={(e) => handleChange("title", e.target.value)}
           required
+          aria-required="true"
+          aria-invalid={errors?.title ? "true" : "false"}
+          aria-describedby={errors?.title ? "title-error" : undefined}
           className={errors?.title ? "border-destructive" : ""}
         />
         {errors?.title && (
-          <p className="text-sm text-destructive">{errors.title}</p>
+          <p id="title-error" className="text-sm text-destructive" role="alert">
+            {errors.title}
+          </p>
         )}
       </div>
 
@@ -107,14 +105,25 @@ export function TripEditForm({
           value={value.basicInfo.description}
           onChange={(e) => handleChange("description", e.target.value)}
           rows={4}
+          className="resize-none"
+          aria-describedby="description-help"
         />
+        <p
+          id="description-help"
+          className="text-xs text-muted-foreground sr-only"
+        >
+          Optional description for the trip
+        </p>
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <div className="flex flex-col gap-2">
           <Label htmlFor="startDate">
-            Start Date <span className="text-destructive">*</span>
+            Start Date{" "}
+            <span className="text-destructive" aria-label="required">
+              *
+            </span>
           </Label>
           <Input
             id="startDate"
@@ -122,6 +131,9 @@ export function TripEditForm({
             value={value.basicInfo.startDate}
             onChange={(e) => handleChange("startDate", e.target.value)}
             required
+            aria-required="true"
+            aria-invalid={errors?.dateRange ? "true" : "false"}
+            aria-describedby={errors?.dateRange ? "date-error" : undefined}
             className={errors?.dateRange ? "border-destructive" : ""}
           />
         </div>
@@ -133,23 +145,28 @@ export function TripEditForm({
             type="date"
             value={value.basicInfo.endDate}
             onChange={(e) => handleChange("endDate", e.target.value)}
+            aria-invalid={errors?.dateRange ? "true" : "false"}
+            aria-describedby={errors?.dateRange ? "date-error" : undefined}
             className={errors?.dateRange ? "border-destructive" : ""}
+            min={value.basicInfo.startDate || undefined}
           />
         </div>
       </div>
       {errors?.dateRange && (
-        <p className="text-sm text-destructive">{errors.dateRange}</p>
+        <p id="date-error" className="text-sm text-destructive" role="alert">
+          {errors.dateRange}
+        </p>
       )}
 
       {/* Locations */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <div className="flex flex-col gap-2">
           <Label htmlFor="departureLocation">Departure Location</Label>
           <LocationInput
             id="departureLocation"
             value={value.basicInfo.departureLocation}
             onChange={(val) => handleChange("departureLocation", val)}
-            placeholder="Search departure location..."
+            placeholder="Search city or airport..."
           />
         </div>
 
@@ -159,28 +176,30 @@ export function TripEditForm({
             id="arrivalLocation"
             value={value.basicInfo.arrivalLocation}
             onChange={(val) => handleChange("arrivalLocation", val)}
-            placeholder="Search arrival location..."
+            placeholder="Search destination..."
           />
         </div>
       </div>
 
-      {/* Country & Resort */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* Country & Resort (using LocationInput like newTrip) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <div className="flex flex-col gap-2">
           <Label htmlFor="country">Country</Label>
-          <Input
+          <LocationInput
             id="country"
+            placeholder="e.g. Sweden"
             value={value.basicInfo.country}
-            onChange={(e) => handleChange("country", e.target.value)}
+            onChange={(val) => handleChange("country", val)}
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="resort">Resort</Label>
-          <Input
+          <Label htmlFor="resort">Resort / Specific Place</Label>
+          <LocationInput
             id="resort"
+            placeholder="e.g. Hilton Slussen"
             value={value.basicInfo.resort}
-            onChange={(e) => handleChange("resort", e.target.value)}
+            onChange={(val) => handleChange("resort", val)}
           />
         </div>
       </div>
@@ -189,8 +208,8 @@ export function TripEditForm({
       <div className="flex flex-col gap-2">
         <Label htmlFor="status">Status</Label>
         <Select value={value.status} onValueChange={handleStatusChange}>
-          <SelectTrigger id="status">
-            <SelectValue />
+          <SelectTrigger id="status" aria-label="Trip status">
+            <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Active</SelectItem>
@@ -200,69 +219,4 @@ export function TripEditForm({
       </div>
     </div>
   );
-}
-
-/**
- * Initialize form data from trip
- */
-export function initializeFormData(trip: Trip): TripEditFormData {
-  return {
-    basicInfo: {
-      title: trip.basicInfo.title || "",
-      description: trip.basicInfo.description || "",
-      startDate: isoToDateString(trip.basicInfo.startDate) || "",
-      endDate: isoToDateString(trip.basicInfo.endDate) || "",
-      country: trip.basicInfo.country || "",
-      resort: trip.basicInfo.resort || "",
-      departureLocation: trip.basicInfo.departureLocation || "",
-      arrivalLocation: trip.basicInfo.arrivalLocation || "",
-    },
-    status: trip.status || "active",
-  };
-}
-
-/**
- * Validate form data
- */
-export function validateFormData(data: TripEditFormData): {
-  valid: boolean;
-  errors: {
-    title?: string;
-    dateRange?: string;
-  };
-} {
-  const errors: { title?: string; dateRange?: string } = {};
-
-  if (!data.basicInfo.title.trim()) {
-    errors.title = "Title is required";
-  }
-
-  if (
-    data.basicInfo.startDate &&
-    data.basicInfo.endDate &&
-    !validateDateRange(data.basicInfo.startDate, data.basicInfo.endDate)
-  ) {
-    errors.dateRange = "End date must be on or after start date";
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Convert form data to API payload
- */
-export function formDataToPayload(data: TripEditFormData) {
-  return {
-    basicInfo: {
-      ...data.basicInfo,
-      startDate: dateStringToISO(data.basicInfo.startDate),
-      endDate: data.basicInfo.endDate
-        ? dateStringToISO(data.basicInfo.endDate)
-        : undefined,
-    },
-    status: data.status,
-  };
 }

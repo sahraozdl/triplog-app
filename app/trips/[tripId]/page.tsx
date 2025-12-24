@@ -1,22 +1,36 @@
 "use client";
 
 import { useTripStore } from "@/lib/store/useTripStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DailyLogFormState } from "@/app/types/DailyLog";
-import DailyLogsList from "@/components/trip/DailyLogsList";
+import DailyLogsList from "@/components/daily-log/DailyLogsList";
+import { TravelEntriesList } from "@/components/travel/TravelEntriesList";
 import { TripAttendant } from "@/app/types/Trip";
 import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
 import { TripInfoCard } from "@/components/trip/TripInfoCard";
 import { TripEditInline } from "@/components/trip/TripEditInline";
-import { formDataToPayload } from "@/components/trip/TripEditForm";
 import { Edit, Plus } from "lucide-react";
 import { useAppUser } from "@/components/providers/AppUserProvider";
-import { TripFileUpload } from "@/components/trip/TripFileUpload";
-import { TripFilesList } from "@/components/trip/TripFilesList";
+import { FilesSection } from "@/components/trip/FilesSection";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/toast";
+import {
+  createHandleSave,
+  createHandleEdit,
+  createHandleCancel,
+  createRefreshTrip,
+  createHandleUploadSuccess,
+  createHandleUploadError,
+  createHandleFileDelete,
+  createHandleEndTrip,
+} from "@/lib/utils/tripHelpers";
+import {
+  createFetchLogs,
+  createFetchTravels,
+  createFetchUserNames,
+} from "@/lib/utils/fetchers";
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,7 +39,6 @@ import {
 import { ChevronDown, FileText } from "lucide-react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Travel } from "@/app/types/Travel";
-import { TravelCard } from "@/components/travel/TravelCard";
 
 type EditMode = "display" | "inline";
 
@@ -46,7 +59,6 @@ export default function TripDetailPage() {
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [loadingNames, setLoadingNames] = useState(false);
 
-  // Check if user can edit (creator or moderator)
   const canEdit =
     (trip &&
       user &&
@@ -55,105 +67,30 @@ export default function TripDetailPage() {
           (a) => a.userId === user.userId && a.role === "moderator",
         ))) ||
     false;
+  const fetchLogs = useCallback(createFetchLogs(tripId as string, setLogs), [
+    tripId,
+  ]);
 
-  const fetchLogs = async () => {
-    try {
-      const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
+  const fetchTravels = useCallback(
+    createFetchTravels(tripId as string, setTravels),
+    [tripId],
+  );
 
-      if (!res.ok) {
-        console.error("Logs could not be fetched, Status:", res.status);
-        setLogs([]);
-        return;
-      }
-
-      const data = await res.json();
-      setLogs((data.logs || []) as DailyLogFormState[]);
-    } catch (error) {
-      console.error("Failed to fetch logs:", error);
-      setLogs([]);
-    }
-  };
-
-  const fetchTravels = async () => {
-    try {
-      const res = await fetch(`/api/travels?tripId=${tripId}`);
-
-      if (!res.ok) {
-        console.error("Travels could not be fetched, Status:", res.status);
-        setTravels([]);
-        return;
-      }
-
-      const data = await res.json();
-      setTravels((data.travels || []) as Travel[]);
-    } catch (error) {
-      console.error("Failed to fetch travels:", error);
-      setTravels([]);
-    }
-  };
-
-  const fetchUserNames = async () => {
-    if (!trip?.attendants) return;
-
-    setLoadingNames(true);
-    try {
-      const userIds = new Set<string>();
-      logs.forEach((log) => {
-        userIds.add(log.userId);
-        log.appliedTo?.forEach((id) => userIds.add(id));
-      });
-      travels.forEach((travel) => {
-        userIds.add(travel.userId);
-        travel.appliedTo?.forEach((id) => userIds.add(id));
-      });
-
-      const names: Record<string, string> = {};
-      await Promise.all(
-        Array.from(userIds).map(async (userId) => {
-          try {
-            const res = await fetch(`/api/users/${userId}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.user) {
-                names[userId] = data.user.name || "Unknown";
-              }
-            }
-          } catch (error) {
-            console.error(`Failed to fetch user ${userId}:`, error);
-          }
-        }),
-      );
-      setUserNames(names);
-    } catch (error) {
-      console.error("Failed to fetch user names:", error);
-    } finally {
-      setLoadingNames(false);
-    }
-  };
+  const fetchUserNames = useCallback(
+    createFetchUserNames(logs, travels, setUserNames, setLoadingNames),
+    [logs, travels],
+  );
 
   useEffect(() => {
-    if (tripId) {
-      fetchLogs();
-      fetchTravels();
-    }
-  }, [tripId]);
+    if (!tripId) return;
+    fetchLogs();
+    fetchTravels();
+  }, [tripId, fetchLogs, fetchTravels]);
 
   useEffect(() => {
-    if (logs.length > 0 || travels.length > 0) {
-      fetchUserNames();
-    }
-  }, [logs, travels]);
-
-  async function handleEndTrip() {
-    try {
-      await fetch(`/api/trips/${tripId}/end`, { method: "POST" });
-      useTripStore.getState().removeTrip(tripId as string);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Failed to end trip", error);
-      alert("Failed to end trip");
-    }
-  }
+    if (logs.length === 0 && travels.length === 0) return;
+    fetchUserNames();
+  }, [logs, travels, fetchUserNames]);
 
   useEffect(() => {
     if (trip) return;
@@ -176,77 +113,23 @@ export default function TripDetailPage() {
     fetchTrip();
   }, [tripId, trip, updateTrip]);
 
-  const handleSave = async (payload: ReturnType<typeof formDataToPayload>) => {
-    if (!tripId) return;
-
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/trips/${tripId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          updateTrip(data.trip);
-          // Refresh the trip data
-          const refreshRes = await fetch(`/api/trips/${tripId}`);
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            if (refreshData.success) {
-              updateTrip(refreshData.trip);
-              // Exit edit mode
-              setEditMode("display");
-            }
-          }
-        }
-      } else {
-        const errorData = await res.json();
-        alert("Failed to save: " + (errorData.error || "Unknown error"));
-      }
-    } catch (error) {
-      console.error("Failed to save trip:", error);
-      alert("An error occurred while saving.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleEdit = () => {
-    setEditMode("inline");
-  };
-
-  const handleCancel = () => {
-    setEditMode("display");
-  };
-
-  const handleUploadSuccess = async () => {
-    showToast("File uploaded", "success");
-    // Refresh trip data to get updated additionalFiles
-    await refreshTrip();
-  };
-
-  const refreshTrip = async () => {
-    if (tripId) {
-      try {
-        const res = await fetch(`/api/trips/${tripId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            updateTrip(data.trip);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to refresh trip:", error);
-      }
-    }
-  };
-
-  const handleUploadError = (error: string) => {
-    showToast(error, "error");
-  };
+  const refreshTrip = createRefreshTrip(tripId as string, updateTrip);
+  const handleSave = createHandleSave(
+    tripId as string,
+    updateTrip,
+    setSaving,
+    setEditMode,
+  );
+  const handleEdit = createHandleEdit(setEditMode);
+  const handleCancel = createHandleCancel(setEditMode);
+  const handleUploadSuccess = createHandleUploadSuccess(showToast, refreshTrip);
+  const handleUploadError = createHandleUploadError(showToast);
+  const handleFileDelete = createHandleFileDelete(showToast, refreshTrip);
+  const handleEndTrip = createHandleEndTrip(
+    tripId as string,
+    useTripStore.getState().removeTrip,
+    router,
+  );
 
   if (!trip || loading)
     return (
@@ -256,38 +139,6 @@ export default function TripDetailPage() {
         </div>
       </AuthGuard>
     );
-
-  // Files section component (reusable for both desktop and mobile)
-  const FilesSection = () => (
-    <div className="flex flex-col gap-4 h-full min-h-0">
-      <h2 className="text-xl font-semibold text-foreground shrink-0">
-        Trip Files
-      </h2>
-
-      {canEdit && (
-        <div className="shrink-0">
-          <TripFileUpload
-            tripId={tripId as string}
-            onUploadSuccess={handleUploadSuccess}
-            onUploadError={handleUploadError}
-            disabled={saving || loading}
-          />
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <TripFilesList
-          files={trip.additionalFiles || []}
-          tripId={tripId as string}
-          canDelete={canEdit}
-          onDelete={async () => {
-            showToast("File deleted", "success");
-            await refreshTrip();
-          }}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <AuthGuard>
@@ -315,7 +166,17 @@ export default function TripDetailPage() {
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
               <div className="border rounded-lg p-4 bg-card">
-                <FilesSection />
+                <FilesSection
+                  tripId={tripId as string}
+                  files={trip.additionalFiles || []}
+                  canEdit={canEdit}
+                  onUploadSuccess={handleUploadSuccess}
+                  onUploadError={handleUploadError}
+                  onDelete={handleFileDelete}
+                  showToast={showToast}
+                  refreshTrip={refreshTrip}
+                  disabled={saving || loading}
+                />
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -365,7 +226,11 @@ export default function TripDetailPage() {
                   End Trip
                 </Button>
 
-                <DownloadReportButton trip={trip} logs={logs} />
+                <DownloadReportButton
+                  trip={trip}
+                  logs={logs}
+                  travels={travels}
+                />
                 <Button
                   variant="outline"
                   onClick={() => router.push(`/reports/${tripId}`)}
@@ -398,29 +263,13 @@ export default function TripDetailPage() {
                 Travel Entries
               </h2>
 
-              {travels.length === 0 ? (
-                <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
-                  <p className="text-muted-foreground text-sm">
-                    No travel entries recorded yet.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {travels.map((travel) => (
-                    <TravelCard
-                      key={travel._id.toString()}
-                      travel={travel}
-                      userNames={userNames}
-                      loadingNames={loadingNames}
-                      tripId={tripId as string}
-                      onDelete={fetchTravels}
-                      onEdit={(travel) => {
-                        router.push(`/editTravel/${travel._id}`);
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+              <TravelEntriesList
+                travels={travels}
+                userNames={userNames}
+                loadingNames={loadingNames}
+                tripId={tripId as string}
+                onTravelsChange={fetchTravels}
+              />
             </div>
 
             {/* Daily Logs */}
@@ -449,7 +298,17 @@ export default function TripDetailPage() {
           {/* Files Sidebar Column (1/5 width) - Desktop Only */}
           <div className="hidden lg:block lg:col-span-1">
             <div className="sticky top-8 border rounded-lg p-4 bg-card h-[calc(100vh-4rem)] flex flex-col">
-              <FilesSection />
+              <FilesSection
+                tripId={tripId as string}
+                files={trip.additionalFiles || []}
+                canEdit={canEdit}
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
+                onDelete={handleFileDelete}
+                showToast={showToast}
+                refreshTrip={refreshTrip}
+                disabled={saving || loading}
+              />
             </div>
           </div>
         </div>

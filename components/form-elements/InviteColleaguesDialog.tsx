@@ -33,7 +33,7 @@ export default function InviteColleaguesDialog(props: Props) {
   const setOpen = props.onOpenChange ?? (() => {});
 
   return (
-    <div className="">
+    <div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" className="w-full h-12">
