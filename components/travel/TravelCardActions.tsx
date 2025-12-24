@@ -4,7 +4,7 @@ import { Travel } from "@/app/types/Travel";
 
 interface TravelCardActionsProps {
   canEdit: boolean;
-  onEdit: (travel: Travel) => void;
+  onEdit: () => void;
   onDelete: () => void;
 }
 
