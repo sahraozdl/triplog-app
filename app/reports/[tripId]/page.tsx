@@ -560,7 +560,7 @@ export default function ReportPage() {
                                           rel="noopener noreferrer"
                                           className="flex items-center gap-2 p-2 border border-border rounded hover:bg-accent transition-colors bg-card"
                                         >
-                                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                                          <FileText className="h-4 w-4 text-primary shrink-0" />
                                           <span className="truncate text-xs text-foreground underline decoration-dotted">
                                             {file.name}
                                           </span>
