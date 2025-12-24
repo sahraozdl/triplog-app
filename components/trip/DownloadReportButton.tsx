@@ -606,8 +606,8 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
       }
 
       const headers = needsUserSeparation
-        ? ["Date", "Travel Details", "Creator", "Images"]
-        : ["Date", "Travel Details", "Images"];
+        ? ["Date", "Creator", "Travel Details", "Routes"]
+        : ["Date", "Travel Details", "Routes"];
 
       // Determine image column index
       const imageColumnIndex = needsUserSeparation ? 3 : 2;
