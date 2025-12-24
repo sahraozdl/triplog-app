@@ -1,7 +1,7 @@
 "use client";
 
 import { TripAdditionalFile } from "@/app/types/Trip";
-import { FileIcon, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -65,61 +65,18 @@ export function TripFilesList({
   return (
     <div className="space-y-2 sm:space-y-3">
       {files.map((file, index) => {
-        const isImage =
-          file.type?.startsWith("image/") ||
-          file.url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i);
-
         return (
           <div
             key={`${file.url}-${index}`}
-            className="flex flex-col gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card border rounded-lg shadow-sm group hover:shadow-md transition-shadow"
+            className="flex flex-row gap-2 sm:gap-3 p-2 sm:p-3 bg-card border rounded-lg shadow-sm group hover:shadow-md transition-shadow justify-between w-full"
           >
-            {/* Top Row: Icon and Delete Button */}
-            <div className="flex items-center justify-between">
-              <div className="bg-primary/10 p-2 sm:p-2.5 rounded shrink-0">
-                {isImage ? (
-                  <ImageIcon
-                    className="h-4 w-4 sm:h-5 sm:w-5 text-primary"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <FileIcon
-                    className="h-4 w-4 sm:h-5 sm:w-5 text-primary"
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
-
-              {canDelete && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0 h-8 w-8 sm:h-9 sm:w-9"
-                  onClick={() => handleDelete(index)}
-                  disabled={deletingIndex === index}
-                  aria-label={`Delete file: ${file.name}`}
-                  title="Delete file"
-                >
-                  {deletingIndex === index ? (
-                    <Loader2
-                      className="h-4 w-4 sm:h-5 sm:w-5 animate-spin"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <X className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-                  )}
-                </Button>
-              )}
-            </div>
-
             {/* Bottom Row: File Details */}
             <div className="flex flex-col gap-1.5 min-w-0">
               <a
                 href={file.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm sm:text-base font-medium text-foreground break-words hover:underline hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded"
+                className="text-sm  font-medium text-foreground wrap-break-word hover:underline hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded"
                 aria-label={`Open file: ${file.name}`}
               >
                 {file.name}
@@ -136,6 +93,28 @@ export function TripFilesList({
                 )}
               </div>
             </div>
+            {/* Top Row: and Delete Button */}
+            {canDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive transition-colors shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                onClick={() => handleDelete(index)}
+                disabled={deletingIndex === index}
+                aria-label={`Delete file: ${file.name}`}
+                title="Delete file"
+              >
+                {deletingIndex === index ? (
+                  <Loader2
+                    className="h-4 w-4 sm:h-5 sm:w-5 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+                )}
+              </Button>
+            )}
           </div>
         );
       })}

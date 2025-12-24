@@ -75,7 +75,6 @@ export default function LogFilters({
             className="pl-9 pr-8 py-2.5 h-11 w-full sm:w-[160px] md:w-[180px] bg-background border border-input rounded-md text-sm focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:outline-none appearance-none cursor-pointer transition-colors hover:border-primary/50"
           >
             <option value="all">All Types</option>
-            <option value="travel">Travel</option>
             <option value="worktime">Work Time</option>
             <option value="accommodation">Accommodation</option>
             <option value="additional">Notes/Files</option>

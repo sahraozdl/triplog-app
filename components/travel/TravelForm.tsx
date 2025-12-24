@@ -27,17 +27,19 @@ interface TravelFormProps {
 export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
   const [calculating, setCalculating] = useState(false);
   const [mapUrl, setMapUrl] = useState<string>("");
-  const [isAutoCalculated, setIsAutoCalculated] = useState(false);
   const [baseDistance, setBaseDistance] = useState<number | null>(null);
-  const distanceUpdateRef = useRef<number | null>(null);
 
   const update = (field: Partial<TravelFormState>) => {
     const updated = { ...value, ...field };
     if (field.distance !== undefined) {
-      updated.distance =
-        field.distance === null || field.distance === undefined
-          ? null
-          : Math.floor(Number(field.distance));
+      const distanceValue = field.distance;
+      if (distanceValue === null || distanceValue === undefined) {
+        updated.distance = null;
+      } else {
+        const numValue = Number(distanceValue);
+        updated.distance =
+          isNaN(numValue) || numValue < 0 ? null : Math.floor(numValue);
+      }
     }
     onChange(updated);
   };
@@ -61,6 +63,7 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
 
         if (data.error) {
           alert(`Error: ${data.error}`);
+          setCalculating(false);
           return;
         }
 
@@ -69,74 +72,79 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
           data.distance !== null &&
           data.distance > 0
         ) {
-          const calculatedDistance = Math.floor(Number(data.distance));
+          const calculatedDistance = Number(data.distance);
 
           if (calculatedDistance > 0) {
-            setBaseDistance(calculatedDistance);
+            // Store the base distance (one-way)
+            const baseDistanceValue = Math.floor(calculatedDistance);
+            setBaseDistance(baseDistanceValue);
 
+            // Calculate final distance based on round trip setting
             const finalDistance = value.isRoundTrip
-              ? calculatedDistance * 2
-              : calculatedDistance;
+              ? baseDistanceValue * 2
+              : baseDistanceValue;
 
             const finalDistanceInt = Math.floor(finalDistance);
-            distanceUpdateRef.current = finalDistanceInt;
-            const updatedState = {
-              ...value,
+
+            // Prepare files update if map is available
+            let filesToUpdate = value.files || [];
+
+            if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && data.polyline) {
+              const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+              const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&maptype=roadmap&markers=color:red|label:A|${encodeURIComponent(value.departureLocation)}&markers=color:green|label:B|${encodeURIComponent(value.destination)}&path=weight:5|color:0x0000ff|enc:${data.polyline}&key=${apiKey}`;
+
+              setMapUrl(staticMapUrl);
+
+              try {
+                const imageResponse = await fetch(staticMapUrl);
+                const imageBlob = await imageResponse.blob();
+
+                const mapFile: UploadedFile = {
+                  name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
+                  type: "image/png",
+                  size: imageBlob.size,
+                  url: staticMapUrl,
+                };
+
+                const fileExists = filesToUpdate.some(
+                  (f) => f.url === staticMapUrl,
+                );
+                if (!fileExists) {
+                  filesToUpdate = [...filesToUpdate, mapFile];
+                }
+              } catch (error) {
+                console.error("Failed to fetch map image:", error);
+                const mapFile: UploadedFile = {
+                  name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
+                  type: "image/png",
+                  size: 0,
+                  url: staticMapUrl,
+                };
+
+                const fileExists = filesToUpdate.some(
+                  (f) => f.url === staticMapUrl,
+                );
+                if (!fileExists) {
+                  filesToUpdate = [...filesToUpdate, mapFile];
+                }
+              }
+            }
+
+            // Update both distance and files in a single update to avoid race conditions
+            update({
               distance: finalDistanceInt,
-            };
-            update({ distance: finalDistanceInt });
-            setIsAutoCalculated(true);
+              files: filesToUpdate,
+            });
           } else {
             alert("Calculated distance is 0. Please check your locations.");
+            setCalculating(false);
           }
         } else {
           alert(
             "Could not calculate distance. Please check your locations and try again.",
           );
-        }
-
-        if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && data.polyline) {
-          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-          const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&maptype=roadmap&markers=color:red|label:A|${encodeURIComponent(value.departureLocation)}&markers=color:green|label:B|${encodeURIComponent(value.destination)}&path=weight:5|color:0x0000ff|enc:${data.polyline}&key=${apiKey}`;
-
-          setMapUrl(staticMapUrl);
-
-          try {
-            const imageResponse = await fetch(staticMapUrl);
-            const imageBlob = await imageResponse.blob();
-
-            const mapFile: UploadedFile = {
-              name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
-              type: "image/png",
-              size: imageBlob.size,
-              url: staticMapUrl,
-            };
-
-            const existingFiles = value.files || [];
-            const fileExists = existingFiles.some(
-              (f) => f.url === staticMapUrl,
-            );
-            if (!fileExists) {
-              update({ files: [...existingFiles, mapFile] });
-            }
-          } catch (error) {
-            console.error("Failed to fetch map image:", error);
-            const mapFile: UploadedFile = {
-              name: `Route Map (${value.departureLocation} - ${value.destination}).png`,
-              type: "image/png",
-              size: 0,
-              url: staticMapUrl,
-            };
-
-            const existingFiles = value.files || [];
-            const fileExists = existingFiles.some(
-              (f) => f.url === staticMapUrl,
-            );
-            if (!fileExists) {
-              update({ files: [...existingFiles, mapFile] });
-            }
-          }
+          setCalculating(false);
         }
       }
     } catch (error) {
@@ -150,13 +158,18 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
   const handleRoundTripChange = (checked: boolean) => {
     let base: number;
 
-    if (baseDistance !== null) {
+    // If we have a stored base distance (from auto-calculate), use it
+    if (baseDistance !== null && baseDistance > 0) {
       base = baseDistance;
     } else if (value.distance && value.distance > 0) {
+      // Calculate base from current distance
       base = value.isRoundTrip ? value.distance / 2 : value.distance;
+      // Store it for future toggles
       setBaseDistance(Math.floor(base));
     } else {
-      base = 0;
+      // No distance available
+      update({ isRoundTrip: checked });
+      return;
     }
 
     if (base > 0) {
@@ -168,20 +181,16 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
   };
 
   const handleManualDistanceChange = (newValue: string) => {
-    if (isAutoCalculated) {
-      setIsAutoCalculated(false);
-      setBaseDistance(null);
-    }
-
     // Parse and update distance
     if (newValue === "" || newValue === null || newValue === undefined) {
       update({ distance: null });
     } else {
       const numValue = parseFloat(newValue);
-      if (!isNaN(numValue)) {
+      if (!isNaN(numValue) && numValue >= 0) {
         const intValue = Math.floor(numValue);
         update({ distance: intValue });
-      } else {
+      } else if (newValue === "" || newValue === "-") {
+        // Allow empty or just minus sign while typing
         update({ distance: null });
       }
     }
@@ -199,27 +208,38 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
   }, [tripId]);
 
   return (
-    <div className="w-full space-y-6" data-trip-id={tripId}>
+    <div className="w-full space-y-4 sm:space-y-6" data-trip-id={tripId}>
       {/* Row 1: Reason & Vehicle */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
         <div className="flex flex-col gap-2 w-full">
-          <Label htmlFor="travel-reason">Travel Reason</Label>
+          <Label htmlFor="travel-reason" className="text-sm sm:text-base">
+            Travel Reason
+          </Label>
           <Input
             type="text"
             id="travel-reason"
             placeholder="e.g. Client Meeting"
             value={value.travelReason || ""}
             onChange={(e) => update({ travelReason: e.target.value })}
+            className="text-sm sm:text-base h-10 sm:h-11"
+            aria-label="Travel reason"
+            aria-required="false"
           />
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <Label htmlFor="vehicle-type">Vehicle Type</Label>
+          <Label htmlFor="vehicle-type" className="text-sm sm:text-base">
+            Vehicle Type
+          </Label>
           <Select
             value={value.vehicleType || ""}
             onValueChange={(v) => update({ vehicleType: v })}
           >
-            <SelectTrigger>
+            <SelectTrigger
+              id="vehicle-type"
+              className="text-sm sm:text-base h-10 sm:h-11"
+              aria-label="Select vehicle type"
+            >
               <SelectValue placeholder="Select vehicle" />
             </SelectTrigger>
             <SelectContent>
@@ -236,79 +256,91 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
       </div>
 
       {/* Row 2: Time */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
         <div className="flex flex-col gap-2 w-full">
-          <Label htmlFor="startTime">Start Time</Label>
+          <Label htmlFor="startTime" className="text-sm sm:text-base">
+            Start Time
+          </Label>
           <Input
             id="startTime"
             type="time"
             onClick={(e) => e.currentTarget.showPicker()}
             value={value.startTime || ""}
             onChange={(e) => update({ startTime: e.target.value })}
-            className="bg-input-back text-foreground border-input 
+            className="bg-input-back text-foreground border-input text-sm sm:text-base h-10 sm:h-11
                    [&::-webkit-calendar-picker-indicator]:invert 
                    [&::-webkit-calendar-picker-indicator]:opacity-80
-               "
+                   focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="Start time"
+            aria-required="false"
           />
         </div>
         <div className="flex flex-col gap-2 w-full">
-          <Label htmlFor="endTime">End Time</Label>
+          <Label htmlFor="endTime" className="text-sm sm:text-base">
+            End Time
+          </Label>
           <Input
             id="endTime"
             type="time"
             onClick={(e) => e.currentTarget.showPicker()}
             value={value.endTime || ""}
             onChange={(e) => update({ endTime: e.target.value })}
-            className="bg-input-back text-foreground border-input 
+            className="bg-input-back text-foreground border-input text-sm sm:text-base h-10 sm:h-11
     [&::-webkit-calendar-picker-indicator]:invert 
     [&::-webkit-calendar-picker-indicator]:opacity-80
-  "
+    focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="End time"
+            aria-required="false"
           />
         </div>
       </div>
 
       {/* Row 3: Locations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full relative">
         <div className="flex flex-col gap-2 w-full z-10">
-          <Label htmlFor="location">Departure</Label>
+          <Label htmlFor="location" className="text-sm sm:text-base">
+            Departure
+          </Label>
           <LocationInput
             id="location"
             placeholder="Search departure..."
             value={value.departureLocation || ""}
             onChange={(val) => {
               update({ departureLocation: val });
-              // Clear auto-calculated state when location changes
-              if (isAutoCalculated) {
-                setIsAutoCalculated(false);
-                setBaseDistance(null);
-              }
+              // Clear base distance when location changes
+              setBaseDistance(null);
             }}
+            aria-label="Departure location"
+            aria-required="true"
           />
         </div>
 
         <div className="flex flex-col gap-2 w-full z-10">
-          <Label htmlFor="destination">Destination</Label>
+          <Label htmlFor="destination" className="text-sm sm:text-base">
+            Destination
+          </Label>
           <LocationInput
             id="destination"
             placeholder="Search destination..."
             value={value.destination || ""}
             onChange={(val) => {
               update({ destination: val });
-              // Clear auto-calculated state when location changes
-              if (isAutoCalculated) {
-                setIsAutoCalculated(false);
-                setBaseDistance(null);
-              }
+              // Clear base distance when location changes
+              setBaseDistance(null);
             }}
+            aria-label="Destination location"
+            aria-required="true"
           />
         </div>
       </div>
 
       {/* Row 4: Distance & Auto Calc */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full items-end">
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex justify-between items-center">
-            <Label htmlFor="distance">Distance (km)</Label>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-3">
+            <Label htmlFor="distance" className="text-sm sm:text-base">
+              Distance (km)
+            </Label>
 
             {value.departureLocation && value.destination && (
               <Button
@@ -317,65 +349,68 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
                 type="button"
                 onClick={handleAutoCalculate}
                 disabled={calculating}
-                className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                className="h-8 sm:h-9 text-xs sm:text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 sm:px-3 self-start sm:self-auto shrink-0"
+                aria-label="Auto calculate distance and generate map"
+                aria-busy={calculating}
               >
                 {calculating ? (
-                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  <>
+                    <Loader2
+                      className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">Calculating</span>
+                  </>
                 ) : (
-                  <Map className="h-3 w-3 mr-1" />
+                  <>
+                    <Map
+                      className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
+                      aria-hidden="true"
+                    />
+                    <span>Auto Calculate & Map</span>
+                  </>
                 )}
-                Auto Calculate & Map
               </Button>
             )}
           </div>
 
-          <div className="flex gap-2 items-center">
-            <Input
-              type="number"
-              placeholder="0"
-              value={value.distance === null ? "" : value.distance}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "") {
-                  update({ distance: null });
-                } else {
-                  update({ distance: Number(v) });
+          <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+            <div className="flex-1 min-w-0">
+              <Input
+                id="distance"
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="0"
+                value={
+                  value.distance === null || value.distance === undefined
+                    ? ""
+                    : value.distance
                 }
-              }}
-              readOnly={isAutoCalculated}
-            />
-
-            {isAutoCalculated && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setIsAutoCalculated(false);
-                  setBaseDistance(null);
+                onChange={(e) => {
+                  handleManualDistanceChange(e.target.value);
                 }}
-                className="text-xs h-8"
-              >
-                Edit Manually
-              </Button>
-            )}
+                className="text-sm sm:text-base h-10 sm:h-11 w-full"
+                aria-label="Distance in kilometers"
+                aria-required="false"
+              />
+            </div>
           </div>
-          {isAutoCalculated && (
-            <p className="text-xs text-muted-foreground">
-              Distance is auto-calculated. Click "Edit Manually" to override.
-            </p>
-          )}
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex items-center justify-between border border-input p-2 rounded-md bg-input-back">
-            <Label htmlFor="isRoundTrip" className="cursor-pointer py-1 px-2">
+          <div className="flex items-center justify-between border border-input p-2 sm:p-3 rounded-md bg-input-back">
+            <Label
+              htmlFor="isRoundTrip"
+              className="cursor-pointer py-1 px-2 text-sm sm:text-base"
+            >
               Round Trip?
             </Label>
             <Switch
               id="isRoundTrip"
               checked={value.isRoundTrip || false}
               onCheckedChange={handleRoundTripChange}
+              aria-label="Toggle round trip"
             />
           </div>
         </div>
@@ -387,10 +422,11 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={mapUrl}
-            alt="Route Preview"
-            className="w-full h-48 object-cover opacity-95 group-hover:opacity-100 transition-opacity"
+            alt="Route map showing the path from departure to destination"
+            className="w-full h-40 sm:h-48 object-cover opacity-95 group-hover:opacity-100 transition-opacity"
+            loading="lazy"
           />
-          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] text-white font-medium shadow-sm">
+          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] sm:text-xs text-white font-medium shadow-sm">
             Route Preview
           </div>
         </div>
@@ -398,7 +434,7 @@ export function TravelForm({ value, onChange, tripId }: TravelFormProps) {
 
       {/* Files - Route images are automatically added here */}
       <div className="flex flex-col gap-2">
-        <Label>Route Images</Label>
+        <Label className="text-sm sm:text-base">Route Images</Label>
         <FileDropzone value={value.files || []} onChange={handleFilesChange} />
       </div>
     </div>

@@ -34,7 +34,7 @@ export function TripInfoField({
         </label>
         <div
           id={fieldId}
-          className="font-medium break-words sm:truncate"
+          className="font-medium wrap-break-word sm:truncate"
           title={typeof value === "string" ? value : title}
         >
           {value}

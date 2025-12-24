@@ -213,11 +213,8 @@ export default function TripDetailPage() {
           </Collapsible>
         </div>
 
-        {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
-          {/* Main Content Column (4/5 width) */}
           <div className="lg:col-span-4 flex flex-col gap-6 sm:gap-8">
-            {/* Header with Edit Control */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
                 Trip Details

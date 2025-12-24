@@ -13,6 +13,7 @@ import LogFilters, { FilterState } from "./LogFilters";
 import { TripAttendant } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
 import { fetchUsersData } from "@/lib/utils/fetchers";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface GroupedLog {
   id: string;
@@ -129,7 +130,9 @@ export default function DailyLogsList({
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 5;
+  const isMobile = useIsMobile();
+  // Responsive items per page: 2 for mobile, 5 for lg screens
+  const ITEMS_PER_PAGE = isMobile ? 2 : 5;
 
   const processedData = useMemo(() => {
     const filteredRawLogs = logs.filter((log) => {
@@ -152,11 +155,11 @@ export default function DailyLogsList({
     const currentItems = grouped.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     return { totalPages, currentItems, totalCount: grouped.length };
-  }, [logs, filters, currentPage]);
+  }, [logs, filters, currentPage, isMobile]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters, isMobile]);
 
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [loadingNames, setLoadingNames] = useState(true);
@@ -214,12 +217,12 @@ export default function DailyLogsList({
         onFilterChange={setFilters}
       />
 
-      <div className="mb-4 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+      <div className="mb-3 sm:mb-4 text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wider">
         Showing {processedData.currentItems.length} of{" "}
         {processedData.totalCount} Entries
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {processedData.currentItems.length > 0 ? (
           processedData.currentItems.map((group) => (
             <DailyLogCard
@@ -232,8 +235,8 @@ export default function DailyLogsList({
             />
           ))
         ) : (
-          <div className="p-8 border border-dashed rounded-xl text-center text-muted-foreground bg-muted/5">
-            No logs match your filters.
+          <div className="p-6 sm:p-8 border border-dashed rounded-xl text-center text-muted-foreground bg-muted/5">
+            <p className="text-sm sm:text-base">No logs match your filters.</p>
           </div>
         )}
       </div>

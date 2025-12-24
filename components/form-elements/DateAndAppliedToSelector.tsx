@@ -38,13 +38,15 @@ export function DateAndAppliedToSelector({
   excludedUserIds = new Set(),
   ownerUserId,
 }: DateAndAppliedToSelectorProps) {
+  const selectedCount = appliedTo.length;
+
   return (
-    <div className="bg-card p-6 rounded-xl border border-border shadow-sm space-y-4 flex flex-col gap-2">
-      <div className="flex flex-row justify-between w-full">
-        <div className="max-w-sm w-full relative">
+    <div className="bg-card p-4 sm:p-6 rounded-xl border border-border shadow-sm space-y-4 flex flex-col gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between w-full gap-4 sm:gap-6">
+        <div className="w-full sm:max-w-sm sm:flex-1 relative">
           <Label
             htmlFor="logDate"
-            className="mb-2 block font-semibold text-foreground"
+            className="mb-2 block font-semibold text-foreground text-sm sm:text-base"
           >
             Date
           </Label>
@@ -64,15 +66,23 @@ export function DateAndAppliedToSelector({
                 const safeDate = new Date(year, month - 1, day, 12, 0, 0);
                 onDateChange(safeDate.toISOString().split("T")[0]);
               }}
-              className="w-full pl-10 h-12 text-base cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-full pl-10 h-11 sm:h-12 text-sm sm:text-base cursor-pointer hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="Select date for travel entry"
+              aria-required="true"
             />
-            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
+            <CalendarIcon
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors"
+              aria-hidden="true"
+            />
           </div>
         </div>
 
         {attendants.length > 0 && (
-          <div className="max-w-sm w-full flex flex-col">
-            <Label className="mb-2 block font-semibold text-foreground">
+          <div className="w-full sm:max-w-sm sm:flex-1 flex flex-col">
+            <Label
+              htmlFor="apply-to-selector"
+              className="mb-2 block font-semibold text-foreground text-sm sm:text-base"
+            >
               Apply To
             </Label>
 
@@ -89,8 +99,17 @@ export function DateAndAppliedToSelector({
           </div>
         )}
       </div>
-      <p className="text-xs text-muted-foreground mt-2 max-w-md ">
-        {appliedTo.length} colleagues selected.
+      <p
+        className="text-xs text-muted-foreground mt-2 max-w-md"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {selectedCount === 0
+          ? "No colleagues selected."
+          : selectedCount === 1
+            ? "1 colleague selected."
+            : `${selectedCount} colleagues selected.`}
       </p>
     </div>
   );
