@@ -25,7 +25,7 @@ export interface Travel {
   createdAt: string;
   updatedAt: string;
 }
-
+//there is also the formstate for travel in the formstates.ts file only difference is the files field is optional and itemType field is not present
 export type TravelFormState = Omit<
   Travel,
   | "_id"

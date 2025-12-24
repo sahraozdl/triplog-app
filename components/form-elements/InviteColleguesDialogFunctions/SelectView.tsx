@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, User, Check } from "lucide-react";
 import { useAppUser } from "@/components/providers/AppUserProvider";
+import { fetchUsersData } from "@/lib/utils/fetchers";
 
 interface SelectViewProps {
   attendants: string[];
@@ -11,8 +12,8 @@ interface SelectViewProps {
   onSelect: (v: string[]) => void;
   onClose: () => void;
   isOpen: boolean;
-  excludedUserIds?: Set<string>; // Users with existing logs for this date
-  ownerUserId?: string; // Owner of the log being edited
+  excludedUserIds?: Set<string>;
+  ownerUserId?: string;
 }
 
 export default function SelectView({
@@ -28,10 +29,6 @@ export default function SelectView({
   const [loading, setLoading] = useState(true);
 
   const user = useAppUser();
-
-  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
-  // Filter out current user and owner (if different from current user)
-  // Also filter out users with existing logs for this date
   const filteredAttendants = useMemo(() => {
     return attendants.filter(
       (id) =>
@@ -39,8 +36,6 @@ export default function SelectView({
     );
   }, [attendants, user?.userId, ownerUserId, excludedUserIds]);
 
-  // Separate excluded users for display (as disabled)
-  // MUST be called before any conditional returns
   const excludedUsers = useMemo(
     () =>
       attendants.filter(
@@ -50,8 +45,12 @@ export default function SelectView({
     [attendants, user?.userId, ownerUserId, excludedUserIds],
   );
 
-  // Check if there are any existing logs for this date
   const hasExistingLogs = excludedUserIds.size > 0;
+
+  const allUserIds = useMemo(
+    () => [...filteredAttendants, ...excludedUsers],
+    [filteredAttendants, excludedUsers],
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -59,43 +58,46 @@ export default function SelectView({
       return;
     }
 
-    // Fetch names for both selectable and excluded users
-    const allUserIds = [...filteredAttendants, ...excludedUsers];
-
-    if (!allUserIds.length) {
+    if (allUserIds.length === 0) {
       setLoading(false);
       return;
     }
 
-    // Check if we already have names for all users
     const missingNames = allUserIds.filter((id) => !names[id]);
     if (missingNames.length === 0) {
       setLoading(false);
       return;
     }
 
+    let cancelled = false;
     setLoading(true);
 
-    fetch("/api/users/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userIds: missingNames }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setNames((prev) => ({ ...prev, ...(data.users || {}) }));
+    fetchUsersData(missingNames, false)
+      .then((result) => {
+        if (!cancelled) {
+          if (result.success && result.users) {
+            setNames((prev) => ({ ...prev, ...result.users }));
+          }
+          setLoading(false);
+        }
       })
-      .catch((err) => console.error("Failed to load colleagues", err))
-      .finally(() => setLoading(false));
-  }, [isOpen, filteredAttendants, excludedUsers, names]);
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to load colleagues", err);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, allUserIds, names]);
 
   const toggle = (id: string) => {
-    // Preserve excluded users that are already selected (they cannot be removed)
     const excludedSelected = selected.filter((u) => excludedUserIds.has(u));
     const newSelection = selected.includes(id)
       ? selected.filter((u) => u !== id)
       : [...selected, id];
-    // Always preserve excluded users that were selected
     const finalSelection = [
       ...excludedSelected,
       ...newSelection.filter((u) => !excludedUserIds.has(u)),
@@ -103,7 +105,6 @@ export default function SelectView({
     onSelect(finalSelection);
   };
 
-  // Conditional rendering AFTER all hooks have been called
   if (loading) {
     return (
       <div className="flex justify-center py-8">

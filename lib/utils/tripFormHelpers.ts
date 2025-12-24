@@ -9,8 +9,8 @@ export interface TripEditFormData {
   basicInfo: {
     title: string;
     description: string;
-    startDate: string; // YYYY-MM-DD
-    endDate: string; // YYYY-MM-DD
+    startDate: string;
+    endDate: string;
     country: string;
     resort: string;
     departureLocation: string;
@@ -19,9 +19,6 @@ export interface TripEditFormData {
   status: string;
 }
 
-/**
- * Initialize form data from trip
- */
 export function initializeFormData(trip: Trip): TripEditFormData {
   return {
     basicInfo: {
@@ -38,9 +35,6 @@ export function initializeFormData(trip: Trip): TripEditFormData {
   };
 }
 
-/**
- * Validate form data
- */
 export function validateFormData(data: TripEditFormData): {
   valid: boolean;
   errors: {
@@ -68,9 +62,6 @@ export function validateFormData(data: TripEditFormData): {
   };
 }
 
-/**
- * Convert form data to API payload
- */
 export function formDataToPayload(data: TripEditFormData) {
   return {
     basicInfo: {

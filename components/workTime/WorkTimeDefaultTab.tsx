@@ -2,8 +2,8 @@
 
 import { TabsContent } from "@/components/ui/tabs";
 import { WorkTimeFormState } from "@/app/types/FormStates";
-import { WorkTimeTimeInputs } from "./WorkTimeTimeInputs";
-import { WorkTimeDescriptionField } from "./WorkTimeDescriptionField";
+import { WorkTimeTimeInputs } from "@/components/workTime/WorkTimeTimeInputs";
+import { WorkTimeDescriptionField } from "@/components/workTime/WorkTimeDescriptionField";
 
 interface WorkTimeDefaultTabProps {
   value: WorkTimeFormState;

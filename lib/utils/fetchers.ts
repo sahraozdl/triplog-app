@@ -1,9 +1,6 @@
 import { DailyLogFormState } from "@/app/types/DailyLog";
 import { Travel } from "@/app/types/Travel";
 
-/**
- * Core API function to fetch daily logs for a trip
- */
 export async function fetchLogsData(
   tripId: string,
 ): Promise<{ success: boolean; logs?: DailyLogFormState[]; error?: string }> {
@@ -34,9 +31,6 @@ export async function fetchLogsData(
   }
 }
 
-/**
- * Core API function to fetch travels for a trip
- */
 export async function fetchTravelsData(
   tripId: string,
 ): Promise<{ success: boolean; travels?: Travel[]; error?: string }> {
@@ -67,58 +61,68 @@ export async function fetchTravelsData(
   }
 }
 
-/**
- * Core API function to fetch user names by user IDs
- */
-export async function fetchUserNamesData(
+export async function fetchUsersData<T extends boolean = false>(
   userIds: string[],
+  detailed?: T,
 ): Promise<{
   success: boolean;
-  users?: Record<string, string>;
+  users?: T extends true
+    ? Record<string, { name?: string; email?: string; employeeDetail?: any }>
+    : Record<string, string>;
   error?: string;
 }> {
   try {
     if (userIds.length === 0) {
       return {
         success: true,
-        users: {},
+        users: {} as any,
       };
     }
 
     const res = await fetch("/api/users/lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userIds }),
+      body: JSON.stringify({ userIds, detailed: detailed === true }),
     });
 
     if (!res.ok) {
-      console.error("Failed to fetch user names");
+      console.error("Failed to fetch user data");
       return {
         success: false,
-        users: {},
-        error: "Failed to fetch user names",
+        users: {} as any,
+        error: "Failed to fetch user data",
       };
     }
 
     const data = await res.json();
     return {
       success: true,
-      users: data.users || {},
+      users: (data.users || {}) as any,
     };
   } catch (error) {
-    console.error("Failed to fetch user names:", error);
+    console.error("Failed to fetch user data:", error);
     return {
       success: false,
-      users: {},
+      users: {} as any,
       error:
-        error instanceof Error ? error.message : "Failed to fetch user names",
+        error instanceof Error ? error.message : "Failed to fetch user data",
     };
   }
 }
 
-/**
- * Extract user IDs from logs and travels
- */
+export async function fetchUserNamesData(userIds: string[]): Promise<{
+  success: boolean;
+  users?: Record<string, string>;
+  error?: string;
+}> {
+  const result = await fetchUsersData(userIds, false);
+  return result as {
+    success: boolean;
+    users?: Record<string, string>;
+    error?: string;
+  };
+}
+
 export function extractUserIdsFromLogsAndTravels(
   logs: DailyLogFormState[],
   travels: Travel[],
@@ -138,9 +142,6 @@ export function extractUserIdsFromLogsAndTravels(
   return Array.from(userIds);
 }
 
-/**
- * Factory function to create a fetchLogs handler
- */
 export function createFetchLogs(
   tripId: string,
   setLogs: (logs: DailyLogFormState[]) => void,
@@ -155,9 +156,6 @@ export function createFetchLogs(
   };
 }
 
-/**
- * Factory function to create a fetchTravels handler
- */
 export function createFetchTravels(
   tripId: string,
   setTravels: (travels: Travel[]) => void,
@@ -172,50 +170,11 @@ export function createFetchTravels(
   };
 }
 
-/**
- * Factory function to create a fetchUserNames handler
- */
-export function createFetchUserNames(
-  logs: DailyLogFormState[],
-  travels: Travel[],
-  setUserNames: (names: Record<string, string>) => void,
-  setLoadingNames?: (loading: boolean) => void,
-) {
-  return async () => {
-    if (setLoadingNames) {
-      setLoadingNames(true);
-    }
-
-    try {
-      const userIds = extractUserIdsFromLogsAndTravels(logs, travels);
-      const result = await fetchUserNamesData(userIds);
-
-      if (result.success && result.users) {
-        setUserNames(result.users);
-      } else {
-        setUserNames({});
-      }
-    } catch (error) {
-      console.error("Failed to fetch user names:", error);
-      setUserNames({});
-    } finally {
-      if (setLoadingNames) {
-        setLoadingNames(false);
-      }
-    }
-  };
-}
-
-/**
- * Fetch user names with localStorage caching
- * Returns a function that can be used in useEffect
- */
 export function createFetchAttendantNames(
   attendants: { userId: string }[],
   setNameMap: (names: Record<string, string>) => void,
 ) {
   return async () => {
-    // First try to load from cache
     try {
       const raw = localStorage.getItem("tripAttendantNames");
       if (raw) {
@@ -225,14 +184,12 @@ export function createFetchAttendantNames(
       console.error("Failed to read cached names", e);
     }
 
-    // Then fetch from API if we have attendants
     if (attendants && attendants.length > 0) {
       const userIds = attendants.map((a) => a.userId);
       const result = await fetchUserNamesData(userIds);
 
       if (result.success && result.users) {
         setNameMap(result.users);
-        // Update cache
         try {
           localStorage.setItem(
             "tripAttendantNames",

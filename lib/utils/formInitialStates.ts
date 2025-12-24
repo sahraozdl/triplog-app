@@ -1,5 +1,4 @@
 import {
-  TravelFormState,
   WorkTimeFormState,
   AccommodationFormState,
   AdditionalFormState,
@@ -7,17 +6,6 @@ import {
 
 export function getInitialFormState<T extends {}>(itemType: string): T {
   switch (itemType) {
-    case "travel":
-      return {
-        travelReason: "",
-        vehicleType: "",
-        startTime: "",
-        endTime: "",
-        departureLocation: "",
-        destination: "",
-        distance: 0,
-        isRoundTrip: false,
-      } as unknown as T;
     case "worktime":
       return {
         startTime: "",
@@ -44,9 +32,6 @@ export function getInitialFormState<T extends {}>(itemType: string): T {
       return {} as T;
   }
 }
-
-export const getTravelInitialState = (): TravelFormState =>
-  getInitialFormState<TravelFormState>("travel");
 
 export const getWorkTimeInitialState = (): WorkTimeFormState =>
   getInitialFormState<WorkTimeFormState>("worktime");

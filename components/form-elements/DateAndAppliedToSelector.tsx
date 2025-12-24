@@ -14,8 +14,8 @@ interface DateAndAppliedToSelectorProps {
   inviteOpen: boolean;
   onInviteOpenChange: (open: boolean) => void;
   attendants: TripAttendant[];
-  excludedUserIds?: Set<string>; // Users with existing logs for this date
-  ownerUserId?: string; // Owner of the log being edited
+  excludedUserIds?: Set<string>;
+  ownerUserId?: string;
 }
 
 function toInputDateValue(isoString: string): string {

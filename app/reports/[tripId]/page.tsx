@@ -7,7 +7,6 @@ import {
   WorkTimeLog,
   AccommodationLog,
   AdditionalLog,
-  UploadedFile,
 } from "@/app/types/DailyLog";
 import { Travel } from "@/app/types/Travel";
 import { Trip } from "@/app/types/Trip";
@@ -16,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
 import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
 import { formatMeals } from "@/lib/utils/dailyLogHelpers";
+import { fetchUsersData } from "@/lib/utils/fetchers";
 
 interface UserDetail {
   id: string;
@@ -60,15 +60,21 @@ export default function ReportPage() {
           tripData.trip.attendants?.map((a: { userId: string }) => a.userId) ||
           [];
         if (attendantIds.length > 0) {
-          const userRes = await fetch("/api/users/lookup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userIds: attendantIds, detailed: true }),
-          });
-          const userData = await userRes.json();
+          const result = await fetchUsersData(attendantIds, true);
+          const userData = result.success && result.users ? result.users : {};
 
           const formattedUsers = attendantIds.map((id: string) => {
-            const u = userData.users[id];
+            const u = userData[id] as {
+              name?: string;
+              email?: string;
+              employeeDetail?: {
+                jobTitle?: string;
+                department?: string;
+                identityNumber?: string;
+                homeAddress?: IAddress;
+                workAddress?: IAddress;
+              };
+            };
             const details = u?.employeeDetail || {};
             return {
               id: id,

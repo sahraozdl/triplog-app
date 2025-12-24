@@ -1,14 +1,3 @@
-/**
- * Date conversion utilities for trip dates
- * Converts between ISO datetime strings (from DB) and YYYY-MM-DD date strings (for inputs)
- * Uses noon UTC to avoid timezone rollovers
- */
-
-/**
- * Converts an ISO datetime string to a YYYY-MM-DD date string
- * @param isoString - ISO datetime string from database (e.g., "2025-11-29T13:00:00.000Z") or undefined
- * @returns YYYY-MM-DD date string (e.g., "2025-11-29") or empty string if invalid/undefined
- */
 export function isoToDateString(isoString: string | undefined): string {
   if (!isoString) return "";
   try {
@@ -23,16 +12,9 @@ export function isoToDateString(isoString: string | undefined): string {
   }
 }
 
-/**
- * Converts a YYYY-MM-DD date string to an ISO datetime string using noon UTC
- * This avoids timezone rollovers by using a consistent time (12:00 UTC)
- * @param dateString - YYYY-MM-DD date string (e.g., "2025-11-29")
- * @returns ISO datetime string (e.g., "2025-11-29T12:00:00.000Z") or empty string if invalid
- */
 export function dateStringToISO(dateString: string): string {
   if (!dateString) return "";
   try {
-    // Parse YYYY-MM-DD
     const parts = dateString.split("-");
     if (parts.length !== 3) return "";
 
@@ -42,10 +24,8 @@ export function dateStringToISO(dateString: string): string {
 
     if (isNaN(year) || isNaN(month) || isNaN(day)) return "";
 
-    // Create date at noon UTC to avoid timezone rollovers
     const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
-    // Validate the date (catches invalid dates like Feb 30)
     if (
       date.getUTCFullYear() !== year ||
       date.getUTCMonth() !== month - 1 ||
@@ -60,17 +40,11 @@ export function dateStringToISO(dateString: string): string {
   }
 }
 
-/**
- * Validates that startDate <= endDate (string comparison of YYYY-MM-DD)
- * @param startDate - YYYY-MM-DD date string
- * @param endDate - YYYY-MM-DD date string (optional)
- * @returns true if valid (startDate <= endDate or endDate is empty)
- */
 export function validateDateRange(
   startDate: string,
   endDate: string | undefined,
 ): boolean {
   if (!startDate) return false;
-  if (!endDate) return true; // End date is optional
+  if (!endDate) return true;
   return startDate <= endDate;
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import { DailyLog } from "@/app/models/DailyLog";
-import mongoose, { FilterQuery } from "mongoose";
+import { FilterQuery } from "mongoose";
 import { requireAuth } from "@/lib/auth-utils";
 
 interface DailyLogFilterContext {

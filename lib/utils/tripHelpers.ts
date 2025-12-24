@@ -1,9 +1,6 @@
 import { Trip } from "@/app/types/Trip";
 import { formDataToPayload } from "@/lib/utils/tripFormHelpers";
 
-/**
- * Core API function to save a trip
- */
 export async function saveTrip(
   tripId: string,
   payload: ReturnType<typeof formDataToPayload>,
@@ -44,9 +41,6 @@ export async function saveTrip(
   }
 }
 
-/**
- * Core API function to refresh trip data
- */
 export async function refreshTripData(
   tripId: string,
 ): Promise<{ success: boolean; trip?: Trip }> {
@@ -68,9 +62,6 @@ export async function refreshTripData(
   }
 }
 
-/**
- * Factory function to create a handleSave handler
- */
 export function createHandleSave(
   tripId: string,
   updateTrip: (trip: Trip) => void,
@@ -86,11 +77,9 @@ export function createHandleSave(
 
       if (result.success && result.trip) {
         updateTrip(result.trip);
-        // Refresh the trip data to ensure we have the latest
         const refreshResult = await refreshTripData(tripId);
         if (refreshResult.success && refreshResult.trip) {
           updateTrip(refreshResult.trip);
-          // Exit edit mode if setEditMode is provided
           if (setEditMode) {
             setEditMode("display");
           }
@@ -107,9 +96,6 @@ export function createHandleSave(
   };
 }
 
-/**
- * Factory function to create a handleEdit handler
- */
 export function createHandleEdit(
   setEditMode: (mode: "display" | "inline") => void,
 ) {
@@ -118,9 +104,6 @@ export function createHandleEdit(
   };
 }
 
-/**
- * Factory function to create a handleCancel handler
- */
 export function createHandleCancel(
   setEditMode: (mode: "display" | "inline") => void,
 ) {
@@ -129,9 +112,6 @@ export function createHandleCancel(
   };
 }
 
-/**
- * Factory function to create a refreshTrip handler
- */
 export function createRefreshTrip(
   tripId: string,
   updateTrip: (trip: Trip) => void,
@@ -146,23 +126,16 @@ export function createRefreshTrip(
   };
 }
 
-/**
- * Factory function to create a handleUploadSuccess handler
- */
 export function createHandleUploadSuccess(
   showToast: (message: string, type?: "success" | "error") => void,
   refreshTrip: () => Promise<void>,
 ) {
   return async () => {
     showToast("File uploaded", "success");
-    // Refresh trip data to get updated additionalFiles
     await refreshTrip();
   };
 }
 
-/**
- * Factory function to create a handleUploadError handler
- */
 export function createHandleUploadError(
   showToast: (message: string, type?: "success" | "error") => void,
 ) {
@@ -171,9 +144,6 @@ export function createHandleUploadError(
   };
 }
 
-/**
- * Factory function to create a handleFileDelete handler
- */
 export function createHandleFileDelete(
   showToast: (message: string, type?: "success" | "error") => void,
   refreshTrip: () => Promise<void>,
@@ -184,9 +154,6 @@ export function createHandleFileDelete(
   };
 }
 
-/**
- * Core API function to end a trip
- */
 export async function endTrip(
   tripId: string,
 ): Promise<{ success: boolean; error?: string }> {
@@ -215,9 +182,6 @@ export async function endTrip(
   }
 }
 
-/**
- * Factory function to create a handleEndTrip handler
- */
 export function createHandleEndTrip(
   tripId: string,
   removeTrip: (id: string) => void,
@@ -239,9 +203,6 @@ export function createHandleEndTrip(
   };
 }
 
-/**
- * Validate if a file is a valid image type
- */
 export function validateImageFile(file: File): string | null {
   const validImageTypes = [
     "image/jpeg",
@@ -267,9 +228,6 @@ export function validateImageFile(file: File): string | null {
   return null;
 }
 
-/**
- * Core API function to upload a file to a trip
- */
 export async function uploadTripFile(
   tripId: string,
   file: File,
@@ -314,13 +272,7 @@ export async function uploadTripFile(
   }
 }
 
-/**
- * Core API function to upload a file to the general upload endpoint
- * Returns the uploaded file information
- */
-export async function uploadFile(
-  file: File,
-): Promise<{
+export async function uploadFile(file: File): Promise<{
   success: boolean;
   file?: { url: string; name: string; type: string; size: number };
   error?: string;

@@ -18,7 +18,6 @@ import {
 import { LogCreationPayload } from "@/app/types/LogCreation";
 import { useTripStore } from "@/lib/store/useTripStore";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
-import { hasNonEmptyOverride } from "@/lib/utils/dailyLogHelpers";
 import {
   getInitialSharedFields,
   updateSharedFieldsOnAppliedToChange,
@@ -29,6 +28,7 @@ import {
   extractWorkTimeOverride,
 } from "@/lib/utils/logDataTransformers";
 import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
+import { fetchUsersData } from "@/lib/utils/fetchers";
 import {
   WorkTimeLog,
   AccommodationLog,
@@ -234,15 +234,8 @@ export default function EditDailyLogPage() {
     });
 
     if (conflictingUsers.length > 0) {
-      const userNames = await fetch("/api/users/lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userIds: conflictingUsers }),
-      })
-        .then((res) => res.json())
-        .then((data) => data.users || {})
-        .catch(() => ({}));
-
+      const result = await fetchUsersData(conflictingUsers, false);
+      const userNames = result.success && result.users ? result.users : {};
       const names = conflictingUsers
         .map((id) => userNames[id] || id.slice(0, 8))
         .join(", ");
@@ -306,14 +299,8 @@ export default function EditDailyLogPage() {
       }
 
       if (usersWithLogs.length > 0) {
-        const userNames = await fetch("/api/users/lookup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userIds: usersWithLogs }),
-        })
-          .then((res) => res.json())
-          .then((data) => data.users || {})
-          .catch(() => ({}));
+        const result = await fetchUsersData(usersWithLogs, false);
+        const userNames = result.success && result.users ? result.users : {};
         const names = usersWithLogs
           .map((id) => userNames[id] || id.slice(0, 8))
           .join(", ");

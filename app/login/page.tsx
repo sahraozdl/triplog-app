@@ -1,14 +1,11 @@
 import { auth0 } from "@/lib/auth0";
 import LoginButton from "@/components/LoginButton";
-import LogoutButton from "@/components/LogoutButton";
-import Profile from "@/components/Profile";
 import { redirect } from "next/navigation";
 
 export default async function LoginPage() {
   const session = await auth0.getSession();
   const user = session?.user;
 
-  // If user is already logged in, redirect to dashboard
   if (user) {
     redirect("/dashboard");
   }

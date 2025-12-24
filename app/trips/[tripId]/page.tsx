@@ -29,7 +29,8 @@ import {
 import {
   createFetchLogs,
   createFetchTravels,
-  createFetchUserNames,
+  extractUserIdsFromLogsAndTravels,
+  fetchUsersData,
 } from "@/lib/utils/fetchers";
 import {
   Collapsible,
@@ -76,11 +77,6 @@ export default function TripDetailPage() {
     [tripId],
   );
 
-  const fetchUserNames = useCallback(
-    createFetchUserNames(logs, travels, setUserNames, setLoadingNames),
-    [logs, travels],
-  );
-
   useEffect(() => {
     if (!tripId) return;
     fetchLogs();
@@ -88,9 +84,39 @@ export default function TripDetailPage() {
   }, [tripId, fetchLogs, fetchTravels]);
 
   useEffect(() => {
-    if (logs.length === 0 && travels.length === 0) return;
-    fetchUserNames();
-  }, [logs, travels, fetchUserNames]);
+    if (logs.length === 0 && travels.length === 0) {
+      setUserNames({});
+      setLoadingNames(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingNames(true);
+
+    const userIds = extractUserIdsFromLogsAndTravels(logs, travels);
+    fetchUsersData(userIds, false)
+      .then((result) => {
+        if (!cancelled) {
+          if (result.success && result.users) {
+            setUserNames(result.users);
+          } else {
+            setUserNames({});
+          }
+          setLoadingNames(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Failed to fetch user names:", error);
+          setUserNames({});
+          setLoadingNames(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [logs, travels]);
 
   useEffect(() => {
     if (trip) return;

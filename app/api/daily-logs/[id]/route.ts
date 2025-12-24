@@ -109,16 +109,13 @@ export async function PUT(
     await connectToDB();
     const body = await req.json();
 
-    // Verify the log exists
     const existingLog = await DailyLog.findById(id);
     if (!existingLog) {
       return NextResponse.json({ error: "Log not found" }, { status: 404 });
     }
 
-    // Extract update data, ensuring we don't allow changing the _id
     const { _id, data, itemType, ...flatFields } = body;
 
-    // Ensure the ID in the body matches the URL parameter (strict scoping)
     if (_id && _id.toString() !== id) {
       return NextResponse.json({ error: "Log ID mismatch" }, { status: 400 });
     }
@@ -130,7 +127,6 @@ export async function PUT(
       updatedAt: new Date().toISOString(),
     };
 
-    // Use the appropriate discriminator model based on itemType
     let TargetModel = DailyLog;
     const logItemType = itemType || existingLog.itemType;
 
@@ -138,7 +134,6 @@ export async function PUT(
     else if (logItemType === "accommodation") TargetModel = AccommodationLog;
     else if (logItemType === "additional") TargetModel = AdditionalLog;
 
-    // Update the log, strictly scoped to the provided ID
     const updatedLog = await TargetModel.findByIdAndUpdate(
       id,
       { $set: updateData },

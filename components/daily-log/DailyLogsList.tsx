@@ -12,7 +12,7 @@ import DailyLogCard from "./DailyLogCard";
 import LogFilters, { FilterState } from "./LogFilters";
 import { TripAttendant } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
-import { effectiveLogForUser } from "@/lib/utils/dailyLogHelpers";
+import { fetchUsersData } from "@/lib/utils/fetchers";
 
 export interface GroupedLog {
   id: string;
@@ -161,24 +161,41 @@ export default function DailyLogsList({
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [loadingNames, setLoadingNames] = useState(true);
 
-  useEffect(() => {
-    if (!logs.length) {
-      setLoadingNames(false);
-      return;
-    }
+  // Extract unique user IDs from logs
+  const userIds = useMemo(() => {
     const allIds = new Set<string>();
     logs.forEach((l) => {
       if (l.userId) allIds.add(l.userId);
     });
-
-    fetch("/api/users/lookup", {
-      method: "POST",
-      body: JSON.stringify({ userIds: Array.from(allIds) }),
-    })
-      .then((res) => res.json())
-      .then((data) => setUserNames(data.users))
-      .finally(() => setLoadingNames(false));
+    return Array.from(allIds);
   }, [logs]);
+
+  // Fetch user names when logs change
+  useEffect(() => {
+    if (userIds.length === 0) {
+      setLoadingNames(false);
+      setUserNames({});
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingNames(true);
+
+    fetchUsersData(userIds, false).then((result) => {
+      if (!cancelled) {
+        if (result.success && result.users) {
+          setUserNames(result.users);
+        } else {
+          setUserNames({});
+        }
+        setLoadingNames(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userIds]);
 
   if (!logs || logs.length === 0) {
     return (

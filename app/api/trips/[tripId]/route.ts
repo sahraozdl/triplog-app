@@ -10,12 +10,10 @@ import {
   Trip as TripType,
 } from "@/app/types/Trip";
 
-// Type definitions for route parameters
 interface RouteParams {
   params: Promise<{ tripId: string }>;
 }
 
-// Type definitions for PUT request body
 interface UpdateTripRequestBody {
   basicInfo?: Partial<TripBasicInfo>;
   attendants?: TripAttendant[];
@@ -23,7 +21,6 @@ interface UpdateTripRequestBody {
   status?: "active" | "ended";
 }
 
-// Type definitions for API responses
 interface SuccessResponse<T = unknown> {
   success: true;
   trip?: T;
@@ -69,8 +66,6 @@ export async function GET(
       );
     }
 
-    // Ensure additionalFiles is always an array (even if empty or undefined)
-    // Type assertion needed because lean() returns a generic type
     const tripData = trip as unknown as TripType;
     const tripWithFiles: TripType = {
       ...tripData,
@@ -118,7 +113,6 @@ export async function PUT(
       );
     }
 
-    // Get current user
     const user = await getUserDB();
     if (!user) {
       return NextResponse.json<ErrorResponse>(
@@ -136,7 +130,6 @@ export async function PUT(
       );
     }
 
-    // Check permissions: only creator or moderator can update
     const isCreator = trip.creatorId === user.userId;
     const isModerator =
       Array.isArray(trip.attendants) &&
@@ -162,7 +155,6 @@ export async function PUT(
       );
     }
 
-    // Update basicInfo if provided
     if (body.basicInfo && typeof body.basicInfo === "object") {
       trip.basicInfo = {
         ...trip.basicInfo,
@@ -170,31 +162,26 @@ export async function PUT(
       };
     }
 
-    // Update attendants if provided
     if (body.attendants !== undefined) {
       if (Array.isArray(body.attendants)) {
         trip.attendants = body.attendants;
       }
     }
 
-    // Update invites if provided
     if (body.invites !== undefined) {
       if (Array.isArray(body.invites)) {
         trip.invites = body.invites;
       }
     }
 
-    // Update status if provided
     if (body.status && (body.status === "active" || body.status === "ended")) {
       trip.status = body.status;
     }
 
-    // Update updatedAt timestamp
     trip.updatedAt = new Date().toISOString();
 
     await trip.save();
 
-    // Convert to plain object for response
     const tripData = trip.toObject ? trip.toObject() : trip;
 
     return NextResponse.json<SuccessResponse>({

@@ -1,4 +1,5 @@
 import { IUser } from "@/app/types/user";
+import { fetchUsersData } from "./fetchers";
 
 export interface ImageData {
   base64: string;
@@ -40,16 +41,9 @@ export async function fetchImage(url: string): Promise<ImageData | null> {
 export async function fetchAttendantDetails(
   userIds: string[],
 ): Promise<Record<string, AttendantDetail>> {
-  try {
-    const res = await fetch("/api/users/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userIds, detailed: true }),
-    });
-    const data = await res.json();
-    return data.users || {};
-  } catch (e) {
-    console.error("Failed to fetch user details", e);
-    return {};
+  const result = await fetchUsersData(userIds, true);
+  if (result.success && result.users) {
+    return result.users as Record<string, AttendantDetail>;
   }
+  return {};
 }

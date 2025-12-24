@@ -2,7 +2,8 @@
 
 import { TripAttendant } from "@/app/types/Trip";
 import { Filter, User, Layers, CheckCircle2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { fetchUsersData } from "@/lib/utils/fetchers";
 
 export interface FilterState {
   userId: string;
@@ -23,16 +24,31 @@ export default function LogFilters({
 }: Props) {
   const [names, setNames] = useState<Record<string, string>>({});
 
+  // Extract user IDs from attendants
+  const userIds = useMemo(() => attendants.map((a) => a.userId), [attendants]);
+
   useEffect(() => {
-    if (!attendants.length) return;
-    const ids = attendants.map((a) => a.userId);
-    fetch("/api/users/lookup", {
-      method: "POST",
-      body: JSON.stringify({ userIds: ids }),
-    })
-      .then((res) => res.json())
-      .then((data) => setNames(data.users || {}));
-  }, [attendants]);
+    if (userIds.length === 0) {
+      setNames({});
+      return;
+    }
+
+    let cancelled = false;
+
+    fetchUsersData(userIds, false).then((result) => {
+      if (!cancelled) {
+        if (result.success && result.users) {
+          setNames(result.users);
+        } else {
+          setNames({});
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userIds]);
 
   const handleChange = (key: keyof FilterState, value: string | boolean) => {
     onFilterChange({ ...filters, [key]: value });

@@ -1,8 +1,9 @@
 "use client";
 
 import { TripAttendant } from "@/app/types/Trip";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { User, BadgeCheck, Clock } from "lucide-react";
+import { fetchUsersData } from "@/lib/utils/fetchers";
 
 export default function AttendantsList({
   attendants,
@@ -12,41 +13,58 @@ export default function AttendantsList({
   const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
+  // Extract user IDs from attendants
+  const userIds = useMemo(() => attendants.map((a) => a.userId), [attendants]);
+
   useEffect(() => {
     if (!attendants || attendants.length === 0) {
       setLoading(false);
       return;
     }
 
-    const fetchNames = async () => {
-      const ids = attendants.map((a) => a.userId);
-      try {
-        const res = await fetch("/api/users/lookup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userIds: ids }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setNames(data.users);
-          try {
-            localStorage.setItem(
-              "tripAttendantNames",
-              JSON.stringify(data.users),
-            );
-          } catch (e) {
-            console.error("Failed to cache attendant names", e);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load attendant names", err);
-      } finally {
-        setLoading(false);
+    // Try to load from cache first
+    try {
+      const cached = localStorage.getItem("tripAttendantNames");
+      if (cached) {
+        const cachedNames = JSON.parse(cached);
+        setNames(cachedNames);
       }
-    };
+    } catch (e) {
+      console.error("Failed to read cached names", e);
+    }
 
-    fetchNames();
-  }, [attendants]);
+    let cancelled = false;
+    setLoading(true);
+
+    fetchUsersData(userIds, false)
+      .then((result) => {
+        if (!cancelled) {
+          if (result.success && result.users) {
+            setNames(result.users);
+            // Update cache
+            try {
+              localStorage.setItem(
+                "tripAttendantNames",
+                JSON.stringify(result.users),
+              );
+            } catch (e) {
+              console.error("Failed to cache attendant names", e);
+            }
+          }
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to load attendant names", err);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userIds]);
 
   if (!attendants || attendants.length === 0) {
     return (

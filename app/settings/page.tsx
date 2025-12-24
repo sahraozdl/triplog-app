@@ -396,7 +396,7 @@ export default function SettingsPage() {
           {/* Home Address Form */}
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
                 <CardTitle>Home Address</CardTitle>
                 <Button
                   type="button"

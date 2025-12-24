@@ -17,6 +17,7 @@ interface WorkTimeDescriptionFieldProps {
   canUndo?: boolean;
   isGenerating?: boolean;
   className?: string;
+  "aria-label"?: string;
 }
 
 export function WorkTimeDescriptionField({

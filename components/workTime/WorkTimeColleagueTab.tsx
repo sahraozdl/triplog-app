@@ -2,9 +2,10 @@
 
 import { User } from "lucide-react";
 import { TabsContent } from "@/components/ui/tabs";
-import { WorkTimeFormState, WorkTimeOverride } from "@/app/types/FormStates";
-import { WorkTimeTimeInputs } from "./WorkTimeTimeInputs";
-import { WorkTimeDescriptionField } from "./WorkTimeDescriptionField";
+import { WorkTimeFormState } from "@/app/types/FormStates";
+import { WorkTimeOverride } from "@/components/workTime/WorkTimeForm";
+import { WorkTimeTimeInputs } from "@/components/workTime/WorkTimeTimeInputs";
+import { WorkTimeDescriptionField } from "@/components/workTime/WorkTimeDescriptionField";
 
 interface WorkTimeColleagueTabProps {
   userId: string;

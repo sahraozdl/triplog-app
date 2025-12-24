@@ -14,7 +14,7 @@ export default function InviteView({ tripId }: { tripId: string }) {
       setOrigin(window.location.origin);
     }
   }, []);
-
+  //not working well right know since there is no invite logic entegrated yet
   const generate = async () => {
     setLoading(true);
     try {

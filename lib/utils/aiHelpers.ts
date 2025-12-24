@@ -1,9 +1,7 @@
 import * as React from "react";
-import { WorkTimeFormState, WorkTimeOverride } from "@/app/types/FormStates";
+import { WorkTimeFormState } from "@/app/types/FormStates";
+import { WorkTimeOverride } from "@/components/workTime/WorkTimeForm";
 
-/**
- * Factory function to create an insertTag handler for work time forms
- */
 export function createInsertTag(
   activeTab: string,
   value: WorkTimeFormState,
@@ -24,9 +22,6 @@ export function createInsertTag(
   };
 }
 
-/**
- * Factory function to create a handleAiGenerate handler for work time forms
- */
 export function createHandleAiGenerate(
   activeTab: string,
   value: WorkTimeFormState,
@@ -84,7 +79,6 @@ export function createHandleAiGenerate(
       return;
     }
 
-    // Save current description to history before generating
     const historyKey = activeTab === "me" ? "me" : activeTab;
     setDescriptionHistory((prev) => ({
       ...prev,
@@ -137,9 +131,6 @@ export function createHandleAiGenerate(
   };
 }
 
-/**
- * Factory function to create a handleUndo handler for work time forms
- */
 export function createHandleUndo(
   activeTab: string,
   descriptionHistory: Record<string, string>,
