@@ -63,7 +63,7 @@ export function TripFilesList({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 sm:space-y-3">
       {files.map((file, index) => {
         const isImage =
           file.type?.startsWith("image/") ||
@@ -72,56 +72,70 @@ export function TripFilesList({
         return (
           <div
             key={`${file.url}-${index}`}
-            className="flex items-center justify-between p-3 bg-card border rounded-lg shadow-sm group hover:shadow-md transition-shadow"
+            className="flex flex-col gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card border rounded-lg shadow-sm group hover:shadow-md transition-shadow"
           >
-            <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
-              <div className="bg-primary/10 p-2 rounded shrink-0">
+            {/* Top Row: Icon and Delete Button */}
+            <div className="flex items-center justify-between">
+              <div className="bg-primary/10 p-2 sm:p-2.5 rounded shrink-0">
                 {isImage ? (
-                  <ImageIcon className="h-4 w-4 text-primary" />
+                  <ImageIcon
+                    className="h-4 w-4 sm:h-5 sm:w-5 text-primary"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <FileIcon className="h-4 w-4 text-primary" />
+                  <FileIcon
+                    className="h-4 w-4 sm:h-5 sm:w-5 text-primary"
+                    aria-hidden="true"
+                  />
                 )}
               </div>
-              <div className="flex flex-col min-w-0 flex-1">
-                <a
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-foreground truncate hover:underline hover:text-primary transition-colors"
+
+              {canDelete && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => handleDelete(index)}
+                  disabled={deletingIndex === index}
+                  aria-label={`Delete file: ${file.name}`}
+                  title="Delete file"
                 >
-                  {file.name}
-                </a>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{(file.size / 1024).toFixed(1)} KB</span>
-                  {file.uploadedAt && (
-                    <>
-                      <span>•</span>
-                      <span>
-                        {new Date(file.uploadedAt).toLocaleDateString()}
-                      </span>
-                    </>
+                  {deletingIndex === index ? (
+                    <Loader2
+                      className="h-4 w-4 sm:h-5 sm:w-5 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <X className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
                   )}
-                </div>
-              </div>
+                </Button>
+              )}
             </div>
 
-            {canDelete && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                onClick={() => handleDelete(index)}
-                disabled={deletingIndex === index}
-                title="Delete file"
+            {/* Bottom Row: File Details */}
+            <div className="flex flex-col gap-1.5 min-w-0">
+              <a
+                href={file.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm sm:text-base font-medium text-foreground break-words hover:underline hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded"
+                aria-label={`Open file: ${file.name}`}
               >
-                {deletingIndex === index ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <X className="h-4 w-4" />
+                {file.name}
+              </a>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                <span>{(file.size / 1024).toFixed(1)} KB</span>
+                {file.uploadedAt && (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <span>
+                      {new Date(file.uploadedAt).toLocaleDateString()}
+                    </span>
+                  </>
                 )}
-              </Button>
-            )}
+              </div>
+            </div>
           </div>
         );
       })}

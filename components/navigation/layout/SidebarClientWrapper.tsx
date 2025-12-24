@@ -14,13 +14,15 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
       <AppSidebar />
 
       <SidebarInset>
-        <div className="flex md:hidden bg-sidebar p-4">
+        <div className="flex md:hidden bg-sidebar p-3 sm:p-4">
           <SidebarTrigger className="border-2" />
         </div>
 
-        <main className="min-h-screen w-full px-4">
-          <Breadcrumbs />
-          {children}
+        <main className="min-h-screen w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
+          <div className="mx-auto w-full max-w-7xl">
+            <Breadcrumbs />
+            <div className="py-4 sm:py-6 md:py-8">{children}</div>
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

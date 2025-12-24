@@ -76,7 +76,7 @@ export function TravelCard({
         />
 
         {/* LEFT: DATE & USER INFO */}
-        <div className="bg-muted/30 p-3 md:w-44 flex flex-col md:border-r border-b md:border-b-0 gap-2.5 shrink-0">
+        <div className="bg-muted/30 p-3 sm:p-4 md:w-44 lg:w-48 flex flex-col md:border-r border-b md:border-b-0 gap-2.5 sm:gap-3 shrink-0">
           <TravelCardHeader date={dateObj} />
           <hr className="border-border/60" />
           <TravelCardMetadata
@@ -87,20 +87,20 @@ export function TravelCard({
         </div>
 
         {/* RIGHT: CONTENT */}
-        <div className="flex-1 p-3 bg-card">
-          <div className="flex items-center gap-2 mb-2.5 text-muted-foreground uppercase tracking-widest text-[10px] font-bold">
-            <Plane className="h-3.5 w-3.5" aria-hidden="true" />
+        <div className="flex-1 p-3 sm:p-4 md:p-5 bg-card">
+          <div className="flex items-center gap-2 mb-2.5 sm:mb-3 text-muted-foreground uppercase tracking-widest text-[10px] sm:text-xs font-bold">
+            <Plane className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
             <span>Travel</span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 sm:space-y-3">
             {travel.travelReason && (
-              <div className="font-semibold text-foreground text-sm">
+              <div className="font-semibold text-foreground text-sm sm:text-base">
                 {travel.travelReason}
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               <TravelCardRoute
                 departureLocation={travel.departureLocation}
                 destination={travel.destination}

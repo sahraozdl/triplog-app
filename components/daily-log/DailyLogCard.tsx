@@ -126,13 +126,13 @@ export default function DailyLogCard({
         )}
 
         {/* LEFT: DATE & USER INFO */}
-        <div className="bg-muted/30 p-5 md:w-64 flex flex-col md:border-r border-b md:border-b-0 gap-4 shrink-0">
+        <div className="bg-muted/30 p-4 sm:p-5 md:w-64 lg:w-72 flex flex-col md:border-r border-b md:border-b-0 gap-3 sm:gap-4 shrink-0">
           {/* Date */}
           <div className="text-center md:text-left">
-            <div className="text-3xl font-black text-foreground">
+            <div className="text-2xl sm:text-3xl font-black text-foreground">
               {dateObj.getDate()}
             </div>
-            <div className="text-sm font-bold uppercase text-muted-foreground tracking-wider">
+            <div className="text-xs sm:text-sm font-bold uppercase text-muted-foreground tracking-wider">
               {dateObj.toLocaleDateString("en-US", {
                 month: "short",
                 weekday: "short",
@@ -146,12 +146,12 @@ export default function DailyLogCard({
           <hr className="border-border/60" />
 
           {/* Creator */}
-          <div className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-1 text-xs sm:text-sm">
             <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">
               Created By
             </span>
             <div className="flex items-center gap-2 font-medium text-foreground">
-              <User className="h-4 w-4 text-primary" />
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               <span className="truncate">{getName(group.userId)}</span>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function DailyLogCard({
         </div>
 
         {/* RIGHT: CONTENT SECTIONS */}
-        <div className="flex-1 p-6 space-y-8 bg-card">
+        <div className="flex-1 p-4 sm:p-5 md:p-6 space-y-6 sm:space-y-8 bg-card">
           <WorkSection logs={group.works} />
           <AccommodationSection logs={group.accommodations} />
           <AdditionalSection logs={group.additionals} />
@@ -187,7 +187,7 @@ export default function DailyLogCard({
       </div>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Logs</DialogTitle>
             <DialogDescription>
@@ -195,11 +195,12 @@ export default function DailyLogCard({
               other users will remain.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
               disabled={isDeleting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -207,6 +208,7 @@ export default function DailyLogCard({
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
+              className="w-full sm:w-auto"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>

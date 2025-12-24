@@ -914,7 +914,8 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
       variant="outline"
       onClick={generatePDF}
       disabled={generating}
-      className="flex items-center gap-2"
+      className="w-full sm:w-auto"
+      size="sm"
     >
       {generating ? (
         <Loader2 className="h-4 w-4 animate-spin" />

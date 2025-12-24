@@ -11,7 +11,7 @@ import { TripAttendant } from "@/app/types/Trip";
 import { DownloadReportButton } from "@/components/trip/DownloadReportButton";
 import { TripInfoCard } from "@/components/trip/TripInfoCard";
 import { TripEditInline } from "@/components/trip/TripEditInline";
-import { Edit, Plus } from "lucide-react";
+import { Edit } from "lucide-react";
 import { useAppUser } from "@/components/providers/AppUserProvider";
 import { FilesSection } from "@/components/trip/FilesSection";
 import { useToast } from "@/hooks/useToast";
@@ -168,15 +168,20 @@ export default function TripDetailPage() {
 
   return (
     <AuthGuard>
-      <div className="w-full max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Mobile: Collapsible Files Section */}
-        <div className="lg:hidden mb-6">
+        <div className="lg:hidden mb-4 sm:mb-6">
           <Collapsible open={filesOpen} onOpenChange={setFilesOpen}>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto py-3 px-4"
+              >
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Trip Files</span>
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-sm sm:text-base font-medium">
+                    Trip Files
+                  </span>
                   {trip.additionalFiles && trip.additionalFiles.length > 0 && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                       {trip.additionalFiles.length}
@@ -190,8 +195,8 @@ export default function TripDetailPage() {
                 />
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4">
-              <div className="border rounded-lg p-4 bg-card">
+            <CollapsibleContent className="mt-3 sm:mt-4">
+              <div className="border rounded-lg p-3 sm:p-4 bg-card">
                 <FilesSection
                   tripId={tripId as string}
                   files={trip.additionalFiles || []}
@@ -209,24 +214,25 @@ export default function TripDetailPage() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
           {/* Main Content Column (4/5 width) */}
-          <div className="lg:col-span-4 flex flex-col gap-8">
+          <div className="lg:col-span-4 flex flex-col gap-6 sm:gap-8">
             {/* Header with Edit Control */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
                 Trip Details
               </h1>
-              {canEdit && editMode === "display" && (
-                <Button
-                  variant="outline"
-                  onClick={handleEdit}
-                  className="gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Edit
+              <div className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+                {canEdit && editMode === "display" && (
+                  <Button variant="outline" onClick={handleEdit} size="sm">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                <Button variant="destructive" onClick={handleEndTrip} size="sm">
+                  End Trip
                 </Button>
-              )}
+              </div>
             </div>
 
             {/* Trip Info Card or Edit Form */}
@@ -242,16 +248,8 @@ export default function TripDetailPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-              <div className="flex gap-4 w-full sm:w-auto">
-                <Button
-                  variant="destructive"
-                  className="flex-1 sm:flex-none"
-                  onClick={handleEndTrip}
-                >
-                  End Trip
-                </Button>
-
+            <div className="flex flex-col sm:flex-row md:flex-row justify-between gap-5 sm:gap-4">
+              <div className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto">
                 <DownloadReportButton
                   trip={trip}
                   logs={logs}
@@ -260,23 +258,26 @@ export default function TripDetailPage() {
                 <Button
                   variant="outline"
                   onClick={() => router.push(`/reports/${tripId}`)}
+                  size="sm"
+                  className="w-full sm:w-auto"
                 >
                   View Report
                 </Button>
               </div>
 
-              <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex flex-row gap-2 sm:gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="flex-1 sm:flex-none"
+                  className="w-full sm:w-auto"
                   onClick={() => router.push(`/newTravel/${tripId}`)}
+                  size="sm"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
                   New Travel
                 </Button>
                 <Button
-                  className="flex-1 sm:flex-none"
+                  className="w-full sm:w-auto"
                   onClick={() => router.push(`/newDailyLog/${tripId}`)}
+                  size="sm"
                 >
                   New Daily Log
                 </Button>
@@ -284,8 +285,8 @@ export default function TripDetailPage() {
             </div>
 
             {/* Travel Entries */}
-            <div className="flex flex-col gap-4">
-              <h2 className="text-xl font-semibold text-foreground">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground">
                 Travel Entries
               </h2>
 
@@ -299,14 +300,14 @@ export default function TripDetailPage() {
             </div>
 
             {/* Daily Logs */}
-            <div className="flex flex-col gap-4">
-              <h2 className="text-xl font-semibold text-foreground">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground">
                 Daily Logs
               </h2>
 
               {logs.length === 0 ? (
-                <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
-                  <p className="text-muted-foreground text-sm">
+                <div className="text-center py-6 sm:py-8 border border-dashed rounded-lg bg-muted/10">
+                  <p className="text-muted-foreground text-sm sm:text-base">
                     No logs recorded yet.
                   </p>
                 </div>
@@ -323,7 +324,7 @@ export default function TripDetailPage() {
 
           {/* Files Sidebar Column (1/5 width) - Desktop Only */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-8 border rounded-lg p-4 bg-card h-[calc(100vh-4rem)] flex flex-col">
+            <div className="sticky top-4 sm:top-8 border rounded-lg p-4 bg-card h-[calc(100vh-2rem)] sm:h-[calc(100vh-4rem)] flex flex-col">
               <FilesSection
                 tripId={tripId as string}
                 files={trip.additionalFiles || []}
