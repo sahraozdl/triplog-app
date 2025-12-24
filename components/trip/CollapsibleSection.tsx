@@ -31,13 +31,15 @@ export function CollapsibleSection({
       <CollapsibleTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-between h-auto py-2 px-0 hover:bg-transparent group"
+          className="w-full justify-between h-auto py-2.5 sm:py-2 px-1 sm:px-0 hover:bg-transparent group touch-manipulation"
           aria-expanded={isOpen}
           aria-controls={`${id}-content`}
         >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <span aria-hidden="true">{icon}</span>
-            <span>
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+            <span aria-hidden="true" className="shrink-0">
+              {icon}
+            </span>
+            <span className="truncate">
               {title}
               {count !== undefined && (
                 <span className="text-muted-foreground font-normal">
@@ -48,12 +50,12 @@ export function CollapsibleSection({
             </span>
           </div>
           <ChevronDown
-            className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+            className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 shrink-0 ml-2"
             aria-hidden="true"
           />
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent id={`${id}-content`} className="pt-2">
+      <CollapsibleContent id={`${id}-content`} className="pt-2 sm:pt-2.5">
         {children}
       </CollapsibleContent>
     </Collapsible>

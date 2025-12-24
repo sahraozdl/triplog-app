@@ -60,25 +60,28 @@ export function TripInfoCard({ trip }: { trip: Trip }) {
 
   return (
     <Card className="w-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl sm:text-2xl" id="trip-title">
+      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+        <TripInfoCompactGrid trip={trip} />
+        <CardTitle
+          className="text-lg sm:text-xl md:text-2xl mt-3 sm:mt-4"
+          id="trip-title"
+        >
           {trip.basicInfo.title}
         </CardTitle>
         {trip.basicInfo.description && (
           <p
-            className="text-sm text-muted-foreground mt-1"
+            className="text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2"
             aria-describedby="trip-title"
           >
             {trip.basicInfo.description}
           </p>
         )}
       </CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4">
-        <TripInfoCompactGrid trip={trip} />
+      <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6 pb-4 sm:pb-6">
         <TripLocationInfo trip={trip} />
 
         {/* Collapsible Sections */}
-        <div className="space-y-2 pt-2 border-t">
+        <div className="flex flex-col gap-2 sm:gap-3 pt-2 sm:pt-3 border-t">
           <CollapsibleSection
             title="Attendants"
             count={trip.attendants?.length || 0}
@@ -91,19 +94,6 @@ export function TripInfoCard({ trip }: { trip: Trip }) {
               loadingNames={loadingNames}
             />
           </CollapsibleSection>
-
-          <CollapsibleSection
-            title="Invites"
-            count={trip.invites?.length || 0}
-            icon={<Key className="h-4 w-4 text-muted-foreground" />}
-            id="invites"
-          >
-            <TripInvitesList
-              invites={trip.invites || []}
-              formatDateTime={formatDateTime}
-            />
-          </CollapsibleSection>
-
           <CollapsibleSection
             title="Details"
             icon={<Info className="h-4 w-4 text-muted-foreground" />}

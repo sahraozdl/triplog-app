@@ -4,13 +4,6 @@ import { Trip } from "@/app/types/Trip";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import LocationInput from "@/components/form-elements/LocationInput";
 import { validateDateRange } from "@/lib/utils/dateConversion";
 import { useEffect } from "react";
@@ -53,13 +46,6 @@ export function TripEditForm({
     });
   };
 
-  const handleStatusChange = (status: string) => {
-    onChange({
-      ...value,
-      status,
-    });
-  };
-
   useEffect(() => {
     if (value.basicInfo.startDate && value.basicInfo.endDate) {
       if (
@@ -71,10 +57,10 @@ export function TripEditForm({
   }, [value.basicInfo.startDate, value.basicInfo.endDate]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-5 md:space-y-6 px-1 sm:px-0">
       {/* Title */}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="title">
+      <div className="flex flex-col gap-1.5 sm:gap-2">
+        <Label htmlFor="title" className="text-xs sm:text-sm">
           Title{" "}
           <span className="text-destructive" aria-label="required">
             *
@@ -88,24 +74,30 @@ export function TripEditForm({
           aria-required="true"
           aria-invalid={errors?.title ? "true" : "false"}
           aria-describedby={errors?.title ? "title-error" : undefined}
-          className={errors?.title ? "border-destructive" : ""}
+          className={`text-sm sm:text-base ${errors?.title ? "border-destructive" : ""}`}
         />
         {errors?.title && (
-          <p id="title-error" className="text-sm text-destructive" role="alert">
+          <p
+            id="title-error"
+            className="text-xs sm:text-sm text-destructive"
+            role="alert"
+          >
             {errors.title}
           </p>
         )}
       </div>
 
       {/* Description */}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="description">Description</Label>
+      <div className="flex flex-col gap-1.5 sm:gap-2">
+        <Label htmlFor="description" className="text-xs sm:text-sm">
+          Description
+        </Label>
         <Textarea
           id="description"
           value={value.basicInfo.description}
           onChange={(e) => handleChange("description", e.target.value)}
-          rows={4}
-          className="resize-none"
+          rows={3}
+          className="resize-none text-sm sm:text-base min-h-[80px] sm:min-h-[100px]"
           aria-describedby="description-help"
         />
         <p
@@ -117,9 +109,9 @@ export function TripEditForm({
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="startDate">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <Label htmlFor="startDate" className="text-xs sm:text-sm">
             Start Date{" "}
             <span className="text-destructive" aria-label="required">
               *
@@ -130,38 +122,48 @@ export function TripEditForm({
             type="date"
             value={value.basicInfo.startDate}
             onChange={(e) => handleChange("startDate", e.target.value)}
+            onClick={(e) => e.currentTarget.showPicker()}
             required
             aria-required="true"
             aria-invalid={errors?.dateRange ? "true" : "false"}
             aria-describedby={errors?.dateRange ? "date-error" : undefined}
-            className={errors?.dateRange ? "border-destructive" : ""}
+            className={`text-sm sm:text-base ${errors?.dateRange ? "border-destructive" : ""}`}
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="endDate">End Date</Label>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <Label htmlFor="endDate" className="text-xs sm:text-sm">
+            End Date
+          </Label>
           <Input
             id="endDate"
             type="date"
             value={value.basicInfo.endDate}
             onChange={(e) => handleChange("endDate", e.target.value)}
+            onClick={(e) => e.currentTarget.showPicker()}
             aria-invalid={errors?.dateRange ? "true" : "false"}
             aria-describedby={errors?.dateRange ? "date-error" : undefined}
-            className={errors?.dateRange ? "border-destructive" : ""}
+            className={`text-sm sm:text-base ${errors?.dateRange ? "border-destructive" : ""}`}
             min={value.basicInfo.startDate || undefined}
           />
         </div>
       </div>
       {errors?.dateRange && (
-        <p id="date-error" className="text-sm text-destructive" role="alert">
+        <p
+          id="date-error"
+          className="text-xs sm:text-sm text-destructive px-1"
+          role="alert"
+        >
           {errors.dateRange}
         </p>
       )}
 
       {/* Locations */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="departureLocation">Departure Location</Label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <Label htmlFor="departureLocation" className="text-xs sm:text-sm">
+            Departure Location
+          </Label>
           <LocationInput
             id="departureLocation"
             value={value.basicInfo.departureLocation}
@@ -170,8 +172,10 @@ export function TripEditForm({
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="arrivalLocation">Arrival Location</Label>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <Label htmlFor="arrivalLocation" className="text-xs sm:text-sm">
+            Arrival Location
+          </Label>
           <LocationInput
             id="arrivalLocation"
             value={value.basicInfo.arrivalLocation}
@@ -181,10 +185,12 @@ export function TripEditForm({
         </div>
       </div>
 
-      {/* Country & Resort (using LocationInput like newTrip) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="country">Country</Label>
+      {/* Country & Resort */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <Label htmlFor="country" className="text-xs sm:text-sm">
+            Country
+          </Label>
           <LocationInput
             id="country"
             placeholder="e.g. Sweden"
@@ -193,8 +199,10 @@ export function TripEditForm({
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="resort">Resort / Specific Place</Label>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <Label htmlFor="resort" className="text-xs sm:text-sm">
+            Resort / Specific Place
+          </Label>
           <LocationInput
             id="resort"
             placeholder="e.g. Hilton Slussen"
@@ -202,20 +210,6 @@ export function TripEditForm({
             onChange={(val) => handleChange("resort", val)}
           />
         </div>
-      </div>
-
-      {/* Status */}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="status">Status</Label>
-        <Select value={value.status} onValueChange={handleStatusChange}>
-          <SelectTrigger id="status" aria-label="Trip status">
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="ended">Ended</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
     </div>
   );

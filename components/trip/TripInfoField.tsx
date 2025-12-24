@@ -20,19 +20,21 @@ export function TripInfoField({
   const fieldId = useId();
 
   return (
-    <div className={`flex items-start gap-2 text-xs sm:text-sm ${className}`}>
+    <div
+      className={`flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm ${className}`}
+    >
       {icon && (
         <span className="shrink-0 mt-0.5" aria-hidden="true">
           {icon}
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <label htmlFor={fieldId} className="text-muted-foreground block">
+        <label htmlFor={fieldId} className="text-muted-foreground block mb-0.5">
           {label}
         </label>
         <div
           id={fieldId}
-          className="font-medium truncate"
+          className="font-medium break-words sm:truncate"
           title={typeof value === "string" ? value : title}
         >
           {value}

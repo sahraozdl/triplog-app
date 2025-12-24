@@ -18,13 +18,13 @@ export function TripLocationInfo({ trip }: TripLocationInfoProps) {
   if (!hasLocationInfo) return null;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pt-2 border-t">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pt-2 sm:pt-3 border-t">
       {trip.basicInfo.departureLocation && (
         <TripInfoField
           label="Departure"
           value={trip.basicInfo.departureLocation}
           icon={
-            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
           }
           title={trip.basicInfo.departureLocation}
         />
@@ -34,7 +34,7 @@ export function TripLocationInfo({ trip }: TripLocationInfoProps) {
           label="Arrival"
           value={trip.basicInfo.arrivalLocation}
           icon={
-            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
           }
           title={trip.basicInfo.arrivalLocation}
         />
@@ -44,7 +44,7 @@ export function TripLocationInfo({ trip }: TripLocationInfoProps) {
           label="Country"
           value={trip.basicInfo.country}
           icon={
-            <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
           }
           title={trip.basicInfo.country}
         />
@@ -54,7 +54,7 @@ export function TripLocationInfo({ trip }: TripLocationInfoProps) {
           label="Resort"
           value={trip.basicInfo.resort}
           icon={
-            <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
           }
           title={trip.basicInfo.resort}
         />

@@ -44,16 +44,18 @@ export function TripFileUpload({
   );
 
   return (
-    <FileDropzone
-      customUpload={customUpload}
-      onUploadSuccess={handleUploadSuccess}
-      onUploadError={onUploadError}
-      showToast={showToast}
-      hideFileList={true}
-      disabled={disabled}
-      uploadText="Upload images to this trip"
-      uploadSubtext="Drag and drop images here, or click to select. Supported: JPG, PNG, GIF, WEBP, SVG"
-      className=""
-    />
+    <div className="w-full">
+      <FileDropzone
+        customUpload={customUpload}
+        onUploadSuccess={handleUploadSuccess}
+        onUploadError={onUploadError}
+        showToast={showToast}
+        hideFileList={true}
+        disabled={disabled}
+        uploadText="Upload images to this trip"
+        uploadSubtext="Drag and drop images here, or click to select. Supported: JPG, PNG, GIF, WEBP, SVG"
+        className="w-full"
+      />
+    </div>
   );
 }
