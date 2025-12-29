@@ -12,12 +12,16 @@ import { QuickTags } from "@/components/form-elements/QuickTags";
 import { ShareFieldToggle } from "@/components/form-elements/ShareFieldToggle";
 import { TripAttendant } from "@/app/types/Trip";
 import { WorkTimeFormState } from "@/app/types/FormStates";
-import { createFetchAttendantNames } from "@/lib/utils/fetchers";
+import {
+  createFetchAttendantNames,
+  fetchUsersData,
+} from "@/lib/utils/fetchers";
 import {
   createInsertTag,
   createHandleAiGenerate,
   createHandleUndo,
 } from "@/lib/utils/aiHelpers";
+import { useAppUser } from "@/components/providers/AppUserProvider";
 import { WorkTimeTabsList } from "./WorkTimeTabsList";
 import { WorkTimeDefaultTab } from "./WorkTimeDefaultTab";
 import { WorkTimeColleagueTab } from "./WorkTimeColleagueTab";
@@ -41,6 +45,7 @@ interface Props {
   onOverridesChange?: (overrides: Record<string, WorkTimeOverride>) => void;
   shareEnabled?: boolean;
   onShareChange?: (enabled: boolean) => void;
+  tripId?: string;
 }
 
 export default function WorkTimeForm({
@@ -52,13 +57,16 @@ export default function WorkTimeForm({
   onOverridesChange,
   shareEnabled = false,
   onShareChange,
+  tripId,
 }: Props) {
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("me");
   const [nameMap, setNameMap] = useState<Record<string, string>>({});
+  const [jobTitleMap, setJobTitleMap] = useState<Record<string, string>>({});
   const [descriptionHistory, setDescriptionHistory] = useState<
     Record<string, string>
   >({});
+  const user = useAppUser();
 
   const fetchNames = useCallback(
     createFetchAttendantNames(attendants, setNameMap),
@@ -68,6 +76,49 @@ export default function WorkTimeForm({
   useEffect(() => {
     fetchNames();
   }, [fetchNames]);
+
+  // Fetch jobTitle for current user and colleagues
+  useEffect(() => {
+    const fetchJobTitles = async () => {
+      const userIdsToFetch: string[] = [];
+
+      // Add current user if available
+      if (user?.userId) {
+        userIdsToFetch.push(user.userId);
+      }
+
+      // Add colleague user IDs
+      if (appliedTo.length > 0) {
+        userIdsToFetch.push(...appliedTo);
+      }
+
+      if (userIdsToFetch.length === 0) return;
+
+      try {
+        const result = await fetchUsersData(userIdsToFetch, true);
+        if (result.success && result.users) {
+          const jobTitles: Record<string, string> = {};
+          Object.entries(result.users).forEach(([userId, userData]) => {
+            if (typeof userData === "object" && userData !== null) {
+              const user = userData as {
+                jobTitle?: string;
+                employeeDetail?: { jobTitle?: string };
+              };
+              const jobTitle = user.jobTitle || user.employeeDetail?.jobTitle;
+              if (jobTitle) {
+                jobTitles[userId] = jobTitle;
+              }
+            }
+          });
+          setJobTitleMap(jobTitles);
+        }
+      } catch (error) {
+        console.error("Failed to fetch job titles:", error);
+      }
+    };
+
+    fetchJobTitles();
+  }, [user?.userId, appliedTo]);
 
   useEffect(() => {
     if (activeTab !== "me" && !appliedTo.includes(activeTab)) {
@@ -107,6 +158,14 @@ export default function WorkTimeForm({
     [activeTab, value, effectiveOverrides, updateMain, updateOverride],
   );
 
+  // Get jobTitle for the active tab
+  const activeJobTitle = useMemo(() => {
+    if (activeTab === "me") {
+      return user?.userId ? jobTitleMap[user.userId] : undefined;
+    }
+    return jobTitleMap[activeTab];
+  }, [activeTab, user?.userId, jobTitleMap]);
+
   const handleAiGenerate = useMemo(
     () =>
       createHandleAiGenerate(
@@ -118,6 +177,8 @@ export default function WorkTimeForm({
         updateOverride,
         setGenerating,
         setDescriptionHistory,
+        tripId,
+        activeJobTitle,
       ),
     [
       activeTab,
@@ -126,6 +187,8 @@ export default function WorkTimeForm({
       appliedTo,
       updateMain,
       updateOverride,
+      tripId,
+      activeJobTitle,
     ],
   );
 
@@ -248,7 +311,11 @@ export default function WorkTimeForm({
             )}
 
             <div className="flex flex-col gap-2 w-full pt-4 border-t border-border border-dashed mt-2">
-              <QuickTags onTagClick={insertTag} />
+              <QuickTags
+                onTagClick={insertTag}
+                tripId={tripId}
+                jobTitle={activeJobTitle}
+              />
             </div>
           </AccordionContent>
         </AccordionItem>

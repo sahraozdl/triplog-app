@@ -47,10 +47,6 @@ const data = {
           title: "Active Trips",
           url: "/dashboard#active-trips",
         },
-        {
-          title: "Past Trips (Coming Soon)",
-          url: "#",
-        },
       ],
     },
     {

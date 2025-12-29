@@ -24,7 +24,7 @@ function formatDate(isoString: string | undefined) {
 
 export function TripInfoCompactGrid({ trip }: TripInfoCompactGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4 pb-2 sm:pb-3 border-b">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4 pb-3 sm:pb-4 border-b mb-1">
       {/* Status Badge */}
       <div className="flex flex-row items-center gap-1.5 text-xs sm:text-sm">
         <Label

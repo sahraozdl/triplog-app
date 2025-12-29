@@ -1,6 +1,31 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
+import { connectToDB } from "@/lib/mongodb";
+import Trip from "@/app/models/Trip";
+
+async function getTripDescription(
+  tripId?: string,
+  tripDescription?: string,
+): Promise<string> {
+  if (tripDescription) {
+    return tripDescription;
+  }
+
+  if (tripId) {
+    try {
+      await connectToDB();
+      const trip = await Trip.findById(tripId);
+      if (trip?.basicInfo?.description) {
+        return trip.basicInfo.description;
+      }
+    } catch (error) {
+      console.error("Error fetching trip description:", error);
+    }
+  }
+
+  return "";
+}
 
 export async function POST(req: Request) {
   const authResult = await requireAuth();
@@ -21,75 +46,93 @@ export async function POST(req: Request) {
     const openai = new OpenAI({ apiKey });
 
     const body = await req.json();
-    const { action, context, timeRange, selectedTags, fullText, selectedText } =
-      body;
+    const {
+      action,
+      context,
+      timeRange,
+      selectedTags,
+      fullText,
+      selectedText,
+      tripId,
+      tripDescription,
+      jobTitle,
+    } = body;
 
     console.log(`AI Request Received: ${action}`);
 
+    // Get trip description if available
+    const tripDesc = await getTripDescription(tripId, tripDescription);
+    const tripContext = tripDesc
+      ? `\n\nTRIP CONTEXT:\nThis work log is part of a trip with the following description: "${tripDesc}". When generating tags or descriptions, consider how the activities relate to this trip context.`
+      : "";
+
+    const jobTitleContext = jobTitle
+      ? `\n\nJOB TITLE CONTEXT:\nThe user's job title is "${jobTitle}". When generating tags or descriptions, consider activities and terminology relevant to this role.`
+      : "";
+
     if (action === "suggest_tags") {
-      const prompt = `
-        You are a work logger assistant. The user selected: "${context}".
-        Suggest 4 related, short professional tags (max 3 words).
-        Return ONLY a JSON array. Example: ["code review", "debugging"]
-        Do not use markdown formatting.
-      `;
+      const prompt = `You are a work logger assistant. The user selected: "${context}".${tripContext}${jobTitleContext}
+
+Suggest 4 related, short professional tags (max 3 words) that are relevant to the selected context${tripDesc ? " and the trip description" : ""}${jobTitle ? ` and appropriate for someone with the job title "${jobTitle}"` : ""}.
+Return a JSON array of exactly 4 tags. Example: ["code review", "debugging", "testing", "documentation"]`;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "suggest_tags_response",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                tags: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                  minItems: 4,
+                  maxItems: 4,
+                },
+              },
+              required: ["tags"],
+              additionalProperties: false,
+            },
+          },
+        },
       });
 
-      let text = completion.choices[0]?.message?.content || "";
-
-      text = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      let tags = [];
-      try {
-        tags = JSON.parse(text);
-      } catch (e) {
-        console.error("AI Response JSON Parse Error:", text);
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
         return NextResponse.json({ tags: [] });
       }
 
-      return NextResponse.json({ tags });
+      try {
+        const parsed = JSON.parse(content);
+        return NextResponse.json({ tags: parsed.tags || [] });
+      } catch (e) {
+        console.error("AI Response JSON Parse Error:", content);
+        return NextResponse.json({ tags: [] });
+      }
     }
 
     if (action === "generate_description") {
-      const timeMatch = timeRange?.match(
-        /(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/,
-      );
-      let duration = "";
-      if (timeMatch) {
-        const startHours = parseInt(timeMatch[1]);
-        const startMinutes = parseInt(timeMatch[2]);
-        const endHours = parseInt(timeMatch[3]);
-        const endMinutes = parseInt(timeMatch[4]);
-        const startTotal = startHours * 60 + startMinutes;
-        const endTotal = endHours * 60 + endMinutes;
-        const diffMinutes = endTotal - startTotal;
-        const hours = Math.floor(diffMinutes / 60);
-        const minutes = diffMinutes % 60;
-        if (hours > 0 && minutes > 0) {
-          duration = `${hours} hour${hours > 1 ? "s" : ""} and ${minutes} minute${minutes > 1 ? "s" : ""}`;
-        } else if (hours > 0) {
-          duration = `${hours} hour${hours > 1 ? "s" : ""}`;
-        } else {
-          duration = `${minutes} minute${minutes > 1 ? "s" : ""}`;
-        }
-      }
-
       const tags = selectedTags || [];
       const tagList = tags.map((tag: string) => tag.trim()).filter(Boolean);
 
-      let prompt = `You are a professional work log assistant. Your task is to generate a realistic, human-like work description that accurately reflects the activities performed during the specified time period.
+      let prompt = `You are a professional work log assistant. Generate a concise, brief work description based on the provided tags.${tripContext}${jobTitleContext}
+
+IMPORTANT RULES ABOUT SIX-DIGIT CLASS IDENTIFIERS:
+- Six-digit numbers (format: MMDDYY, e.g., 110425 = 11/04/2025) are class identifiers
+- ONLY include a class identifier in your output if the user explicitly provided one in their tags/input
+- Do NOT invent, add, or include any class identifiers that are not present in the user's input
+- If the user's tags contain a six-digit number, preserve it exactly as provided (six digits, no separators)
+- The number "110425" mentioned in examples below is ONLY an example - do NOT use it unless the user explicitly provides it
 
 CONTEXT:
-- Time Range: ${timeRange}${duration ? ` (Duration: ${duration})` : ""}
-- Tags/Activities: ${tagList.length > 0 ? tagList.join(", ") : "General work activities"}`;
+- Tags/Activities: ${tagList.length > 0 ? tagList.join(", ") : "General work activities"}${jobTitle ? `\n- Job Title: ${jobTitle}` : ""}`;
 
       if (fullText && selectedText) {
         prompt += `
@@ -100,15 +143,14 @@ The user has existing work log text. They have selected a specific portion to re
 - Selected portion to regenerate: "${selectedText}"
 
 INSTRUCTIONS:
-1. Analyze the selected tags and understand what activities they represent
-2. Consider the time duration - activities should be realistic for that time period
-3. Generate a description ONLY for the selected portion that:
-   - Matches the tone and style of the surrounding text
-   - Is contextually consistent with the rest of the work log
-   - Reflects realistic work activities for the time range
-   - Uses natural, professional language (not overly formal or robotic)
-4. The output should seamlessly fit into the existing text structure
-5. Return ONLY the replacement text for the selected portion, without any additional commentary`;
+1. Generate a brief, concise description ONLY for the selected portion${tripDesc ? " that relates to the trip context when relevant" : ""}${jobTitle ? ` using terminology and activities appropriate for a ${jobTitle}` : ""}
+2. Keep it short - 1-2 sentences maximum
+3. Match the tone and style of the surrounding text
+4. Do NOT mention time ranges or hours worked
+5. Do NOT add unnecessary phrases like "Conducted", "During the trip", or "Worked on" - be direct and concise
+6. ONLY include six-digit class identifiers if they are explicitly present in the user's tags/input - do NOT invent or add any group numbers
+7. If a six-digit number is in the user's input, preserve it exactly as provided (e.g., 110425, not "class 110425" or "11/04/2025")
+8. Return ONLY the replacement text, no additional commentary`;
       } else if (fullText) {
         prompt += `
 
@@ -116,54 +158,85 @@ EXISTING TEXT:
 "${fullText}"
 
 INSTRUCTIONS:
-1. Analyze the tags and understand what activities they represent
-2. Consider the time duration - activities should be realistic for that time period
-3. Generate a complete work description that:
-   - Incorporates all the tags naturally
-   - Reflects realistic work activities for the time range
-   - Uses natural, professional language (not overly formal or robotic)
-   - Provides specific, concrete details about what was accomplished
-4. The description should sound like a real person wrote it about their actual work
-5. Return ONLY the work description text, without any additional commentary`;
+1. Generate a brief, concise work description${tripDesc ? " that relates to the trip context when relevant" : ""}${jobTitle ? ` using terminology and activities appropriate for a ${jobTitle}` : ""}
+2. Keep it short - 1-2 sentences maximum
+3. Incorporate the tags naturally but briefly
+4. Do NOT mention time ranges or hours worked
+5. Do NOT add unnecessary phrases like "Conducted", "During the trip", or "Worked on" - be direct and concise
+6. ONLY include six-digit class identifiers if they are explicitly present in the user's tags/input - do NOT invent or add any group numbers
+7. If a six-digit number is in the user's input, preserve it exactly as provided (e.g., 110425, not "class 110425" or "11/04/2025")
+8. Return ONLY the work description text, no additional commentary`;
       } else {
         prompt += `
 
 INSTRUCTIONS:
-1. Analyze the tags and understand what activities they represent
-2. Consider the time duration - activities should be realistic for that time period
-3. Generate a complete work description that:
-   - Incorporates all the tags naturally
-   - Reflects realistic work activities for the time range
-   - Uses natural, professional language (not overly formal or robotic)
-   - Provides specific, concrete details about what was accomplished
-4. The description should sound like a real person wrote it about their actual work
-5. Return ONLY the work description text, without any additional commentary`;
+1. Generate a brief, concise work description${tripDesc ? " that relates to the trip context when relevant" : ""}${jobTitle ? ` using terminology and activities appropriate for a ${jobTitle}` : ""}
+2. Keep it short - 1-2 sentences maximum
+3. Incorporate the tags naturally but briefly
+4. Do NOT mention time ranges or hours worked
+5. Do NOT add unnecessary phrases like "Conducted", "During the trip", or "Worked on" - be direct and concise
+6. ONLY include six-digit class identifiers if they are explicitly present in the user's tags/input - do NOT invent or add any group numbers
+7. If a six-digit number is in the user's input, preserve it exactly as provided (e.g., 110425, not "class 110425" or "11/04/2025")
+8. Return ONLY the work description text, no additional commentary`;
       }
 
       prompt += `
 
-EXAMPLES OF GOOD DESCRIPTIONS:
-- "Reviewed and merged pull requests for the authentication module, then updated API documentation for the new endpoints."
-- "Attended sprint planning meeting to discuss Q4 roadmap, followed by refactoring the user profile component to improve performance."
-- "Fixed critical bug in payment processing flow that was causing transaction failures, and wrote unit tests to prevent regression."
+EXAMPLES OF GOOD DESCRIPTIONS (brief and concise):
+- "Reviewed pull requests and updated API documentation."
+- "Attended sprint planning meeting and refactored user profile component."
+- "Fixed payment processing bug and wrote unit tests."
+- "Code review for 110425." (NOTE: This example assumes the user's input contained "110425". If the user only provided "code review" without a number, the output should be "Code review" without any group number)
 
 EXAMPLES OF BAD DESCRIPTIONS (avoid these):
 - "Did coding and meetings." (too vague)
-- "Performed various software development tasks." (generic, no specifics)
-- "Worked on project-related activities." (meaningless)
+- "Worked for 8 hours on various software development tasks including coding, debugging, and testing." (too long, mentions hours)
+- "Performed various software development tasks." (generic)
+- "Code review for 110425." (WRONG if the user only provided "code review" - do NOT add group numbers that weren't in the user's input)
+- "Conducted code review for project 200825 during the trip." (too verbose, adds unnecessary words like "Conducted" and "during the trip", and incorrectly calls it a "project" instead of recognizing it as a class identifier)
+- "Code review for class 110425." (unnecessarily adds "class" - just use "Code review for 110425" if the number was in the input)
+- "Reviewed code, commented on submissions, helped students, and shared knowledge with class 110425." (too explicit - the concise version "Code review for 110425" implies all of this, but only if the number was in the user's input)
 
-Now generate the work description:`;
+Now generate the brief work description:`;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.8,
-        max_tokens: 500,
+        max_tokens: 150,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "generate_description_response",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                description: {
+                  type: "string",
+                  description:
+                    "A brief, concise work description (1-2 sentences maximum)",
+                },
+              },
+              required: ["description"],
+              additionalProperties: false,
+            },
+          },
+        },
       });
 
-      const description = completion.choices[0]?.message?.content?.trim() || "";
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        return NextResponse.json({ description: "" });
+      }
 
-      return NextResponse.json({ description });
+      try {
+        const parsed = JSON.parse(content);
+        return NextResponse.json({ description: parsed.description || "" });
+      } catch (e) {
+        console.error("AI Response JSON Parse Error:", content);
+        return NextResponse.json({ description: "" });
+      }
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

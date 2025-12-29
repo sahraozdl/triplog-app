@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { sortByLatestOrder } from "@/lib/utils/sortHelpers";
 
 interface TravelEntriesListProps {
   travels: Travel[];
@@ -27,11 +28,20 @@ export function TravelEntriesList({
   const ITEMS_PER_PAGE = 2;
 
   const processedData = useMemo(() => {
-    const totalPages = Math.ceil(travels.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const currentItems = travels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    // Sort travels by date (newest first)
+    const sortedTravels = sortByLatestOrder(
+      travels,
+      (travel) => travel.dateTime,
+    );
 
-    return { totalPages, currentItems, totalCount: travels.length };
+    const totalPages = Math.ceil(sortedTravels.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const currentItems = sortedTravels.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE,
+    );
+
+    return { totalPages, currentItems, totalCount: sortedTravels.length };
   }, [travels, currentPage]);
 
   if (!travels || travels.length === 0) {

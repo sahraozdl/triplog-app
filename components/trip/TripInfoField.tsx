@@ -28,7 +28,7 @@ export function TripInfoField({
           {icon}
         </span>
       )}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <label htmlFor={fieldId} className="text-muted-foreground block mb-0.5">
           {label}
         </label>

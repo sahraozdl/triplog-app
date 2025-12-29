@@ -1,21 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import WorkTimeForm, {
-  WorkTimeOverride,
-} from "@/components/workTime/WorkTimeForm";
-import AccommodationMealsForm from "@/components/accommodationMeal/AccommodationMealsForm";
-import AdditionalForm from "@/components/additional/AdditionalForm";
 import { Button } from "@/components/ui/button";
 import { useAppUser } from "@/components/providers/AppUserProvider";
-import { DailyLogFormState } from "@/app/types/DailyLog";
 import {
   WorkTimeFormState,
   AccommodationFormState,
   AdditionalFormState,
 } from "@/app/types/FormStates";
-import { LogCreationPayload } from "@/app/types/LogCreation";
+import { DailyLogFormState } from "@/app/types/DailyLog";
+import { Trip } from "@/app/types/Trip";
 import { useTripStore } from "@/lib/store/useTripStore";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
 import {
@@ -23,21 +18,21 @@ import {
   updateSharedFieldsOnAppliedToChange,
 } from "@/lib/utils/shareFieldLogic";
 import { getInitialFormState } from "@/lib/utils/formInitialStates";
-import {
-  transformLogToFormState,
-  extractWorkTimeOverride,
-} from "@/lib/utils/logDataTransformers";
 import { DateAndAppliedToSelector } from "@/components/form-elements/DateAndAppliedToSelector";
-import { fetchUsersData } from "@/lib/utils/fetchers";
+import { WorkTimeOverride } from "@/components/workTime/WorkTimeForm";
+import { DailyLogEditForms } from "@/components/daily-log/DailyLogEditForms";
 import {
-  WorkTimeLog,
-  AccommodationLog,
-  AdditionalLog,
-} from "@/app/types/DailyLog";
+  loadLogsForEditing,
+  validateNoConflictingUsers,
+  refreshUsersWithExistingLogs,
+  planLogUpdates,
+  executeLogUpdates,
+} from "@/lib/utils/dailyLogEditHelpers";
 
 export default function EditDailyLogPage() {
   const router = useRouter();
-  const { logId } = useParams();
+  const params = useParams();
+  const logId = typeof params.logId === "string" ? params.logId : undefined;
   const appUser = useAppUser();
   const loggedInUserId = appUser?.userId;
 
@@ -46,10 +41,9 @@ export default function EditDailyLogPage() {
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [originalLogs, setOriginalLogs] = useState<DailyLogFormState[]>([]);
   const [tripId, setTripId] = useState<string>("");
-
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
+  const [originalLogs, setOriginalLogs] = useState<DailyLogFormState[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [appliedTo, setAppliedTo] = useState<string[]>([]);
@@ -98,97 +92,29 @@ export default function EditDailyLogPage() {
     if (!logId) return;
 
     async function fetchAndFillLogs() {
+      if (!logId) return; // Type guard
       setLoadingLogs(true);
-      const newLogIds: typeof logIds = {};
-      const foundAppliedTo = new Set<string>();
-      const foundOverrides: Record<string, WorkTimeOverride> = {};
+      const result = await loadLogsForEditing(logId);
 
-      try {
-        const initialLogRes = await fetch(`/api/daily-logs/${logId}`);
-        if (!initialLogRes.ok) throw new Error("Could not find initial log.");
-        const initialLog = (await initialLogRes.json()) as DailyLogFormState;
-
-        const tripIdToFetch = initialLog.tripId;
-        const logUserId = initialLog.userId;
-        setOwnerUserId(logUserId);
-
-        const logDate = initialLog.dateTime
-          ? initialLog.dateTime.split("T")[0]
-          : "";
-
-        setTripId(tripIdToFetch);
-
-        const groupRes = await fetch(
-          `/api/daily-logs?tripId=${tripIdToFetch}&date=${logDate}`,
-        );
-        const data = await groupRes.json();
-        const logs: DailyLogFormState[] = data.logs || [];
-
-        setOriginalLogs(logs);
-
-        // Track users who already have logs for this date (excluding the owner)
-        const existingLogUsers = new Set<string>();
-        logs.forEach((log) => {
-          if (log.userId !== logUserId) {
-            const logDateStr = log.dateTime ? log.dateTime.split("T")[0] : "";
-            if (logDateStr === logDate) {
-              existingLogUsers.add(log.userId);
-            }
-          }
-        });
-        setUsersWithExistingLogs(existingLogUsers);
-
-        logs.forEach((log) => {
-          const type = log.itemType;
-
-          const ownerId = logUserId;
-
-          if (type === "worktime") {
-            const workTimeLog = log as DailyLogFormState & {
-              itemType: "worktime";
-            };
-            if (log.userId === ownerId) {
-              newLogIds.worktime = log._id.toString();
-              setWorkTime({
-                startTime: workTimeLog.startTime || "",
-                endTime: workTimeLog.endTime || "",
-                description: workTimeLog.description || "",
-              });
-            } else {
-              // Track existing colleague worktime logs for overrides
-              foundOverrides[log.userId] = extractWorkTimeOverride(
-                log as DailyLogFormState & { itemType: "worktime" },
-              );
-            }
-
-            return;
-          }
-          if (log.userId === ownerId) {
-            newLogIds[type as keyof typeof logIds] = log._id.toString();
-
-            const formPayload = transformLogToFormState(log);
-
-            if (type === "accommodation")
-              setAccommodationMeals(formPayload as AccommodationFormState);
-            else if (type === "additional")
-              setAdditional(formPayload as AdditionalFormState);
-          }
-        });
-
-        setLogIds(newLogIds);
-        setWorkTimeOverrides(foundOverrides);
-        setSelectedDate(logDate);
-        // Initialize appliedTo from existing log's metadata
-        // This preserves users who are already shared, even if they have existing logs
-        setAppliedTo(initialLog.appliedTo || []);
-      } catch (error) {
-        console.error("Failed to load logs for editing:", error);
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
-        alert(`Error: ${errorMessage}`);
-      } finally {
+      if (!result.success || !result.data) {
+        alert(`Error: ${result.error || "Failed to load logs"}`);
         setLoadingLogs(false);
+        return;
       }
+
+      const data = result.data;
+      setLogIds(data.logIds);
+      setWorkTime(data.workTime);
+      setAccommodationMeals(data.accommodationMeals);
+      setAdditional(data.additional);
+      setWorkTimeOverrides(data.workTimeOverrides);
+      setSelectedDate(data.selectedDate);
+      setAppliedTo(data.appliedTo);
+      setOwnerUserId(data.ownerUserId);
+      setTripId(data.tripId);
+      setOriginalLogs(data.originalLogs);
+      setUsersWithExistingLogs(data.usersWithExistingLogs);
+      setLoadingLogs(false);
     }
 
     fetchAndFillLogs();
@@ -204,7 +130,10 @@ export default function EditDailyLogPage() {
       try {
         const res = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
         if (!res.ok) return;
-        const data = await res.json();
+        const data = (await res.json()) as {
+          success?: boolean;
+          trip?: Trip;
+        };
         if (data?.success && data?.trip) {
           updateTrip(data.trip);
         }
@@ -225,55 +154,19 @@ export default function EditDailyLogPage() {
     const effectiveUserId = ownerUserId ?? loggedInUserId!;
     setValidationError("");
 
-    // Validation: Check if any selected colleagues already have logs for this date
-    const conflictingUsers: string[] = [];
-    appliedTo.forEach((colleagueId) => {
-      if (usersWithExistingLogs.has(colleagueId)) {
-        conflictingUsers.push(colleagueId);
-      }
-    });
+    // Validate: Check if any selected colleagues already have logs for this date
+    const validationResult = await validateNoConflictingUsers(
+      appliedTo,
+      usersWithExistingLogs,
+    );
 
-    if (conflictingUsers.length > 0) {
-      const result = await fetchUsersData(conflictingUsers, false);
-      const userNames = result.success && result.users ? result.users : {};
-      const names = conflictingUsers
-        .map((id) => userNames[id] || id.slice(0, 8))
-        .join(", ");
-      setValidationError(
-        `Cannot share with ${names}. They already have logs for this date.`,
-      );
+    if (!validationResult.isValid) {
+      setValidationError(validationResult.error || "Validation failed");
       setIsSaving(false);
       return;
     }
 
     setIsSaving(true);
-
-    const [year, month, day] = selectedDate.split("-").map(Number);
-    const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-    const isoDateString = utcDate.toISOString();
-
-    const logsToUpdate: DailyLogFormState[] = [];
-    const logsToCreate: LogCreationPayload[] = [];
-
-    // Track existing colleague logs for all field types
-    const existingColleagueLogs = new Map<
-      string,
-      Map<string, DailyLogFormState>
-    >(); // Map<itemType, Map<colleagueId, log>>
-
-    originalLogs.forEach((log) => {
-      if (log.userId === effectiveUserId) return;
-      if (log.tripId !== tripId) return;
-
-      const logDate = log.dateTime ? log.dateTime.split("T")[0] : "";
-      if (logDate !== selectedDate) return;
-
-      const type = log.itemType;
-      if (!existingColleagueLogs.has(type)) {
-        existingColleagueLogs.set(type, new Map());
-      }
-      existingColleagueLogs.get(type)!.set(log.userId, log);
-    });
 
     const forms = [
       { type: "worktime" as const, data: workTime, id: logIds.worktime },
@@ -285,233 +178,29 @@ export default function EditDailyLogPage() {
       { type: "additional" as const, data: additional, id: logIds.additional },
     ];
 
-    const logsToDelete: string[] = [];
-    const currentColleagueIds = new Set(appliedTo);
+    const updatePlan = planLogUpdates(
+      forms,
+      appliedTo,
+      sharedFields,
+      workTimeOverrides,
+      workTime,
+      originalLogs,
+      tripId,
+      effectiveUserId,
+      selectedDate,
+    );
 
-    // Validate: Block sharing with users who already have logs for this date
-    // (They should be excluded from selection, but double-check here as safeguard)
-    if (appliedTo.length > 0) {
-      const usersWithLogs: string[] = [];
-      for (const colleagueId of appliedTo) {
-        if (usersWithExistingLogs.has(colleagueId)) {
-          usersWithLogs.push(colleagueId);
-        }
-      }
+    const result = await executeLogUpdates(updatePlan);
 
-      if (usersWithLogs.length > 0) {
-        const result = await fetchUsersData(usersWithLogs, false);
-        const userNames = result.success && result.users ? result.users : {};
-        const names = usersWithLogs
-          .map((id) => userNames[id] || id.slice(0, 8))
-          .join(", ");
-        setValidationError(
-          `Cannot share with ${names}. They already have logs for this date.`,
-        );
-        setIsSaving(false);
-        return;
-      }
-    }
-
-    forms.forEach((form) => {
-      const hasData = Object.values(form.data).some(
-        (val) => val && val !== "" && val !== 0 && val !== false,
-      );
-
-      const appliedToForThis = appliedTo;
-      const isGroupSourceForThis = appliedToForThis.length > 0;
-
-      // Update owner's log (never create new in edit mode)
-      if (form.id) {
-        const updatedLog: DailyLogFormState = {
-          _id: form.id,
-          userId: effectiveUserId,
-          tripId,
-          dateTime: isoDateString,
-          appliedTo: appliedToForThis,
-          isGroupSource: isGroupSourceForThis,
-          itemType: form.type,
-          ...form.data,
-        } as DailyLogFormState;
-
-        logsToUpdate.push(updatedLog);
-      } else if (hasData) {
-        // In edit mode, we should never create new logs - only update existing ones
-        // If form.id is missing, it means the log was deleted or doesn't exist
-        // This is an error condition in edit mode
-        console.warn(
-          `Attempted to create new ${form.type} log in edit mode. This should not happen.`,
-        );
-        // Still allow it for now, but log the warning
-        const newLog: LogCreationPayload = {
-          itemType: form.type,
-          tripId,
-          userId: effectiveUserId,
-          dateTime: isoDateString,
-          appliedTo: appliedToForThis,
-          isGroupSource: isGroupSourceForThis,
-          data: form.data,
-          files: [],
-        };
-
-        logsToCreate.push(newLog);
-      }
-
-      // Update or create real logs for each colleague in appliedTo
-      // Only if this field is shared
-      if (
-        hasData &&
-        appliedToForThis.length > 0 &&
-        sharedFields.has(form.type)
-      ) {
-        const colleagueLogsMap =
-          existingColleagueLogs.get(form.type) || new Map();
-
-        for (const colleagueId of appliedToForThis) {
-          const existing = colleagueLogsMap.get(colleagueId);
-
-          // For worktime, use override if available, otherwise use base data
-          let colleagueData:
-            | WorkTimeFormState
-            | AccommodationFormState
-            | AdditionalFormState = form.data;
-          if (form.type === "worktime") {
-            const override = workTimeOverrides[colleagueId];
-            colleagueData = {
-              startTime: override?.startTime || workTime.startTime,
-              endTime: override?.endTime || workTime.endTime,
-              description: override?.description || workTime.description,
-            };
-          }
-
-          if (existing) {
-            // Update existing log - preserve metadata
-            const baseLogFields = {
-              _id: existing._id,
-              userId: colleagueId,
-              tripId,
-              dateTime: isoDateString,
-              appliedTo: [],
-              isGroupSource: false,
-              files: existing.files,
-              sealed: existing.sealed,
-              createdAt: existing.createdAt,
-              updatedAt: new Date().toISOString(),
-            };
-
-            let updatedColleagueLog: DailyLogFormState;
-            if (form.type === "worktime") {
-              updatedColleagueLog = {
-                ...baseLogFields,
-                itemType: "worktime",
-                ...(colleagueData as WorkTimeFormState),
-              } as WorkTimeLog;
-            } else if (form.type === "accommodation") {
-              updatedColleagueLog = {
-                ...baseLogFields,
-                itemType: "accommodation",
-                ...(colleagueData as AccommodationFormState),
-              } as AccommodationLog;
-            } else {
-              // form.type === "additional"
-              updatedColleagueLog = {
-                ...baseLogFields,
-                itemType: "additional",
-                ...(colleagueData as AdditionalFormState),
-              } as AdditionalLog;
-            }
-
-            logsToUpdate.push(updatedColleagueLog);
-          } else {
-            // Create new log for colleague who doesn't have one yet
-            const newColleagueLog: LogCreationPayload = {
-              itemType: form.type,
-              tripId,
-              userId: colleagueId,
-              dateTime: isoDateString,
-              appliedTo: [],
-              isGroupSource: false,
-              data: colleagueData,
-              files: [],
-            };
-
-            logsToCreate.push(newColleagueLog);
-          }
-        }
-
-        // Delete colleague logs that are no longer in appliedTo or if field is no longer shared
-        colleagueLogsMap.forEach((log, colleagueId) => {
-          if (
-            !currentColleagueIds.has(colleagueId) ||
-            !sharedFields.has(form.type)
-          ) {
-            logsToDelete.push(log._id.toString());
-          }
-        });
-      } else if (hasData && !sharedFields.has(form.type)) {
-        // If field is no longer shared, delete all existing colleague logs for this type
-        const colleagueLogsMap = existingColleagueLogs.get(form.type);
-        if (colleagueLogsMap) {
-          colleagueLogsMap.forEach((log) => {
-            logsToDelete.push(log._id.toString());
-          });
-        }
-      }
-    });
-
-    try {
-      if (logsToDelete.length > 0) {
-        for (const logId of logsToDelete) {
-          await fetch(`/api/daily-logs/${logId}`, {
-            method: "DELETE",
-          });
-        }
-      }
-
-      if (logsToUpdate.length > 0) {
-        // Update each log individually, strictly scoped to its ID
-        for (const log of logsToUpdate) {
-          const logId = log._id.toString();
-          const res = await fetch(`/api/daily-logs/${logId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(log),
-          });
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            throw new Error(
-              `Update error for log ${logId}: ${errorData.error || "Unknown Error"}`,
-            );
-          }
-        }
-      }
-
-      if (logsToCreate.length > 0) {
-        for (const newLog of logsToCreate) {
-          await fetch("/api/daily-logs", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              itemType: newLog.itemType,
-              tripId: newLog.tripId,
-              userId: newLog.userId,
-              dateTime: newLog.dateTime,
-              appliedTo: newLog.appliedTo,
-              isGroupSource: newLog.isGroupSource,
-              data: newLog.data,
-              files: [],
-            }),
-          });
-        }
-      }
-
-      invalidate();
-      router.push(`/trips/${tripId}`);
-    } catch (error) {
-      console.error("Update failed:", error);
-      alert("Update failed.");
-    } finally {
+    if (!result.success) {
+      alert(result.error || "Update failed.");
       setIsSaving(false);
+      return;
     }
+
+    invalidate();
+    router.push(`/trips/${tripId}`);
+    setIsSaving(false);
   }
 
   if (loadingLogs)
@@ -552,32 +241,20 @@ export default function EditDailyLogPage() {
         {/* GLOBAL DATE SELECTOR + APPLIED TO */}
         <DateAndAppliedToSelector
           selectedDate={selectedDate}
-          onDateChange={(date) => {
+          onDateChange={async (date) => {
             setSelectedDate(date);
             setValidationError("");
             // Refresh excluded users when date changes
             if (date && tripId) {
-              fetch(`/api/daily-logs?tripId=${tripId}&date=${date}`)
-                .then((res) => res.json())
-                .then((data) => {
-                  const logs: DailyLogFormState[] = data.logs || [];
-                  const effectiveUserId = ownerUserId ?? loggedInUserId!;
-                  const existingLogUsers = new Set<string>();
-                  logs.forEach((log) => {
-                    if (log.userId !== effectiveUserId) {
-                      const logDateStr = log.dateTime
-                        ? log.dateTime.split("T")[0]
-                        : "";
-                      if (logDateStr === date) {
-                        existingLogUsers.add(log.userId);
-                      }
-                    }
-                  });
-                  setUsersWithExistingLogs(existingLogUsers);
-                })
-                .catch((err) =>
-                  console.error("Failed to refresh excluded users", err),
+              const effectiveUserId = ownerUserId ?? loggedInUserId;
+              if (effectiveUserId) {
+                const existingUsers = await refreshUsersWithExistingLogs(
+                  tripId,
+                  date,
+                  effectiveUserId,
                 );
+                setUsersWithExistingLogs(existingUsers);
+              }
             }
           }}
           appliedTo={appliedTo}
@@ -598,60 +275,20 @@ export default function EditDailyLogPage() {
           onSubmit={handleUpdateLog}
           className="flex flex-col gap-6"
         >
-          <WorkTimeForm
-            value={workTime}
-            onChange={setWorkTime}
+          <DailyLogEditForms
+            workTime={workTime}
+            onWorkTimeChange={setWorkTime}
+            accommodationMeals={accommodationMeals}
+            onAccommodationMealsChange={setAccommodationMeals}
+            additional={additional}
+            onAdditionalChange={setAdditional}
             appliedTo={appliedTo}
             attendants={attendants}
-            onOverridesChange={setWorkTimeOverrides}
-            overrides={workTimeOverrides}
-            shareEnabled={sharedFields.has("worktime")}
-            onShareChange={(enabled) => {
-              setSharedFields((prev) => {
-                const next = new Set(prev);
-                if (enabled) {
-                  next.add("worktime");
-                } else {
-                  next.delete("worktime");
-                }
-                return next;
-              });
-            }}
-          />
-
-          <AccommodationMealsForm
-            value={accommodationMeals}
-            onChange={setAccommodationMeals}
-            shareEnabled={sharedFields.has("accommodation")}
-            onShareChange={(enabled) => {
-              setSharedFields((prev) => {
-                const next = new Set(prev);
-                if (enabled) {
-                  next.add("accommodation");
-                } else {
-                  next.delete("accommodation");
-                }
-                return next;
-              });
-            }}
-            appliedTo={appliedTo}
-          />
-          <AdditionalForm
-            value={additional}
-            onChange={setAdditional}
-            shareEnabled={sharedFields.has("additional")}
-            onShareChange={(enabled) => {
-              setSharedFields((prev) => {
-                const next = new Set(prev);
-                if (enabled) {
-                  next.add("additional");
-                } else {
-                  next.delete("additional");
-                }
-                return next;
-              });
-            }}
-            appliedTo={appliedTo}
+            workTimeOverrides={workTimeOverrides}
+            onWorkTimeOverridesChange={setWorkTimeOverrides}
+            sharedFields={sharedFields}
+            onSharedFieldsChange={setSharedFields}
+            tripId={tripId}
           />
 
           <Button

@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
           name: u.name || u.email || "Unknown User",
           email: u.email,
           employeeDetail: u.employeeDetail,
+          jobTitle: u.employeeDetail?.jobTitle || undefined,
         };
       } else {
         userMap[u.userId] = u.name || u.email || "Unknown User";

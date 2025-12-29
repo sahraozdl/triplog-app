@@ -14,6 +14,7 @@ import { TripAttendant } from "@/app/types/Trip";
 import { Button } from "@/components/ui/button";
 import { fetchUsersData } from "@/lib/utils/fetchers";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { sortByLatestOrder } from "@/lib/utils/sortHelpers";
 
 export interface GroupedLog {
   id: string;
@@ -35,9 +36,19 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
   ) as WorkTimeLog[];
   const nonWorktimeLogs = logs.filter((log) => log.itemType !== "worktime");
 
+  // Helper function to update group date with the latest dateTime
+  const updateGroupDate = (group: GroupedLog, newDate: string) => {
+    if (
+      !group.date ||
+      new Date(newDate).getTime() > new Date(group.date).getTime()
+    ) {
+      group.date = newDate;
+    }
+  };
+
   // Process non-worktime logs first
   nonWorktimeLogs.forEach((log) => {
-    const validDate = log.dateTime || log.createdAt || new Date().toISOString();
+    const validDate = log.dateTime || new Date().toISOString();
     let dateKey = "";
     try {
       dateKey = validDate.split("T")[0];
@@ -59,6 +70,9 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
         accommodations: [],
         additionals: [],
       };
+    } else {
+      // Update group date to use the latest dateTime
+      updateGroupDate(groups[groupKey], validDate);
     }
 
     const group = groups[groupKey];
@@ -72,7 +86,7 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
   // Process worktime logs - only create groups for users who have actual database records
   // (i.e., log.userId === userId, not just users in appliedTo)
   worktimeLogs.forEach((log) => {
-    const validDate = log.dateTime || log.createdAt || new Date().toISOString();
+    const validDate = log.dateTime || new Date().toISOString();
     let dateKey = "";
     try {
       dateKey = validDate.split("T")[0];
@@ -96,6 +110,9 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
         accommodations: [],
         additionals: [],
       };
+    } else {
+      // Update group date to use the latest dateTime
+      updateGroupDate(groups[groupKey], validDate);
     }
 
     // Add the worktime log to the owner's group
@@ -107,9 +124,14 @@ function groupLogs(logs: DailyLogFormState[]): GroupedLog[] {
     }
   });
 
-  return Object.values(groups).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  // Sort groups by dateTime (newest first)
+  const sortedGroups = sortByLatestOrder(Object.values(groups), (group) => {
+    // Ensure we have a valid date string
+    if (!group.date) return new Date(0).toISOString();
+    return group.date;
+  });
+
+  return sortedGroups;
 }
 
 export default function DailyLogsList({

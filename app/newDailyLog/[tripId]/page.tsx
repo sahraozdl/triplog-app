@@ -230,7 +230,7 @@ export default function DailyLogPage() {
       }
 
       invalidate();
-      router.push(`/trips/${tripId}`);
+      router.push(`/trip/${tripId}`);
     } catch (error) {
       console.error(error);
       alert("An error occurred while saving logs.");
@@ -319,6 +319,7 @@ export default function DailyLogPage() {
                   return next;
                 });
               }}
+              tripId={tripId as string}
             />
 
             <AccommodationMealsForm

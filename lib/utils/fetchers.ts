@@ -67,7 +67,15 @@ export async function fetchUsersData<T extends boolean = false>(
 ): Promise<{
   success: boolean;
   users?: T extends true
-    ? Record<string, { name?: string; email?: string; employeeDetail?: any }>
+    ? Record<
+        string,
+        {
+          name?: string;
+          email?: string;
+          employeeDetail?: any;
+          jobTitle?: string;
+        }
+      >
     : Record<string, string>;
   error?: string;
 }> {

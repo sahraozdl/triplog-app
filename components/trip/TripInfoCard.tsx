@@ -61,21 +61,23 @@ export function TripInfoCard({ trip }: { trip: Trip }) {
   return (
     <Card className="w-full">
       <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
-        <TripInfoCompactGrid trip={trip} />
-        <CardTitle
-          className="text-lg sm:text-xl md:text-2xl mt-3 sm:mt-4"
-          id="trip-title"
-        >
-          {trip.basicInfo.title}
-        </CardTitle>
-        {trip.basicInfo.description && (
-          <p
-            className="text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2"
-            aria-describedby="trip-title"
+        <div className="flex flex-col min-w-0 w-full max-w-full overflow-hidden">
+          <TripInfoCompactGrid trip={trip} />
+          <CardTitle
+            className="text-lg sm:text-xl md:text-2xl mt-4 sm:mt-5 wrap-break-word"
+            id="trip-title"
           >
-            {trip.basicInfo.description}
-          </p>
-        )}
+            {trip.basicInfo.title}
+          </CardTitle>
+          {trip.basicInfo.description && (
+            <p
+              className="wrap-break-word text-xs sm:text-sm text-muted-foreground mt-1.5 sm:mt-2"
+              aria-describedby="trip-title"
+            >
+              {trip.basicInfo.description}
+            </p>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6 pb-4 sm:pb-6">
         <TripLocationInfo trip={trip} />

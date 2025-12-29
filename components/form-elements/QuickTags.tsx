@@ -16,8 +16,12 @@ const initialTags = [
 
 export function QuickTags({
   onTagClick,
+  tripId,
+  jobTitle,
 }: {
-  onTagClick?: (tag: string) => void;
+  onTagClick?: (tag: string, isSelected: boolean) => void;
+  tripId?: string;
+  jobTitle?: string;
 }) {
   const [tags, setTags] = useState<string[]>(initialTags);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -31,7 +35,7 @@ export function QuickTags({
       setSelectedTags((prev) => [...prev, tag]);
     }
 
-    onTagClick?.(tag);
+    onTagClick?.(tag, !isSelected);
 
     if (!isSelected) {
       setLoadingTag(tag);
@@ -42,6 +46,8 @@ export function QuickTags({
           body: JSON.stringify({
             action: "suggest_tags",
             context: tag,
+            tripId: tripId || undefined,
+            jobTitle: jobTitle || undefined,
           }),
         });
 

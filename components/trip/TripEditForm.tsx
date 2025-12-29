@@ -74,7 +74,7 @@ export function TripEditForm({
           aria-required="true"
           aria-invalid={errors?.title ? "true" : "false"}
           aria-describedby={errors?.title ? "title-error" : undefined}
-          className={`text-sm sm:text-base ${errors?.title ? "border-destructive" : ""}`}
+          className={`text-sm sm:text-base wrap-break-word ${errors?.title ? "border-destructive" : ""}`}
         />
         {errors?.title && (
           <p

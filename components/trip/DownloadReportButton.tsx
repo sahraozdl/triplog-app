@@ -69,12 +69,17 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
     });
 
     doc.setFontSize(18);
-    doc.text(`Trip Report: ${trip.basicInfo.title}`, 14, 20);
+    const titleText = `Trip Report: ${trip.basicInfo.title}`;
+    const titleLines = doc.splitTextToSize(titleText, 180);
+    doc.text(titleLines, 14, 20);
+
+    // Calculate title height and add spacing
+    const titleHeight = titleLines.length * (doc.getFontSize() / 2.5);
+    let headerY = 20 + titleHeight + 8; // Add 8 points spacing after title
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
 
-    let headerY = 28;
     const lineHeight = 6;
 
     const dateRange = `${new Date(trip.basicInfo.startDate).toLocaleDateString()} - ${trip.basicInfo.endDate ? new Date(trip.basicInfo.endDate).toLocaleDateString() : "Ongoing"}`;
@@ -93,8 +98,12 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
       .join(" / ");
     const destinationText =
       locationDetails || trip.basicInfo.arrivalLocation || "Not specified";
-    doc.text(`Destination: ${destinationText}`, 14, headerY);
-    headerY += lineHeight;
+    const destinationLines = doc.splitTextToSize(
+      `Destination: ${destinationText}`,
+      180,
+    );
+    doc.text(destinationLines, 14, headerY);
+    headerY += destinationLines.length * lineHeight;
 
     if (trip.basicInfo.description) {
       const descLines = doc.splitTextToSize(
@@ -102,7 +111,7 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
         180,
       );
       doc.text(descLines, 14, headerY);
-      headerY += descLines.length * lineHeight;
+      headerY += descLines.length * lineHeight + 2; // Add extra spacing after description
     }
 
     headerY += 5;

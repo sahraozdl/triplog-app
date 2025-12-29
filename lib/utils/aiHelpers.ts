@@ -9,14 +9,52 @@ export function createInsertTag(
   updateMain: (field: Partial<WorkTimeFormState>) => void,
   updateOverride: (userId: string, field: Partial<WorkTimeOverride>) => void,
 ) {
-  return (tag: string) => {
+  return (tag: string, isSelecting: boolean) => {
     if (activeTab === "me") {
       const currentDesc = value.description || "";
-      const newDesc = currentDesc ? `${currentDesc}, ${tag}` : tag;
+      let newDesc: string;
+
+      if (isSelecting) {
+        // Add the tag if it's not already present
+        const tags = currentDesc.split(",").map((t) => t.trim());
+        if (!tags.includes(tag)) {
+          newDesc = currentDesc ? `${currentDesc}, ${tag}` : tag;
+        } else {
+          // Tag already exists, don't change description
+          return;
+        }
+      } else {
+        // Remove the tag
+        const tags = currentDesc
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t !== tag);
+        newDesc = tags.join(", ");
+      }
+
       updateMain({ description: newDesc });
     } else {
       const currentDesc = effectiveOverrides[activeTab]?.description || "";
-      const newDesc = currentDesc ? `${currentDesc}, ${tag}` : tag;
+      let newDesc: string;
+
+      if (isSelecting) {
+        // Add the tag if it's not already present
+        const tags = currentDesc.split(",").map((t) => t.trim());
+        if (!tags.includes(tag)) {
+          newDesc = currentDesc ? `${currentDesc}, ${tag}` : tag;
+        } else {
+          // Tag already exists, don't change description
+          return;
+        }
+      } else {
+        // Remove the tag
+        const tags = currentDesc
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t !== tag);
+        newDesc = tags.join(", ");
+      }
+
       updateOverride(activeTab, { description: newDesc });
     }
   };
@@ -33,6 +71,8 @@ export function createHandleAiGenerate(
   setDescriptionHistory: React.Dispatch<
     React.SetStateAction<Record<string, string>>
   >,
+  tripId?: string,
+  jobTitle?: string,
 ) {
   return async () => {
     let currentStart = value.startTime;
@@ -96,6 +136,8 @@ export function createHandleAiGenerate(
           selectedTags: currentDesc ? currentDesc.split(",") : [],
           fullText: fullText || undefined,
           selectedText: selectedText.trim() || undefined,
+          tripId: tripId || undefined,
+          jobTitle: jobTitle || undefined,
         }),
       });
 

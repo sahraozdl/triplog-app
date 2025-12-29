@@ -216,7 +216,7 @@ export default function TripDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
           <div className="lg:col-span-4 flex flex-col gap-6 sm:gap-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground wrap-break-word">
                 Trip Details
               </h1>
               <div className="flex flex-row gap-2 sm:gap-4 w-full sm:w-auto">
@@ -283,7 +283,7 @@ export default function TripDetailPage() {
 
             {/* Travel Entries */}
             <div className="flex flex-col gap-3 sm:gap-4">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground wrap-break-word">
                 Travel Entries
               </h2>
 
@@ -298,7 +298,7 @@ export default function TripDetailPage() {
 
             {/* Daily Logs */}
             <div className="flex flex-col gap-3 sm:gap-4">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground wrap-break-word">
                 Daily Logs
               </h2>
 
