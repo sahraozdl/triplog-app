@@ -144,7 +144,7 @@ export default function EditTravelPage() {
         throw new Error("Failed to update travel");
       }
 
-      router.push(`/trips/${travel.tripId}`);
+      router.push(`/trip/${travel.tripId}`);
     } catch (error) {
       console.error("Failed to save travel:", error);
       alert("An error occurred while saving travel.");
@@ -188,7 +188,7 @@ export default function EditTravelPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push(`/trips/${travel.tripId}`)}
+                  onClick={() => router.push(`/trip/${travel.tripId}`)}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
@@ -206,7 +206,7 @@ export default function EditTravelPage() {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/trips/${travel.tripId}`)}
+                  onClick={() => router.push(`/trip/${travel.tripId}`)}
                   disabled={isSaving}
                 >
                   Cancel

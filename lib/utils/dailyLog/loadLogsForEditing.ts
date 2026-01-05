@@ -32,7 +32,7 @@ export async function loadLogsForEditing(
       : "";
 
     const groupRes = await fetch(
-      `/api/daily-logs?tripId=${tripIdToFetch}&date=${logDate}`,
+      `/api/daily-logs?tripId=${tripIdToFetch}&date=${logDate}&includeRelated=true`,
     );
     const data = await groupRes.json();
     const logs: DailyLogFormState[] = data.logs || [];

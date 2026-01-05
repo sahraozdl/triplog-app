@@ -1,17 +1,79 @@
 import { DailyLogFormState } from "@/app/types/DailyLog";
 import { fetchUsersData } from "../fetchers";
 
-/**
- * Validates if any selected colleagues already have logs for the date
- */
 export async function validateNoConflictingUsers(
   appliedTo: string[],
   usersWithExistingLogs: Set<string>,
+  tripId: string,
+  date: string,
+  originalLogs: DailyLogFormState[],
+  itemTypesBeingEdited: ("worktime" | "accommodation" | "additional")[],
 ): Promise<{ isValid: boolean; error?: string }> {
+  const res = await fetch(
+    `/api/daily-logs?tripId=${tripId}&date=${date}&includeRelated=true`,
+  );
+  const data = await res.json();
+  const allLogs: DailyLogFormState[] = data.logs || [];
+
+  const originalLogIds = new Set(
+    originalLogs.map((log) => log.id).filter((id): id is string => !!id),
+  );
+
+  const mainLogsByItemType = new Map<string, DailyLogFormState[]>();
+
+  itemTypesBeingEdited.forEach((itemType) => {
+    const mainLogsInOriginal = originalLogs.filter(
+      (log) => log.itemType === itemType && log.isGroupSource === true,
+    );
+
+    const mainLogsWithRelated = allLogs.filter(
+      (log) =>
+        log.itemType === itemType &&
+        log.isGroupSource === true &&
+        Array.isArray(log.relatedLogs) &&
+        log.relatedLogs.some((id) => originalLogIds.has(id)),
+    );
+
+    const allMainLogs = [
+      ...mainLogsInOriginal,
+      ...mainLogsWithRelated.filter(
+        (log) => !mainLogsInOriginal.some((ml) => ml.id === log.id),
+      ),
+    ];
+
+    if (allMainLogs.length > 0) {
+      mainLogsByItemType.set(itemType, allMainLogs);
+    }
+  });
+
+  const relatedLogIds = new Set<string>();
+  mainLogsByItemType.forEach((mainLogs) => {
+    mainLogs.forEach((mainLog) => {
+      if (Array.isArray(mainLog.relatedLogs)) {
+        mainLog.relatedLogs.forEach((id: string) => {
+          if (id) relatedLogIds.add(id);
+        });
+      }
+    });
+  });
+
   const conflictingUsers: string[] = [];
   appliedTo.forEach((colleagueId) => {
     if (usersWithExistingLogs.has(colleagueId)) {
-      conflictingUsers.push(colleagueId);
+      const userLogs = allLogs.filter(
+        (log) =>
+          log.userId === colleagueId &&
+          log.dateTime &&
+          log.dateTime.split("T")[0] === date,
+      );
+
+      const hasNonRelatedLog = userLogs.some(
+        (log) => log.id && !relatedLogIds.has(log.id),
+      );
+
+      if (hasNonRelatedLog) {
+        conflictingUsers.push(colleagueId);
+      }
     }
   });
 
@@ -31,9 +93,6 @@ export async function validateNoConflictingUsers(
   };
 }
 
-/**
- * Refreshes the list of users with existing logs for a given date
- */
 export async function refreshUsersWithExistingLogs(
   tripId: string,
   date: string,

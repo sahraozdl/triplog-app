@@ -113,7 +113,7 @@ export default function DailyLogPage() {
 
   function cancel() {
     // the route doesnt exist dont forget to add later
-    router.push(`/trips/${tripId}`);
+    router.push(`/trip/${tripId}`);
   }
 
   async function saveDailyLog(e: React.FormEvent) {

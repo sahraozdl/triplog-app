@@ -154,10 +154,22 @@ export default function EditDailyLogPage() {
     const effectiveUserId = ownerUserId ?? loggedInUserId!;
     setValidationError("");
 
-    // Validate: Check if any selected colleagues already have logs for this date
+    const itemTypesBeingEdited: (
+      | "worktime"
+      | "accommodation"
+      | "additional"
+    )[] = [];
+    if (logIds.worktime) itemTypesBeingEdited.push("worktime");
+    if (logIds.accommodation) itemTypesBeingEdited.push("accommodation");
+    if (logIds.additional) itemTypesBeingEdited.push("additional");
+
     const validationResult = await validateNoConflictingUsers(
       appliedTo,
       usersWithExistingLogs,
+      tripId,
+      selectedDate,
+      originalLogs,
+      itemTypesBeingEdited,
     );
 
     if (!validationResult.isValid) {
@@ -199,7 +211,7 @@ export default function EditDailyLogPage() {
     }
 
     invalidate();
-    router.push(`/trips/${tripId}`);
+    router.push(`/trip/${tripId}`);
     setIsSaving(false);
   }
 
@@ -225,7 +237,7 @@ export default function EditDailyLogPage() {
           <h1 className="text-2xl font-bold text-foreground">Edit Daily Log</h1>
           <Button
             variant="ghost"
-            onClick={() => router.push(`/trips/${tripId}`)}
+            onClick={() => router.push(`/trip/${tripId}`)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Trip
           </Button>

@@ -35,6 +35,9 @@ export function planLogUpdates(
   const logsToCreate: LogCreationPayload[] = [];
   const logsToDelete: string[] = [];
 
+  // Track existing owner logs by itemType
+  const existingOwnerLogs = new Map<string, DailyLogFormState>();
+
   // Track existing colleague logs for all field types
   const existingColleagueLogs = new Map<
     string,
@@ -42,17 +45,22 @@ export function planLogUpdates(
   >(); // Map<itemType, Map<colleagueId, log>>
 
   originalLogs.forEach((log) => {
-    if (log.userId === effectiveUserId) return;
     if (log.tripId !== tripId) return;
 
     const logDate = log.dateTime ? log.dateTime.split("T")[0] : "";
     if (logDate !== selectedDate) return;
 
-    const type = log.itemType;
-    if (!existingColleagueLogs.has(type)) {
-      existingColleagueLogs.set(type, new Map());
+    if (log.userId === effectiveUserId) {
+      // Track owner's logs
+      existingOwnerLogs.set(log.itemType, log);
+    } else {
+      // Track colleague logs
+      const type = log.itemType;
+      if (!existingColleagueLogs.has(type)) {
+        existingColleagueLogs.set(type, new Map());
+      }
+      existingColleagueLogs.get(type)!.set(log.userId, log);
     }
-    existingColleagueLogs.get(type)!.set(log.userId, log);
   });
 
   const currentColleagueIds = new Set(appliedTo);
@@ -67,8 +75,10 @@ export function planLogUpdates(
 
     // Update owner's log (never create new in edit mode)
     if (form.id) {
+      const existingOwnerLog = existingOwnerLogs.get(form.type);
       const updatedLog: DailyLogFormState = {
         _id: form.id,
+        id: existingOwnerLog?.id, // Preserve the UUID from the existing log
         userId: effectiveUserId,
         tripId,
         dateTime: isoDateString,
@@ -125,9 +135,10 @@ export function planLogUpdates(
         }
 
         if (existing) {
-          // Update existing log - preserve metadata
+          // Update existing log - preserve metadata including the UUID 'id' field
           const baseLogFields = {
             _id: existing._id,
+            id: existing.id, // Preserve the UUID - this is critical for relatedLogs to work
             userId: colleagueId,
             tripId,
             dateTime: isoDateString,

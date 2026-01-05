@@ -56,7 +56,7 @@ export default function NewTripPage() {
 
       const data = await response.json();
       if (data.success) {
-        router.push(`/trips/${data.tripId}`);
+        router.push(`/trip/${data.tripId}`);
       } else {
         alert("Failed to create trip: " + data.error);
       }

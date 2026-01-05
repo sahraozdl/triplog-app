@@ -127,7 +127,15 @@ export async function PUT(
       );
     }
 
-    const { _id, data, itemType, appliedTo, relatedLogs, ...flatFields } = body;
+    const {
+      _id,
+      data,
+      itemType,
+      appliedTo,
+      relatedLogs,
+      id: idFromBody,
+      ...flatFields
+    } = body;
 
     if (_id && _id.toString() !== id) {
       return createErrorResponse(
@@ -135,8 +143,6 @@ export async function PUT(
       );
     }
 
-    // Check if appliedTo is being updated and if it's a main log
-    // Only update relatedLogs if appliedTo changed AND relatedLogs is not being explicitly set
     const isAppliedToChanging =
       appliedTo !== undefined &&
       JSON.stringify(existingLog.appliedTo || []) !==
@@ -148,10 +154,19 @@ export async function PUT(
       existingLog.isGroupSource &&
       Array.isArray(appliedTo);
 
+    const { id: idFromFlatFields, ...flatFieldsWithoutId } = flatFields;
+    const dataObj = data as Record<string, unknown> | undefined;
+    const dataWithoutId = dataObj
+      ? (() => {
+          const { id: _, ...rest } = dataObj;
+          return rest;
+        })()
+      : undefined;
+
     const updateData = {
       itemType: itemType || existingLog.itemType,
-      ...flatFields,
-      ...(data || {}),
+      ...flatFieldsWithoutId,
+      ...(dataWithoutId || {}),
       ...(appliedTo !== undefined ? { appliedTo } : {}),
       updatedAt: new Date().toISOString(),
     };
@@ -175,7 +190,6 @@ export async function PUT(
       );
     }
 
-    // Update relatedLogs if appliedTo changed for a main log
     if (shouldUpdateRelatedLogs) {
       try {
         await updateRelatedLogsOnAppliedToChange(
@@ -185,7 +199,6 @@ export async function PUT(
           updatedLog.itemType,
           appliedTo as string[],
         );
-        // Re-fetch the log to get updated relatedLogs
         const logWithRelatedLogs = await TargetModel.findById(id).lean();
         if (logWithRelatedLogs) {
           return createSuccessResponse(undefined, 200, {
@@ -194,7 +207,6 @@ export async function PUT(
           });
         }
       } catch (error) {
-        // Log error but don't fail the request
         console.error("Failed to update relatedLogs:", error);
       }
     }

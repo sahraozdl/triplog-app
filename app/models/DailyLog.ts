@@ -67,21 +67,37 @@ const additionalSchema = new Schema({
 });
 
 let DailyLog: Model<any>;
+let isNewModel = false;
 
-if (mongoose.models.DailyLog) {
+if (mongoose.models && mongoose.models.DailyLog) {
   DailyLog = mongoose.models.DailyLog;
 } else {
   DailyLog = mongoose.model("DailyLog", dailyLogBaseSchema);
+  isNewModel = true;
+}
 
-  DailyLog.discriminator("worktime", workTimeSchema);
-  DailyLog.discriminator("accommodation", accommodationSchema);
-  DailyLog.discriminator("additional", additionalSchema);
+if (isNewModel) {
+  try {
+    if (
+      DailyLog.discriminator &&
+      typeof DailyLog.discriminator === "function"
+    ) {
+      DailyLog.discriminator("worktime", workTimeSchema);
+      DailyLog.discriminator("accommodation", accommodationSchema);
+      DailyLog.discriminator("additional", additionalSchema);
+    }
+  } catch (error) {
+    console.warn("Discriminator setup warning:", error);
+  }
 }
 
 export { DailyLog };
 export const WorkTimeLog =
-  mongoose.models.WorkTime || DailyLog.discriminators?.worktime;
+  (mongoose.models && mongoose.models.WorkTime) ||
+  DailyLog.discriminators?.worktime;
 export const AccommodationLog =
-  mongoose.models.Accommodation || DailyLog.discriminators?.accommodation;
+  (mongoose.models && mongoose.models.Accommodation) ||
+  DailyLog.discriminators?.accommodation;
 export const AdditionalLog =
-  mongoose.models.Additional || DailyLog.discriminators?.additional;
+  (mongoose.models && mongoose.models.Additional) ||
+  DailyLog.discriminators?.additional;
