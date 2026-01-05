@@ -2,8 +2,8 @@ import mongoose, { Schema, Model } from "mongoose";
 
 const dailyLogBaseSchema = new Schema(
   {
-    id: { type: String, required: false },
-    relatedLogs: { type: [String], default: [], required: false },
+    id: { type: String, required: true, unique: true },
+    relatedLogs: { type: [String], default: [], required: true },
 
     tripId: { type: String, required: true },
     userId: { type: String, required: true },

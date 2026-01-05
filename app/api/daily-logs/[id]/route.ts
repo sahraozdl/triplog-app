@@ -12,6 +12,7 @@ import {
   validateJsonBody,
   ApiError,
 } from "@/lib/utils/apiErrorHandler";
+import { updateRelatedLogsOnAppliedToChange } from "@/lib/utils/dailyLog/updateRelatedLogsOnAppliedToChange";
 
 export async function GET(
   req: NextRequest,
@@ -126,7 +127,7 @@ export async function PUT(
       );
     }
 
-    const { _id, data, itemType, ...flatFields } = body;
+    const { _id, data, itemType, appliedTo, relatedLogs, ...flatFields } = body;
 
     if (_id && _id.toString() !== id) {
       return createErrorResponse(
@@ -134,10 +135,24 @@ export async function PUT(
       );
     }
 
+    // Check if appliedTo is being updated and if it's a main log
+    // Only update relatedLogs if appliedTo changed AND relatedLogs is not being explicitly set
+    const isAppliedToChanging =
+      appliedTo !== undefined &&
+      JSON.stringify(existingLog.appliedTo || []) !==
+        JSON.stringify(appliedTo || []);
+    const isRelatedLogsExplicitlySet = relatedLogs !== undefined;
+    const shouldUpdateRelatedLogs =
+      isAppliedToChanging &&
+      !isRelatedLogsExplicitlySet &&
+      existingLog.isGroupSource &&
+      Array.isArray(appliedTo);
+
     const updateData = {
       itemType: itemType || existingLog.itemType,
       ...flatFields,
       ...(data || {}),
+      ...(appliedTo !== undefined ? { appliedTo } : {}),
       updatedAt: new Date().toISOString(),
     };
 
@@ -158,6 +173,30 @@ export async function PUT(
       return createErrorResponse(
         new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
       );
+    }
+
+    // Update relatedLogs if appliedTo changed for a main log
+    if (shouldUpdateRelatedLogs) {
+      try {
+        await updateRelatedLogsOnAppliedToChange(
+          id,
+          updatedLog.tripId,
+          updatedLog.dateTime,
+          updatedLog.itemType,
+          appliedTo as string[],
+        );
+        // Re-fetch the log to get updated relatedLogs
+        const logWithRelatedLogs = await TargetModel.findById(id).lean();
+        if (logWithRelatedLogs) {
+          return createSuccessResponse(undefined, 200, {
+            log: logWithRelatedLogs,
+            message: "Log updated successfully",
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail the request
+        console.error("Failed to update relatedLogs:", error);
+      }
     }
 
     return createSuccessResponse(undefined, 200, {

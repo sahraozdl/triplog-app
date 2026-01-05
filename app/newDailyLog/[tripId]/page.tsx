@@ -17,7 +17,6 @@ import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/toast";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
-import { UploadedFile } from "@/app/types/DailyLog";
 import {
   WorkTimeFormState,
   AccommodationFormState,
@@ -29,6 +28,12 @@ import {
   getInitialSharedFields,
   updateSharedFieldsOnAppliedToChange,
 } from "@/lib/utils/shareFieldLogic";
+import {
+  buildLogCreationRequests,
+  extractCreatedLogs,
+  linkRelatedLogs,
+  type FormDefinition,
+} from "@/lib/utils/dailyLog/createLogHelpers";
 
 export default function DailyLogPage() {
   const router = useRouter();
@@ -107,37 +112,14 @@ export default function DailyLogPage() {
   }, [appliedTo]);
 
   function cancel() {
+    // the route doesnt exist dont forget to add later
     router.push(`/trips/${tripId}`);
   }
-
-  const createLogRequest = (
-    itemType: string,
-    data: WorkTimeFormState | AccommodationFormState | AdditionalFormState,
-    isoDate: string,
-    files: UploadedFile[] = [],
-  ) => {
-    const body = {
-      itemType,
-      tripId,
-      userId: loggedInUserId,
-      dateTime: isoDate,
-      appliedTo,
-      isGroupSource: appliedTo.length > 0,
-      data,
-      files,
-    };
-
-    return fetch("/api/daily-logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  };
 
   async function saveDailyLog(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!selectedDate) {
+    if (!selectedDate || !loggedInUserId) {
       alert("Please select a date for this entry.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -149,71 +131,42 @@ export default function DailyLogPage() {
     const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     const isoDateString = utcDate.toISOString();
 
-    const requests: Promise<Response>[] = [];
-
-    const forms = [
+    const forms: FormDefinition[] = [
       {
-        type: "worktime" as const,
+        type: "worktime",
         data: workTime,
-        isFilled:
+        isFilled: Boolean(
           workTime.description || workTime.startTime || workTime.endTime,
+        ),
       },
       {
-        type: "accommodation" as const,
+        type: "accommodation",
         data: accommodationMeals,
-        isFilled:
+        isFilled: Boolean(
           accommodationMeals.accommodationType ||
-          accommodationMeals.overnightStay !== "" ||
-          accommodationMeals.meals.breakfast.eaten,
+            accommodationMeals.overnightStay !== "" ||
+            accommodationMeals.meals.breakfast.eaten,
+        ),
       },
       {
-        type: "additional" as const,
+        type: "additional",
         data: additional,
-        isFilled: additional.notes || additional.uploadedFiles.length > 0,
+        isFilled: Boolean(
+          additional.notes || additional.uploadedFiles.length > 0,
+        ),
       },
     ];
 
-    forms.forEach((form) => {
-      if (!form.isFilled) return;
-
-      // Create owner's log
-      requests.push(createLogRequest(form.type, form.data, isoDateString, []));
-
-      // Create real logs for each colleague in appliedTo only if this field is shared
-      if (appliedTo.length > 0 && sharedFields.has(form.type)) {
-        appliedTo.forEach((colleagueId) => {
-          // For worktime, use override if available, otherwise use base data
-          let colleagueData = form.data;
-          if (form.type === "worktime") {
-            const override = workTimeOverrides[colleagueId];
-            colleagueData = {
-              startTime: override?.startTime || workTime.startTime,
-              endTime: override?.endTime || workTime.endTime,
-              description: override?.description || workTime.description,
-            } as WorkTimeFormState;
-          }
-
-          const colleagueBody = {
-            itemType: form.type,
-            tripId,
-            userId: colleagueId,
-            dateTime: isoDateString,
-            appliedTo: [],
-            isGroupSource: false,
-            data: colleagueData,
-            files: [],
-          };
-
-          requests.push(
-            fetch("/api/daily-logs", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(colleagueBody),
-            }),
-          );
-        });
-      }
-    });
+    const requests = buildLogCreationRequests(
+      forms,
+      isoDateString,
+      tripId as string,
+      loggedInUserId,
+      appliedTo,
+      sharedFields,
+      workTimeOverrides,
+      workTime,
+    );
 
     if (requests.length === 0) {
       alert("Please fill in at least one section to save.");
@@ -222,12 +175,18 @@ export default function DailyLogPage() {
     }
 
     try {
-      const responses = await Promise.all(requests);
+      const responses = await Promise.all(requests.map((r) => r.promise));
       const failed = responses.some((r) => !r.ok);
 
       if (failed) {
         throw new Error("Some logs failed to save.");
       }
+
+      // Extract created log data from responses
+      const createdLogs = await extractCreatedLogs(responses);
+
+      // Link related logs to main logs
+      await linkRelatedLogs(createdLogs);
 
       invalidate();
       router.push(`/trip/${tripId}`);

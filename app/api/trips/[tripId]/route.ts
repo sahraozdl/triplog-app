@@ -76,9 +76,11 @@ export async function PUT(
     const { tripId } = await params;
     validateRequiredParam(tripId, "tripId");
 
-    const body = await validateJsonBody<UpdateTripRequestBody & {
-      [key: string]: unknown;
-    }>(req);
+    const body = await validateJsonBody<
+      UpdateTripRequestBody & {
+        [key: string]: unknown;
+      }
+    >(req);
 
     const user = await getUserDB();
     if (!user) {

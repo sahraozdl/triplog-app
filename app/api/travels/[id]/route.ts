@@ -109,12 +109,14 @@ export async function PUT(
     await connectToDB();
     const body = await validateJsonBody<{
       _id?: string;
-      files?: Array<{
-        url: string;
-        name: string;
-        type: string;
-        size: number;
-      }> | string;
+      files?:
+        | Array<{
+            url: string;
+            name: string;
+            type: string;
+            size: number;
+          }>
+        | string;
       [key: string]: unknown;
     }>(req);
 
@@ -176,7 +178,11 @@ export async function PUT(
     }
 
     // Extract update data, ensuring we don't allow changing the _id
-    const { _id, files: _files, ...updateFields } = body as Record<string, unknown>;
+    const {
+      _id,
+      files: _files,
+      ...updateFields
+    } = body as Record<string, unknown>;
 
     // Ensure the ID in the body matches the URL parameter (strict scoping)
     if (_id && _id.toString() !== id) {
