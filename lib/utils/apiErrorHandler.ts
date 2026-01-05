@@ -11,6 +11,7 @@ import {
 } from "@/app/types/ApiError";
 
 export { ApiError };
+export type { ApiResponse };
 
 export interface ApiRequestOptions extends RequestInit {
   errorPrefix?: string;
