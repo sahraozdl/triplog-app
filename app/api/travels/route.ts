@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongodb";
 import { Travel } from "@/app/models/Travel";
 import { requireAuth } from "@/lib/auth-utils";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  validateJsonBody,
+  ApiError,
+} from "@/lib/utils/apiErrorHandler";
 
 export async function POST(req: NextRequest) {
   const authResult = await requireAuth();
@@ -13,12 +19,11 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
 
-    const body = await req.json();
+    const body = await validateJsonBody(req);
 
     if (!body.tripId) {
-      return NextResponse.json(
-        { error: "tripId required", receivedBody: body },
-        { status: 400 },
+      return createErrorResponse(
+        new ApiError("tripId required", 400, "MISSING_TRIP_ID"),
       );
     }
 
@@ -50,54 +55,9 @@ export async function POST(req: NextRequest) {
 
     const travel = await Travel.create(travelData);
 
-    return NextResponse.json({ success: true, travel });
-  } catch (error: any) {
-    if (error?.name === "ValidationError") {
-      Object.values(error.errors).map((e: any) => ({
-        path: e.path,
-        message: e.message,
-        value: e.value,
-      }));
-
-      return NextResponse.json(
-        {
-          error: "ValidationError",
-          details: Object.values(error.errors).map((e: any) => ({
-            path: e.path,
-            message: e.message,
-            value: e.value,
-          })),
-        },
-        { status: 400 },
-      );
-    }
-
-    if (error?.name === "CastError") {
-      console.error(" Mongoose CastError:", {
-        path: error.path,
-        value: error.value,
-        kind: error.kind,
-      });
-
-      return NextResponse.json(
-        {
-          error: "CastError",
-          path: error.path,
-          value: error.value,
-        },
-        { status: 400 },
-      );
-    }
-
-    console.error(" Unknown error:", error);
-
-    return NextResponse.json(
-      {
-        error: "Failed to create travel",
-        rawError: error?.message,
-      },
-      { status: 500 },
-    );
+    return createSuccessResponse(undefined, 200, { travel });
+  } catch (error) {
+    return createErrorResponse(error, "Failed to create travel", 500);
   }
 }
 
@@ -106,13 +66,21 @@ export async function GET(req: NextRequest) {
   if (!authResult.success) {
     return authResult.response;
   }
-  const { searchParams } = new URL(req.url);
-  const tripId = searchParams.get("tripId");
 
-  if (!tripId) {
-    return NextResponse.json({ error: "tripId is required" }, { status: 400 });
+  try {
+    await connectToDB();
+    const { searchParams } = new URL(req.url);
+    const tripId = searchParams.get("tripId");
+
+    if (!tripId) {
+      return createErrorResponse(
+        new ApiError("tripId is required", 400, "MISSING_TRIP_ID"),
+      );
+    }
+
+    const travels = await Travel.find({ tripId });
+    return createSuccessResponse(undefined, 200, { travels });
+  } catch (error) {
+    return createErrorResponse(error, "Failed to fetch travels", 500);
   }
-
-  const travels = await Travel.find({ tripId });
-  return NextResponse.json({ success: true, travels });
 }

@@ -6,6 +6,12 @@ import { requireAuth } from "@/lib/auth-utils";
 import { WorkTimeLog } from "@/app/models/DailyLog";
 import { AccommodationLog } from "@/app/models/DailyLog";
 import { AdditionalLog } from "@/app/models/DailyLog";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  validateRequiredParam,
+  ApiError,
+} from "@/lib/utils/apiErrorHandler";
 
 export async function GET(
   req: NextRequest,
@@ -20,7 +26,9 @@ export async function GET(
     const { id } = await params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid Log ID" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Invalid Log ID", 400, "INVALID_LOG_ID"),
+      );
     }
 
     await connectToDB();
@@ -28,7 +36,9 @@ export async function GET(
     const log = await DailyLog.findById(id).lean();
 
     if (!log) {
-      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
+      );
     }
 
     const logWithId = log as {
@@ -43,11 +53,7 @@ export async function GET(
 
     return NextResponse.json(serializedLog);
   } catch (error) {
-    console.error("Single Log GET Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch single log" },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to fetch single log", 500);
   }
 }
 
@@ -64,7 +70,9 @@ export async function DELETE(
     const { id } = await params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid Log ID" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Invalid Log ID", 400, "INVALID_LOG_ID"),
+      );
     }
 
     await connectToDB();
@@ -72,21 +80,16 @@ export async function DELETE(
     const result = await DailyLog.findByIdAndDelete(id);
 
     if (!result) {
-      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
+      );
     }
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse(undefined, 200, {
       message: "Log deleted successfully",
     });
   } catch (error) {
-    console.error("DELETE Log Error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { error: "Failed to delete log", details: errorMessage },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to delete log", 500);
   }
 }
 
@@ -103,21 +106,27 @@ export async function PUT(
     const { id } = await params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid Log ID" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Invalid Log ID", 400, "INVALID_LOG_ID"),
+      );
     }
 
     await connectToDB();
-    const body = await req.json();
+    const body = await validateJsonBody(req);
 
     const existingLog = await DailyLog.findById(id);
     if (!existingLog) {
-      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
+      );
     }
 
     const { _id, data, itemType, ...flatFields } = body;
 
     if (_id && _id.toString() !== id) {
-      return NextResponse.json({ error: "Log ID mismatch" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Log ID mismatch", 400, "LOG_ID_MISMATCH"),
+      );
     }
 
     const updateData = {
@@ -141,21 +150,16 @@ export async function PUT(
     );
 
     if (!updatedLog) {
-      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
+      );
     }
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse(undefined, 200, {
       log: updatedLog,
       message: "Log updated successfully",
     });
   } catch (error) {
-    console.error("PUT DailyLog Error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { error: "Failed to update log", details: errorMessage },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to update log", 500);
   }
 }

@@ -1,6 +1,11 @@
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ApiError,
+} from "@/lib/utils/apiErrorHandler";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -18,9 +23,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!body || body.size === 0) {
-      return NextResponse.json(
-        { error: "No file provided or file is empty" },
-        { status: 400 },
+      return createErrorResponse(
+        new ApiError("No file provided or file is empty", 400, "NO_FILE"),
       );
     }
 
@@ -40,9 +44,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(blob);
   } catch (error) {
-    console.error("Upload error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return createErrorResponse(error, "Internal server error", 500);
   }
 }

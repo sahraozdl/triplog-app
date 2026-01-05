@@ -3,6 +3,12 @@ import { connectToDB } from "@/lib/mongodb";
 import { DailyLog } from "@/app/models/DailyLog";
 import { FilterQuery } from "mongoose";
 import { requireAuth } from "@/lib/auth-utils";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  validateJsonBody,
+  ApiError,
+} from "@/lib/utils/apiErrorHandler";
 
 interface DailyLogFilterContext {
   tripId: string;
@@ -18,10 +24,13 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectToDB();
-    const body = await req.json();
+    const body = await validateJsonBody(req);
 
-    if (!body.itemType)
-      return NextResponse.json({ error: "itemType required" }, { status: 400 });
+    if (!body.itemType) {
+      return createErrorResponse(
+        new ApiError("itemType required", 400, "MISSING_ITEM_TYPE"),
+      );
+    }
 
     const log = await DailyLog.create({
       itemType: body.itemType,
@@ -35,13 +44,9 @@ export async function POST(req: NextRequest) {
       sealed: false,
     });
 
-    return NextResponse.json({ success: true, log });
+    return createSuccessResponse(undefined, 200, { log });
   } catch (error) {
-    console.error("POST DailyLog Error:", error);
-    return NextResponse.json(
-      { error: "Failed to create log" },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to create log", 500);
   }
 }
 
@@ -72,12 +77,8 @@ export async function GET(req: NextRequest) {
 
     const logs = await DailyLog.find(filter).sort({ dateTime: -1 }).lean();
 
-    return NextResponse.json({ success: true, logs });
+    return createSuccessResponse(undefined, 200, { logs });
   } catch (error) {
-    console.error("GET DailyLog Error:", error);
-    return NextResponse.json(
-      { success: false, logs: [], error: "Failed to fetch logs" },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to fetch logs", 500);
   }
 }

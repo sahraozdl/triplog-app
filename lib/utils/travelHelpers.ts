@@ -117,70 +117,27 @@ export function validateTravelForm(
   return { isValid: true };
 }
 
+import { handleApiRequest } from "./apiErrorHandler";
+
 /**
  * Saves travel entry via API
  */
 export async function saveTravelEntry(
   payload: TravelPayload,
 ): Promise<{ success: boolean; error?: string; data?: unknown }> {
-  try {
-    const response = await fetch("/api/travels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+  const result = await handleApiRequest<unknown>("/api/travels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    errorPrefix: "Failed to create travel",
+    includeDetails: true,
+  });
 
-    if (!response.ok) {
-      // Try to parse error response, but handle empty or invalid JSON
-      let errorMessage = `Failed to create travel (${response.status})`;
-
-      try {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const text = await response.text();
-          if (text) {
-            const errorData = JSON.parse(text);
-            errorMessage =
-              errorData?.error || errorData?.message || errorMessage;
-
-            // Include validation details if available
-            if (errorData?.details && Array.isArray(errorData.details)) {
-              const details = errorData.details
-                .map((d: any) => `${d.path}: ${d.message}`)
-                .join(", ");
-              errorMessage += ` - ${details}`;
-            }
-          }
-        }
-      } catch (parseError) {
-        // If JSON parsing fails, use the status text or default message
-        const statusText = response.statusText;
-        errorMessage = statusText || errorMessage;
-        console.error("Failed to parse error response:", parseError);
-      }
-
-      return { success: false, error: errorMessage };
-    }
-
-    // Parse success response
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      const data = await response.json();
-      return { success: true, data };
-    }
-
-    // If response is not JSON, still consider it successful if status is OK
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to save travel:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred.",
-    };
+  if (result.success) {
+    return { success: true, data: result.data };
   }
+
+  return { success: false, error: result.error };
 }
 
 /**
@@ -189,20 +146,20 @@ export async function saveTravelEntry(
 export async function loadTripData(
   tripId: string,
 ): Promise<{ success: boolean; trip?: unknown; error?: string }> {
-  try {
-    const res = await fetch(`/api/trips/${tripId}`, { cache: "no-store" });
-    const data = (await res.json()) as { success: boolean; trip: unknown };
+  const result = await handleApiRequest<{ success: boolean; trip?: unknown }>(
+    `/api/trips/${tripId}`,
+    {
+      cache: "no-store",
+      errorPrefix: "Failed to load trip",
+    },
+  );
 
-    if (data.success) {
-      return { success: true, trip: data.trip };
-    }
-
-    return { success: false, error: "Failed to load trip data" };
-  } catch (error) {
-    console.error("Failed to load trip", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to load trip",
-    };
+  if (result.success && result.data?.success && result.data.trip) {
+    return { success: true, trip: result.data.trip };
   }
+
+  return {
+    success: false,
+    error: result.error || "Failed to load trip data",
+  };
 }

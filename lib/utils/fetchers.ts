@@ -1,64 +1,53 @@
 import { DailyLogFormState } from "@/app/types/DailyLog";
 import { Travel } from "@/app/types/Travel";
+import { handleApiRequest } from "./apiErrorHandler";
 
 export async function fetchLogsData(
   tripId: string,
 ): Promise<{ success: boolean; logs?: DailyLogFormState[]; error?: string }> {
-  try {
-    const res = await fetch(`/api/daily-logs?tripId=${tripId}`);
+  const result = await handleApiRequest<{ logs?: DailyLogFormState[] }>(
+    `/api/daily-logs?tripId=${tripId}`,
+    {
+      errorPrefix: "Failed to fetch logs",
+    },
+  );
 
-    if (!res.ok) {
-      console.error("Logs could not be fetched, Status:", res.status);
-      return {
-        success: false,
-        logs: [],
-        error: `Failed to fetch logs: ${res.status}`,
-      };
-    }
-
-    const data = await res.json();
+  if (result.success && result.data) {
     return {
       success: true,
-      logs: (data.logs || []) as DailyLogFormState[],
-    };
-  } catch (error) {
-    console.error("Failed to fetch logs:", error);
-    return {
-      success: false,
-      logs: [],
-      error: error instanceof Error ? error.message : "Failed to fetch logs",
+      logs: (result.data.logs || []) as DailyLogFormState[],
     };
   }
+
+  return {
+    success: false,
+    logs: [],
+    error: result.error || "Failed to fetch logs",
+  };
 }
 
 export async function fetchTravelsData(
   tripId: string,
 ): Promise<{ success: boolean; travels?: Travel[]; error?: string }> {
-  try {
-    const res = await fetch(`/api/travels?tripId=${tripId}`);
+  const result = await handleApiRequest<{ travels?: Travel[] }>(
+    `/api/travels?tripId=${tripId}`,
+    {
+      errorPrefix: "Failed to fetch travels",
+    },
+  );
 
-    if (!res.ok) {
-      console.error("Travels could not be fetched, Status:", res.status);
-      return {
-        success: false,
-        travels: [],
-        error: `Failed to fetch travels: ${res.status}`,
-      };
-    }
-
-    const data = await res.json();
+  if (result.success && result.data) {
     return {
       success: true,
-      travels: (data.travels || []) as Travel[],
-    };
-  } catch (error) {
-    console.error("Failed to fetch travels:", error);
-    return {
-      success: false,
-      travels: [],
-      error: error instanceof Error ? error.message : "Failed to fetch travels",
+      travels: (result.data.travels || []) as Travel[],
     };
   }
+
+  return {
+    success: false,
+    travels: [],
+    error: result.error || "Failed to fetch travels",
+  };
 }
 
 export async function fetchUsersData<T extends boolean = false>(
@@ -79,43 +68,35 @@ export async function fetchUsersData<T extends boolean = false>(
     : Record<string, string>;
   error?: string;
 }> {
-  try {
-    if (userIds.length === 0) {
-      return {
-        success: true,
-        users: {} as any,
-      };
-    }
+  if (userIds.length === 0) {
+    return {
+      success: true,
+      users: {} as any,
+    };
+  }
 
-    const res = await fetch("/api/users/lookup", {
+  const result = await handleApiRequest<{ users?: Record<string, unknown> }>(
+    "/api/users/lookup",
+    {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userIds, detailed: detailed === true }),
-    });
+      errorPrefix: "Failed to fetch user data",
+    },
+  );
 
-    if (!res.ok) {
-      console.error("Failed to fetch user data");
-      return {
-        success: false,
-        users: {} as any,
-        error: "Failed to fetch user data",
-      };
-    }
-
-    const data = await res.json();
+  if (result.success && result.data) {
     return {
       success: true,
-      users: (data.users || {}) as any,
-    };
-  } catch (error) {
-    console.error("Failed to fetch user data:", error);
-    return {
-      success: false,
-      users: {} as any,
-      error:
-        error instanceof Error ? error.message : "Failed to fetch user data",
+      users: (result.data.users || {}) as any,
     };
   }
+
+  return {
+    success: false,
+    users: {} as any,
+    error: result.error || "Failed to fetch user data",
+  };
 }
 
 export async function fetchUserNamesData(userIds: string[]): Promise<{

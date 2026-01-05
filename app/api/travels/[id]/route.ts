@@ -3,6 +3,12 @@ import { connectToDB } from "@/lib/mongodb";
 import { Travel } from "@/app/models/Travel";
 import mongoose from "mongoose";
 import { requireAuth } from "@/lib/auth-utils";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  validateJsonBody,
+  ApiError,
+} from "@/lib/utils/apiErrorHandler";
 
 export async function GET(
   req: NextRequest,
@@ -17,7 +23,9 @@ export async function GET(
     const { id } = await params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid Travel ID" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Invalid Travel ID", 400, "INVALID_TRAVEL_ID"),
+      );
     }
 
     await connectToDB();
@@ -25,7 +33,9 @@ export async function GET(
     const travel = await Travel.findById(id).lean();
 
     if (!travel) {
-      return NextResponse.json({ error: "Travel not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Travel not found", 404, "TRAVEL_NOT_FOUND"),
+      );
     }
 
     const travelWithId = travel as {
@@ -40,11 +50,7 @@ export async function GET(
 
     return NextResponse.json(serializedTravel);
   } catch (error) {
-    console.error("Single Travel GET Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch single travel" },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to fetch single travel", 500);
   }
 }
 
@@ -61,7 +67,9 @@ export async function DELETE(
     const { id } = await params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid Travel ID" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Invalid Travel ID", 400, "INVALID_TRAVEL_ID"),
+      );
     }
 
     await connectToDB();
@@ -69,18 +77,14 @@ export async function DELETE(
     const travel = await Travel.findByIdAndDelete(id);
 
     if (!travel) {
-      return NextResponse.json({ error: "Travel not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Travel not found", 404, "TRAVEL_NOT_FOUND"),
+      );
     }
 
-    return NextResponse.json({ success: true });
+    return createSuccessResponse(undefined, 200);
   } catch (error) {
-    console.error("DELETE Travel Error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to delete travel";
-    return NextResponse.json(
-      { error: "Failed to delete travel", details: errorMessage },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to delete travel", 500);
   }
 }
 
@@ -97,11 +101,13 @@ export async function PUT(
     const { id } = await params;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid Travel ID" }, { status: 400 });
+      return createErrorResponse(
+        new ApiError("Invalid Travel ID", 400, "INVALID_TRAVEL_ID"),
+      );
     }
 
     await connectToDB();
-    const body = await req.json();
+    const body = await validateJsonBody(req);
 
     // Verify the travel exists
     const existingTravel = await Travel.findById(id);
@@ -163,9 +169,8 @@ export async function PUT(
 
     // Ensure the ID in the body matches the URL parameter (strict scoping)
     if (_id && _id.toString() !== id) {
-      return NextResponse.json(
-        { error: "Travel ID mismatch" },
-        { status: 400 },
+      return createErrorResponse(
+        new ApiError("Travel ID mismatch", 400, "TRAVEL_ID_MISMATCH"),
       );
     }
 
@@ -183,20 +188,15 @@ export async function PUT(
     );
 
     if (!updatedTravel) {
-      return NextResponse.json({ error: "Travel not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Travel not found", 404, "TRAVEL_NOT_FOUND"),
+      );
     }
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse(undefined, 200, {
       travel: updatedTravel,
     });
   } catch (error) {
-    console.error("PUT Travel Error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to update travel";
-    return NextResponse.json(
-      { error: "Failed to update travel", details: errorMessage },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Failed to update travel", 500);
   }
 }

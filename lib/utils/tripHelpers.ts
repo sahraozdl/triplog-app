@@ -1,65 +1,52 @@
 import { Trip } from "@/app/types/Trip";
 import { formDataToPayload } from "@/lib/utils/tripFormHelpers";
+import { handleApiRequest } from "./apiErrorHandler";
 
 export async function saveTrip(
   tripId: string,
   payload: ReturnType<typeof formDataToPayload>,
 ): Promise<{ success: boolean; trip?: Trip; error?: string }> {
-  try {
-    const res = await fetch(`/api/trips/${tripId}`, {
+  const result = await handleApiRequest<{ success: boolean; trip?: Trip }>(
+    `/api/trips/${tripId}`,
+    {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+      errorPrefix: "Failed to save trip",
+    },
+  );
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      return {
-        success: false,
-        error: errorData.error || "Unknown error",
-      };
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      return {
-        success: true,
-        trip: data.trip,
-      };
-    }
-
+  if (result.success && result.data?.success && result.data.trip) {
     return {
-      success: false,
-      error: "Failed to save trip",
-    };
-  } catch (error) {
-    console.error("Failed to save trip:", error);
-    return {
-      success: false,
-      error: "An error occurred while saving.",
+      success: true,
+      trip: result.data.trip,
     };
   }
+
+  return {
+    success: false,
+    error: result.error || "Failed to save trip",
+  };
 }
 
 export async function refreshTripData(
   tripId: string,
 ): Promise<{ success: boolean; trip?: Trip }> {
-  try {
-    const res = await fetch(`/api/trips/${tripId}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-        return {
-          success: true,
-          trip: data.trip,
-        };
-      }
-    }
-    return { success: false };
-  } catch (error) {
-    console.error("Failed to refresh trip:", error);
-    return { success: false };
+  const result = await handleApiRequest<{ success: boolean; trip?: Trip }>(
+    `/api/trips/${tripId}`,
+    {
+      errorPrefix: "Failed to refresh trip",
+    },
+  );
+
+  if (result.success && result.data?.success && result.data.trip) {
+    return {
+      success: true,
+      trip: result.data.trip,
+    };
   }
+
+  return { success: false };
 }
 
 export function createHandleSave(
@@ -157,29 +144,24 @@ export function createHandleFileDelete(
 export async function endTrip(
   tripId: string,
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`/api/trips/${tripId}/end`, { method: "POST" });
+  const result = await handleApiRequest<{ success: boolean; error?: string }>(
+    `/api/trips/${tripId}/end`,
+    {
+      method: "POST",
+      errorPrefix: "Failed to end trip",
+    },
+  );
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      return {
-        success: false,
-        error: errorData.error || "Failed to end trip",
-      };
-    }
-
-    const data = await res.json();
+  if (result.success && result.data?.success) {
     return {
-      success: data.success || false,
-      error: data.success ? undefined : data.error || "Failed to end trip",
-    };
-  } catch (error) {
-    console.error("Failed to end trip", error);
-    return {
-      success: false,
-      error: "Failed to end trip",
+      success: true,
     };
   }
+
+  return {
+    success: false,
+    error: result.error || result.data?.error || "Failed to end trip",
+  };
 }
 
 export function createHandleEndTrip(
@@ -232,44 +214,31 @@ export async function uploadTripFile(
   tripId: string,
   file: File,
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const validationError = validateImageFile(file);
-    if (validationError) {
-      return { success: false, error: validationError };
-    }
+  const validationError = validateImageFile(file);
+  if (validationError) {
+    return { success: false, error: validationError };
+  }
 
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    const response = await fetch(`/api/trips/${tripId}/upload`, {
+  const result = await handleApiRequest<{ success: boolean; error?: string }>(
+    `/api/trips/${tripId}/upload`,
+    {
       method: "POST",
       body: formData,
-    });
+      errorPrefix: "Upload failed",
+    },
+  );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return {
-        success: false,
-        error: errorData.error || "Upload failed",
-      };
-    }
-
-    const data = await response.json();
-    if (!data.success) {
-      return {
-        success: false,
-        error: data.error || "Upload failed",
-      };
-    }
-
+  if (result.success && result.data?.success) {
     return { success: true };
-  } catch (error) {
-    console.error("Upload error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Upload failed",
-    };
   }
+
+  return {
+    success: false,
+    error: result.error || result.data?.error || "Upload failed",
+  };
 }
 
 export async function uploadFile(file: File): Promise<{
@@ -277,53 +246,34 @@ export async function uploadFile(file: File): Promise<{
   file?: { url: string; name: string; type: string; size: number };
   error?: string;
 }> {
-  try {
-    const validationError = validateImageFile(file);
-    if (validationError) {
-      return { success: false, error: validationError };
-    }
+  const validationError = validateImageFile(file);
+  if (validationError) {
+    return { success: false, error: validationError };
+  }
 
-    const response = await fetch(
-      `/api/upload?filename=${encodeURIComponent(file.name)}`,
-      {
-        method: "POST",
-        body: file,
-      },
-    );
+  const result = await handleApiRequest<{ url: string }>(
+    `/api/upload?filename=${encodeURIComponent(file.name)}`,
+    {
+      method: "POST",
+      body: file,
+      errorPrefix: "Upload failed",
+    },
+  );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage =
-        errorData.error || `Upload failed with status ${response.status}`;
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
-
-    const blob = await response.json();
-
-    if (!blob || !blob.url) {
-      return {
-        success: false,
-        error: "Invalid response from upload endpoint",
-      };
-    }
-
+  if (result.success && result.data?.url) {
     return {
       success: true,
       file: {
-        url: blob.url,
+        url: result.data.url,
         name: file.name,
         type: file.type,
         size: file.size,
       },
     };
-  } catch (error) {
-    console.error("Upload error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Upload failed",
-    };
   }
+
+  return {
+    success: false,
+    error: result.error || "Invalid response from upload endpoint",
+  };
 }

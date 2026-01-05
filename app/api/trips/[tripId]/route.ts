@@ -9,6 +9,14 @@ import {
   TripInvite,
   Trip as TripType,
 } from "@/app/types/Trip";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  validateJsonBody,
+  validateRequiredParam,
+  ApiError,
+  ApiResponse,
+} from "@/lib/utils/apiErrorHandler";
 
 interface RouteParams {
   params: Promise<{ tripId: string }>;
@@ -21,27 +29,14 @@ interface UpdateTripRequestBody {
   status?: "active" | "ended";
 }
 
-interface SuccessResponse<T = unknown> {
-  success: true;
-  trip?: T;
-}
-
-interface ErrorResponse {
-  success: false;
-  error: string;
-}
-
-type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
-
 export async function GET(
   req: NextRequest,
   { params }: RouteParams,
 ): Promise<NextResponse<ApiResponse>> {
   const authResult = await requireAuth();
   if (!authResult.success) {
-    return NextResponse.json<ErrorResponse>(
-      { success: false, error: "Unauthorized" },
-      { status: 401 },
+    return createErrorResponse(
+      new ApiError("Unauthorized", 401, "UNAUTHORIZED"),
     );
   }
 
@@ -49,20 +44,13 @@ export async function GET(
     await connectToDB();
 
     const { tripId } = await params;
-
-    if (!tripId || typeof tripId !== "string") {
-      return NextResponse.json<ErrorResponse>(
-        { success: false, error: "Invalid trip ID" },
-        { status: 400 },
-      );
-    }
+    validateRequiredParam(tripId, "tripId");
 
     const trip = await Trip.findById(tripId).lean();
 
     if (!trip) {
-      return NextResponse.json<ErrorResponse>(
-        { success: false, error: "Trip not found" },
-        { status: 404 },
+      return createErrorResponse(
+        new ApiError("Trip not found", 404, "TRIP_NOT_FOUND"),
       );
     }
 
@@ -72,18 +60,9 @@ export async function GET(
       additionalFiles: tripData.additionalFiles || [],
     };
 
-    return NextResponse.json<SuccessResponse>({
-      success: true,
-      trip: tripWithFiles,
-    });
+    return createSuccessResponse(undefined, 200, { trip: tripWithFiles });
   } catch (error) {
-    console.error("GET /api/trips/[tripId] error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json<ErrorResponse>(
-      { success: false, error: errorMessage },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Internal server error", 500);
   }
 }
 
@@ -95,38 +74,22 @@ export async function PUT(
     await connectToDB();
 
     const { tripId } = await params;
+    validateRequiredParam(tripId, "tripId");
 
-    if (!tripId || typeof tripId !== "string") {
-      return NextResponse.json<ErrorResponse>(
-        { success: false, error: "Invalid trip ID" },
-        { status: 400 },
-      );
-    }
-
-    let body: UpdateTripRequestBody;
-    try {
-      body = await req.json();
-    } catch (error) {
-      return NextResponse.json<ErrorResponse>(
-        { success: false, error: "Invalid request body" },
-        { status: 400 },
-      );
-    }
+    const body = await validateJsonBody<UpdateTripRequestBody>(req);
 
     const user = await getUserDB();
     if (!user) {
-      return NextResponse.json<ErrorResponse>(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
+      return createErrorResponse(
+        new ApiError("Unauthorized", 401, "UNAUTHORIZED"),
       );
     }
 
     const trip = await Trip.findById(tripId);
 
     if (!trip) {
-      return NextResponse.json<ErrorResponse>(
-        { success: false, error: "Trip not found" },
-        { status: 404 },
+      return createErrorResponse(
+        new ApiError("Trip not found", 404, "TRIP_NOT_FOUND"),
       );
     }
 
@@ -146,12 +109,12 @@ export async function PUT(
       );
 
     if (!isCreator && !isModerator) {
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          error: "Forbidden: Only creator or moderator can update trip",
-        },
-        { status: 403 },
+      return createErrorResponse(
+        new ApiError(
+          "Forbidden: Only creator or moderator can update trip",
+          403,
+          "FORBIDDEN",
+        ),
       );
     }
 
@@ -184,17 +147,8 @@ export async function PUT(
 
     const tripData = trip.toObject ? trip.toObject() : trip;
 
-    return NextResponse.json<SuccessResponse>({
-      success: true,
-      trip: tripData,
-    });
+    return createSuccessResponse(undefined, 200, { trip: tripData });
   } catch (error) {
-    console.error("PUT /api/trips/[tripId] error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json<ErrorResponse>(
-      { success: false, error: errorMessage },
-      { status: 500 },
-    );
+    return createErrorResponse(error, "Internal server error", 500);
   }
 }

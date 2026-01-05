@@ -1,6 +1,7 @@
 import * as React from "react";
 import { WorkTimeFormState } from "@/app/types/FormStates";
 import { WorkTimeOverride } from "@/components/workTime/WorkTimeForm";
+import { handleApiRequest } from "./apiErrorHandler";
 
 export function createInsertTag(
   activeTab: string,
@@ -127,20 +128,23 @@ export function createHandleAiGenerate(
 
     setGenerating(true);
     try {
-      const res = await fetch("/api/ai/generate-description", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          selectedTags: currentDesc ? currentDesc.split(",") : [],
-          fullText: fullText || undefined,
-          selectedText: selectedText.trim() || undefined,
-          tripId: tripId || undefined,
-          jobTitle: jobTitle || undefined,
-        }),
-      });
+      const result = await handleApiRequest<{ description?: string }>(
+        "/api/ai/generate-description",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedTags: currentDesc ? currentDesc.split(",") : [],
+            fullText: fullText || undefined,
+            selectedText: selectedText.trim() || undefined,
+            tripId: tripId || undefined,
+            jobTitle: jobTitle || undefined,
+          }),
+          errorPrefix: "Failed to generate description",
+        },
+      );
 
-      const data = await res.json();
-      if (data.description) {
+      if (result.success && result.data?.description) {
         let newDescription: string;
 
         if (selectedText.trim()) {
@@ -151,9 +155,9 @@ export function createHandleAiGenerate(
           const afterSelection = fullText.substring(
             textareaElement.selectionEnd,
           );
-          newDescription = `${beforeSelection}${data.description}${afterSelection}`;
+          newDescription = `${beforeSelection}${result.data.description}${afterSelection}`;
         } else {
-          newDescription = data.description;
+          newDescription = result.data.description;
         }
 
         if (activeTab === "me") {
@@ -161,6 +165,8 @@ export function createHandleAiGenerate(
         } else {
           updateOverride(activeTab, { description: newDescription });
         }
+      } else if (!result.success) {
+        alert("Failed to generate description. Please try again.");
       }
     } catch (error) {
       console.error("AI Gen Failed", error);
