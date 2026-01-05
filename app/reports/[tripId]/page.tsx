@@ -42,7 +42,7 @@ export default function ReportPage() {
       try {
         const [tripRes, logsRes, travelsRes] = await Promise.all([
           fetch(`/api/trips/${tripId}`),
-          fetch(`/api/daily-logs?tripId=${tripId}`),
+          fetch(`/api/daily-logs/unfiltered?tripId=${tripId}`),
           fetch(`/api/travels?tripId=${tripId}`),
         ]);
 

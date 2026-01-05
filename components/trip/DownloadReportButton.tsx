@@ -32,6 +32,29 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
 
   const generatePDF = async () => {
     setGenerating(true);
+
+    // Fetch all logs from the unfiltered route (includes shared/attendant logs)
+    let pdfLogs: DailyLogFormState[] = [];
+    try {
+      const logsRes = await fetch(
+        `/api/daily-logs/unfiltered?tripId=${trip._id}`,
+      );
+      const logsData = await logsRes.json();
+      if (logsData.success && logsData.logs) {
+        pdfLogs = logsData.logs as DailyLogFormState[];
+      } else {
+        // Fallback to passed logs if unfiltered route fails
+        console.warn(
+          "Failed to fetch logs from unfiltered route, using passed logs",
+        );
+        pdfLogs = logs;
+      }
+    } catch (error) {
+      console.error("Error fetching logs for PDF:", error);
+      // Fallback to passed logs
+      pdfLogs = logs;
+    }
+
     const doc = new jsPDF();
 
     if (robotoBase64) {
@@ -42,7 +65,7 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
 
     const attendantIds = trip.attendants?.map((a) => a.userId) || [];
     const allLogUserIds = new Set<string>();
-    logs.forEach((log) => {
+    pdfLogs.forEach((log) => {
       allLogUserIds.add(log.userId);
       log.appliedTo?.forEach((id) => allLogUserIds.add(id));
     });
@@ -116,7 +139,7 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
 
     headerY += 5;
 
-    const accommodationLogs = logs.filter(
+    const accommodationLogs = pdfLogs.filter(
       (l) => l.itemType === "accommodation",
     ) as AccommodationLog[];
     const totalNights = accommodationLogs.filter(
@@ -225,6 +248,10 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
     // Override first column to be slightly narrower for "Detail" label
     equalInfoColumnStyles[0] = { cellWidth: 30 };
 
+    // Start Participant Details table on a new page
+    doc.addPage();
+    headerY = 20;
+
     autoTable(doc, {
       startY: headerY,
       head: [infoHeaders],
@@ -248,20 +275,14 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
 
     let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Helper function to ensure table starts on new page with enough space
+    // Helper function to ensure table starts on new page
     const ensureTableSpace = (
       headerHeight: number = 10,
       minRowHeight: number = 20,
     ) => {
-      const pageHeight = doc.internal.pageSize.height;
-      const bottomMargin = 20;
-      const availableSpace = pageHeight - currentY - bottomMargin;
-      const requiredSpace = headerHeight + minRowHeight;
-
-      if (availableSpace < requiredSpace) {
-        doc.addPage();
-        currentY = 20;
-      }
+      // Always start each table on a new page
+      doc.addPage();
+      currentY = 20;
     };
 
     const drawModuleTable = async (
@@ -269,7 +290,7 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
       tableTitle: string,
       formatCell: (log: DailyLogFormState) => string,
     ) => {
-      const filteredLogs = logs.filter(
+      const filteredLogs = pdfLogs.filter(
         (l) => (l.itemType || "additional").toLowerCase() === typeFilter,
       );
 
@@ -467,7 +488,7 @@ export function DownloadReportButton({ trip, logs, travels = [] }: Props) {
 
     // Draw Travel entries separately (not from DailyLog) - Grouped by date
     if (travels.length > 0) {
-      // Ensure table starts on new page with enough space
+      // Ensure table starts on new page
       ensureTableSpace(10, 20);
 
       doc.setFontSize(14);

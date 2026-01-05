@@ -78,12 +78,55 @@ export async function DELETE(
 
     await connectToDB();
 
+    // Get the log before deleting to retrieve its UUID (id field) and relatedLogs
+    const logToDelete = await DailyLog.findById(id).lean();
+
+    if (!logToDelete) {
+      return createErrorResponse(
+        new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
+      );
+    }
+
+    // Get the UUID (id field) of the log being deleted
+    const deletedLogId = (logToDelete as any).id as string | undefined;
+    // Get the relatedLogs array (contains UUIDs of logs that should also be deleted)
+    const relatedLogIds = ((logToDelete as any).relatedLogs || []) as string[];
+
+    // Delete all logs referenced in relatedLogs array (by their UUID id field)
+    if (relatedLogIds.length > 0) {
+      try {
+        await DailyLog.deleteMany({ id: { $in: relatedLogIds } });
+      } catch (relatedDeleteError) {
+        // Log the error but continue with main deletion
+        console.error("Error deleting related logs:", relatedDeleteError);
+      }
+    }
+
+    // Delete the main log
     const result = await DailyLog.findByIdAndDelete(id);
 
     if (!result) {
       return createErrorResponse(
         new ApiError("Log not found", 404, "LOG_NOT_FOUND"),
       );
+    }
+
+    // If the log had a UUID, remove it from all relatedLogs arrays
+    if (deletedLogId) {
+      try {
+        // Find all logs that have this deleted log's ID in their relatedLogs array
+        // and remove it using $pull operator
+        await DailyLog.updateMany(
+          { relatedLogs: deletedLogId },
+          { $pull: { relatedLogs: deletedLogId } },
+        );
+      } catch (cleanupError) {
+        // Log the error but don't fail the deletion
+        console.error(
+          "Error cleaning up relatedLogs references:",
+          cleanupError,
+        );
+      }
     }
 
     return createSuccessResponse(undefined, 200, {
