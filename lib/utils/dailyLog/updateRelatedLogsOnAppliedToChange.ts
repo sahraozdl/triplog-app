@@ -13,7 +13,7 @@ export async function updateRelatedLogsOnAppliedToChange(
 ): Promise<void> {
   // Only update if this is a main log (isGroupSource === true)
   const log = await DailyLog.findById(logId).lean();
-  if (!log || !log.isGroupSource) {
+  if (!log || Array.isArray(log) || !(log as any).isGroupSource) {
     return; // Not a main log, no need to update
   }
 
