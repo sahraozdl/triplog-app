@@ -15,8 +15,8 @@ import {
   validateJsonBody,
   validateRequiredParam,
   ApiError,
-  ApiResponse,
 } from "@/lib/utils/apiErrorHandler";
+import type { ApiResponse } from "@/lib/utils/apiErrorHandler";
 
 interface RouteParams {
   params: Promise<{ tripId: string }>;
