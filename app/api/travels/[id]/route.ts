@@ -107,12 +107,23 @@ export async function PUT(
     }
 
     await connectToDB();
-    const body = await validateJsonBody(req);
+    const body = await validateJsonBody<{
+      _id?: string;
+      files?: Array<{
+        url: string;
+        name: string;
+        type: string;
+        size: number;
+      }> | string;
+      [key: string]: unknown;
+    }>(req);
 
     // Verify the travel exists
     const existingTravel = await Travel.findById(id);
     if (!existingTravel) {
-      return NextResponse.json({ error: "Travel not found" }, { status: 404 });
+      return createErrorResponse(
+        new ApiError("Travel not found", 404, "TRAVEL_NOT_FOUND"),
+      );
     }
 
     // Ensure files is always an array of objects
@@ -165,7 +176,7 @@ export async function PUT(
     }
 
     // Extract update data, ensuring we don't allow changing the _id
-    const { _id, files: _files, ...updateFields } = body;
+    const { _id, files: _files, ...updateFields } = body as Record<string, unknown>;
 
     // Ensure the ID in the body matches the URL parameter (strict scoping)
     if (_id && _id.toString() !== id) {

@@ -19,7 +19,23 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
 
-    const body = await validateJsonBody(req);
+    const body = await validateJsonBody<{
+      tripId?: string;
+      userId?: string;
+      dateTime?: string;
+      appliedTo?: string[];
+      isGroupSource?: boolean;
+      travelReason?: string;
+      vehicleType?: string;
+      departureLocation?: string;
+      destination?: string;
+      distance?: number | null;
+      isRoundTrip?: boolean;
+      startTime?: string;
+      endTime?: string;
+      files?: unknown[];
+      [key: string]: unknown;
+    }>(req);
 
     if (!body.tripId) {
       return createErrorResponse(
