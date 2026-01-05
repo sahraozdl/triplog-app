@@ -9,7 +9,7 @@ import { AdditionalLog } from "@/app/models/DailyLog";
 import {
   createErrorResponse,
   createSuccessResponse,
-  validateRequiredParam,
+  validateJsonBody,
   ApiError,
 } from "@/lib/utils/apiErrorHandler";
 
@@ -112,7 +112,12 @@ export async function PUT(
     }
 
     await connectToDB();
-    const body = await validateJsonBody(req);
+    const body = await validateJsonBody<{
+      _id?: string;
+      data?: unknown;
+      itemType?: string;
+      [key: string]: unknown;
+    }>(req);
 
     const existingLog = await DailyLog.findById(id);
     if (!existingLog) {
