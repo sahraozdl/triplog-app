@@ -24,7 +24,17 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectToDB();
-    const body = await validateJsonBody(req);
+    const body = await validateJsonBody<{
+      itemType?: string;
+      tripId?: string;
+      userId?: string;
+      dateTime?: string;
+      appliedTo?: string[];
+      isGroupSource?: boolean;
+      data?: unknown;
+      files?: unknown[];
+      [key: string]: unknown;
+    }>(req);
 
     if (!body.itemType) {
       return createErrorResponse(
