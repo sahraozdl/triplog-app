@@ -9,6 +9,9 @@ export interface UploadedFile {
 
 export interface BaseLog {
   _id: string | mongoose.Types.ObjectId;
+  id?: string;
+  relatedLogs?: string[];
+
   tripId: string;
   userId: string;
 
