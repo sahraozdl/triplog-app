@@ -14,11 +14,27 @@ export async function linkRelatedLogsOnCreate(
   isGroupSource: boolean,
   appliedTo: string[],
 ): Promise<void> {
+  // Validate required parameters
+  if (!tripId || !dateTime || !itemType || !userId) {
+    console.warn("linkRelatedLogsOnCreate: Missing required parameters", {
+      tripId,
+      dateTime,
+      itemType,
+      userId,
+    });
+    return;
+  }
+
   // Extract date from dateTime for querying
   const date = dateTime.split("T")[0];
 
   if (isGroupSource) {
     // This is a main log - find all attendant logs that match the criteria
+    if (!appliedTo || appliedTo.length === 0) {
+      // No appliedTo means no attendant logs to link
+      return;
+    }
+
     const allLogs = await DailyLog.find({
       tripId,
       dateTime: { $regex: new RegExp(`^${date}`) },
@@ -31,8 +47,9 @@ export async function linkRelatedLogsOnCreate(
         (log) =>
           log.id && // Must have UUID
           log.tripId === tripId &&
-          log.dateTime === dateTime &&
+          log.dateTime === dateTime && // Exact dateTime match
           log.itemType === itemType &&
+          Array.isArray(appliedTo) &&
           appliedTo.includes(log.userId) &&
           !log.isGroupSource,
       )
@@ -65,13 +82,14 @@ export async function linkRelatedLogsOnCreate(
     if (mainLog && mainLog._id) {
       // Get the created log's id
       const createdLog = await DailyLog.findById(createdLogId).lean();
-      if (createdLog && createdLog.id) {
+      if (createdLog && !Array.isArray(createdLog) && (createdLog as any).id) {
+        const createdLogIdValue = (createdLog as any).id as string;
         // Get current relatedLogs from main log
         const currentRelatedLogs = (mainLog.relatedLogs || []) as string[];
 
         // Add this attendant log's id if not already present
-        if (!currentRelatedLogs.includes(createdLog.id)) {
-          const updatedRelatedLogs = [...currentRelatedLogs, createdLog.id];
+        if (!currentRelatedLogs.includes(createdLogIdValue)) {
+          const updatedRelatedLogs = [...currentRelatedLogs, createdLogIdValue];
 
           // Update the main log with the new relatedLogs
           await DailyLog.findByIdAndUpdate(mainLog._id, {
