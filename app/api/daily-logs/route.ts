@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       dateTime?: string;
       appliedTo?: string[];
       isGroupSource?: boolean;
-      data?: unknown;
+      data?: Record<string, unknown>;
       files?: unknown[];
       [key: string]: unknown;
     }>(req);
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       dateTime: body.dateTime,
       appliedTo: body.appliedTo || [],
       isGroupSource: body.isGroupSource || false,
-      ...body.data,
+      ...(body.data || {}),
       files: body.files || [],
       sealed: false,
     });
