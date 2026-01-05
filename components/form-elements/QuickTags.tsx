@@ -40,11 +40,10 @@ export function QuickTags({
     if (!isSelected) {
       setLoadingTag(tag);
       try {
-        const res = await fetch("/api/ai/generate", {
+        const res = await fetch("/api/ai/generate-tags", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "suggest_tags",
             context: tag,
             tripId: tripId || undefined,
             jobTitle: jobTitle || undefined,

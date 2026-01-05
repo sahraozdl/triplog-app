@@ -127,12 +127,10 @@ export function createHandleAiGenerate(
 
     setGenerating(true);
     try {
-      const res = await fetch("/api/ai/generate", {
+      const res = await fetch("/api/ai/generate-description", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "generate_description",
-          timeRange: `${currentStart} - ${currentEnd}`,
           selectedTags: currentDesc ? currentDesc.split(",") : [],
           fullText: fullText || undefined,
           selectedText: selectedText.trim() || undefined,
